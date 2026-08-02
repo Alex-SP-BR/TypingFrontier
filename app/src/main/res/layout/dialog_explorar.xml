@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Título -->
+    <TextView
+        android:id="@+id/txtTituloExplorar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Exploração"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="12dp"/>
+
+    <!-- Descrição do evento -->
+    <TextView
+        android:id="@+id/txtDescricaoEvento"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Você encontra uma figura suspeita no caminho..."
+        android:textSize="16sp"
+        android:paddingBottom="16dp"/>
+
+    <!-- ⚔️ Enfrentar -->
+    <Button
+        android:id="@+id/btnEnfrentar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="⚔️ Enfrentar"/>
+
+    <!-- 🏃 Correr -->
+    <Button
+        android:id="@+id/btnCorrer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🏃 Correr"
+        android:layout_marginTop="6dp"/>
+
+    <!-- 🆘 Pedir Ajuda -->
+    <Button
+        android:id="@+id/btnPedirAjuda"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🆘 Pedir Ajuda"
+        android:layout_marginTop="6dp"/>
+
+    <!-- 🗣 Conversar -->
+    <Button
+        android:id="@+id/btnConversar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🗣 Conversar"
+        android:layout_marginTop="6dp"/>
+
+    <!-- ❌ Sair -->
+    <Button
+        android:id="@+id/btnSair"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="❌ Sair"
+        android:layout_marginTop="12dp"/>
+</LinearLayout>
