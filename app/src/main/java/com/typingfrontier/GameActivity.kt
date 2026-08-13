@@ -38,6 +38,62 @@ class GameActivity : AppCompatActivity() {
             abrirExploracao()
         }
 
+        binding.btnHelpExplore.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("🌍 Explorar")
+                .setMessage("Aventure-se na cidade para ganhar XP e dinheiro. Cada avanço consome 5 de Energia, 7 de Energia Mental e 1h15 do dia. Cuidado: falhas críticas podem levar à hospitalização!")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
+        binding.btnHelpWork.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("💼 Trabalhar")
+                .setMessage("Sua principal fonte de renda. Consome 35 de Energia e 11 de Energia Mental. O salário aumenta conforme seu nível e atributos mentais. Disponível 1x ao dia.")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
+        binding.btnHelpTrainPhysical.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("🏋️ Físico")
+                .setMessage("Melhore Força, Resistência ou Velocidade. Consome Energia, Energia Mental e tempo (30m a 1h). Risco de falha se estiver com a mente exausta!")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
+        binding.btnHelpTrainMental.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("🧠 Mental")
+                .setMessage("Estude Português ou Matemática para desenvolver Inteligência e Carisma. Não consome tempo, mas estudar de madrugada consome muito mais Energia e Mente.")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
+        binding.btnHelpEat.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("🥪 Comer")
+                .setMessage("Recupere 20 pontos de Energia Física por meio de uma refeição. Custa dinheiro conforme sua profissão. Lanchonetes fecham às 22h.")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
+        binding.btnHelpRest.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("🧘 Pausa")
+                .setMessage("Recupere 20 pontos de Energia Mental instantaneamente. Não gasta dinheiro nem tempo. Disponível apenas uma vez por dia.")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
+        binding.btnHelpSleep.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("😴 Dormir")
+                .setMessage("Encerre o dia e restaure seus status. O aluguel é cobrado automaticamente. Se não tiver dinheiro, você dormirá na rua com penalidades de Vida.")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
         binding.btnComer.setOnClickListener {
             val result = GameEngine.dispatch(GameAction.Eat)
             

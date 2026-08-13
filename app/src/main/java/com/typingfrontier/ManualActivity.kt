@@ -41,15 +41,15 @@ class ManualActivity : AppCompatActivity() {
             
             ManualTopic("🥪 Alimentação", "Essencial para recuperar energia física durante o dia. Cada refeição custa dinheiro e ajuda você a continuar produzindo sem precisar dormir cedo."),
             
-            ManualTopic("🧘 Descanso (Pausa)", "Uma pausa rápida ajuda a recuperar um pouco de energia mental sem gastar dinheiro. Disponível apenas uma vez por dia e somente após realizar o trabalho do dia."),
+            ManualTopic("🧘 Descanso (Pausa)", "Uma pausa rápida ajuda a recuperar um pouco de energia mental sem gastar dinheiro. Disponível apenas uma vez por dia."),
             
             ManualTopic("😴 Dormir", "A ação mais importante para fechar o ciclo. Dormir reseta sua energia e mente, e restaura sua capacidade de trabalhar. Exige o pagamento do aluguel diário. Se não tiver dinheiro, você dormirá na rua com penalidades."),
             
             ManualTopic("🧠 Treino Mental", "O pilar do jogo! Pratique português e matemática para subir Inteligência e Carisma. É barato e incentiva o aprendizado constante. Disponível a qualquer hora, mas estudar durante a madrugada consome muito mais recursos do seu personagem."),
             
-            ManualTopic("🏋️ Treino Físico", "Melhora Força, Resistência e Velocidade. Cada sessão consome tempo, energia física e mental.\n\n• Tempo: Entre 30min e 2h por treino.\n• Risco de Falha: Treinos possuem chance de erro. Você ganha +1% de chance de sucesso a cada 3 níveis de personagem.\n• Exaustão: Se a Energia Mental estiver abaixo de 20%, o risco de falha aumenta consideravelmente."),
+            ManualTopic("🏋️ Treino Físico", "Melhora Força, Resistência e Velocidade. Cada sessão consome tempo, energia física e mental.\n\n• Tempo: Entre 30min e 1h por treino.\n• Risco de Falha: Treinos possuem chance de erro. Você ganha +1% de chance de sucesso a cada 3 níveis de personagem.\n• Exaustão: Se a Energia Mental estiver abaixo de 20%, o risco de falha aumenta consideravelmente."),
 
-            ManualTopic("🌍 Exploração", "Aventure-se por São Paulo! Ganhe muito dinheiro e XP arriscando-se em zonas desconhecidas.\n\n• Limites: Máximo de 5 avanços (etapas) por expedição.\n• Tempo: Cada etapa consome 2 horas do seu dia.\n• Recompensas: Quanto mais fundo você for, maior o multiplicador de recompensa (até 4.5x na 5ª etapa).\n• Fuga: Você pode sair a qualquer momento com o que coletou."),
+            ManualTopic("🌍 Exploração", "Aventure-se por São Paulo! Ganhe muito dinheiro e XP arriscando-se em zonas desconhecidas.\n\n• Limites: Máximo de 5 avanços (etapas) por expedição.\n• Tempo: Cada etapa consome 1 hora e 15 minutos do seu dia.\n• Recompensas: Quanto mais fundo você for, maior o multiplicador de recompensa (até 4.5x na 5ª etapa).\n• Fuga: Você pode sair a qualquer momento com o que coletou."),
 
             ManualTopic("📍 Requisitos de Exploração", "Recomendações de nível de atributo para ter boas chances de sucesso. Atributos mentais são essenciais, enquanto físicos servem como apoio tático:\n\n" +
                 "• Parque da Cidade\n  - Foco: Inteligência Lv.1+\n  - Apoio: Velocidade Lv.1+\n\n" +

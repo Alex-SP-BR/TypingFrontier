@@ -11,5 +11,6 @@ enum class PortugueseExerciseType {
     CLASSE_GRAMATICAL,
     ACENTUACAO,
     INTERPRETACAO,
-    VOCABULARIO
+    VOCABULARIO,
+    ORTOGRAFIA
 }

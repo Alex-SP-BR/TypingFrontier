@@ -113,6 +113,17 @@ object ExplorationZoneRepository {
             recompensaBaseDinheiro = 1800,
             chanceItemRaro = 25,
             ambiente = "nos túneis"
+        ),
+        ExplorationZone(
+            id = "rio_construcao",
+            nome = "🚄 Rio de Janeiro",
+            descricao = "[ EM CONSTRUÇÃO ] — Esta conexão será disponibilizada em uma futura expansão.",
+            nivelMinimo = 1,
+            riscoBase = 0,
+            atributoPrincipal = "INTELIGENCIA",
+            recompensaBaseXp = 0,
+            recompensaBaseDinheiro = 0,
+            chanceItemRaro = 0
         )
     )
 

@@ -62,6 +62,11 @@ class ExplorationActivity : AppCompatActivity() {
         val rv = findViewById<RecyclerView>(R.id.rvZonas)
         rv.layoutManager = LinearLayoutManager(this)
         rv.adapter = ExplorationZoneAdapter(ExplorationZoneRepository.zonas) { zona ->
+            if (zona.id == "rio_construcao") {
+                Toast.makeText(this, "Rio de Janeiro — Em construção. Esta região será disponibilizada em uma futura expansão.", Toast.LENGTH_LONG).show()
+                return@ExplorationZoneAdapter
+            }
+
             if (PlayerManager.player.nivel >= zona.nivelMinimo) {
                 iniciarExploracao(zona)
             } else {

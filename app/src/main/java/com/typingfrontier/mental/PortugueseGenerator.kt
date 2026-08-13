@@ -385,20 +385,48 @@ object PortugueseGenerator {
                     tipo
                 )
             }
+
+            PortugueseExerciseType.ORTOGRAFIA -> {
+                val desafio = PortugueseOrthographyRepository.desafios.random()
+                val aCerta = (1..2).random() == 1
+                val questao = "Qual está correta?\n\n" + 
+                    (if (aCerta) "A) ${desafio.correct}\nB) ${desafio.wrong}" 
+                     else "A) ${desafio.wrong}\nB) ${desafio.correct}")
+                
+                PortugueseQuestion(
+                    questao,
+                    desafio.correct,
+                    desafio.tip,
+                    45,
+                    tipo
+                )
+            }
         }
     }
 
     fun validarSinonimo(pergunta: PortugueseQuestion, respostaUser: String): Boolean {
-        if (pergunta.tipo != PortugueseExerciseType.VOCABULARIO) return false
+        if (pergunta.tipo == PortugueseExerciseType.VOCABULARIO) {
+            // Extrai a palavra original da pergunta (está após o ": ")
+            val palavraOriginal = pergunta.pergunta.substringAfter(": ").lowercase()
+            val sinonimos = mapaSinonimos[palavraOriginal] ?: return false
+            return sinonimos.any { it.equals(respostaUser.trim(), ignoreCase = true) }
+        }
+
+        if (pergunta.tipo == PortugueseExerciseType.ORTOGRAFIA) {
+            val resp = respostaUser.trim().uppercase()
+            if (resp == "A" || resp == "B") {
+                // Verifica se a letra escolhida contém a palavra correta na pergunta original
+                return pergunta.pergunta.split("\n")
+                    .any { it.startsWith("$resp)") && it.contains(pergunta.respostaCorreta, ignoreCase = true) }
+            }
+        }
         
-        // Extrai a palavra original da pergunta (está após o ": ")
-        val palavraOriginal = pergunta.pergunta.substringAfter(": ").lowercase()
-        val sinonimos = mapaSinonimos[palavraOriginal] ?: return false
-        
-        return sinonimos.any { it.equals(respostaUser.trim(), ignoreCase = true) }
+        return false
     }
 
     private val mapaSilabas = mapOf(
+        "que" to 1,
+        "aquele" to 3,
         "pão" to 1, "mão" to 1, "pneu" to 1, "leu" to 1, "gol" to 1, "com" to 1, "o" to 1, "a" to 1, "os" to 1, "as" to 1, "um" to 1, "e" to 1,
         "aula" to 2, "peixe" to 2, "noite" to 2, "viagem" to 3, "avião" to 3, "lição" to 2, "ladrão" to 2, "violão" to 3,
         "plantação" to 3, "anotações" to 4, "notícia" to 3, "mistério" to 3, "remédio" to 3, "história" to 3, "vitória" to 3,
