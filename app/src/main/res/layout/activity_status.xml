@@ -37,7 +37,14 @@
 
                 <TextView android:id="@+id/txtIdentidade" android:textSize="16sp" android:textColor="#333333" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
                 <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEEEEE" android:layout_marginVertical="8dp"/>
-                <TextView android:id="@+id/txtNivel" android:textStyle="bold" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView android:id="@+id/txtNivel" android:textStyle="bold" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"/>
+                    <TextView android:id="@+id/btnHelpNivel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="\?" android:textColor="#999999" android:textStyle="bold" android:textSize="14sp" />
+                </LinearLayout>
                 <ProgressBar android:id="@+id/progressNivel" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="4dp" android:progressTint="#2196F3"/>
                 <TextView android:id="@+id/txtXpPercentual" android:textSize="12sp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
             </LinearLayout>
@@ -59,19 +66,54 @@
 
                 <TextView android:text="Atributos" android:textStyle="bold" android:layout_marginBottom="12dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
 
-                <TextView android:id="@+id/txtForca" android:textSize="14sp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView android:id="@+id/txtForca" android:textSize="14sp" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"/>
+                    <TextView android:id="@+id/btnHelpForca" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="\?" android:textColor="#999999" android:textStyle="bold" android:textSize="14sp" />
+                </LinearLayout>
                 <ProgressBar android:id="@+id/progressForca" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="match_parent" android:layout_height="4dp" android:progressTint="#F44336" android:layout_marginBottom="8dp"/>
 
-                <TextView android:id="@+id/txtVelocidade" android:textSize="14sp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView android:id="@+id/txtVelocidade" android:textSize="14sp" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"/>
+                    <TextView android:id="@+id/btnHelpVelocidade" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="\?" android:textColor="#999999" android:textStyle="bold" android:textSize="14sp" />
+                </LinearLayout>
                 <ProgressBar android:id="@+id/progressVelocidade" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="match_parent" android:layout_height="4dp" android:progressTint="#4CAF50" android:layout_marginBottom="8dp"/>
 
-                <TextView android:id="@+id/txtInteligencia" android:textSize="14sp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView android:id="@+id/txtInteligencia" android:textSize="14sp" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"/>
+                    <TextView android:id="@+id/btnHelpInteligencia" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="\?" android:textColor="#999999" android:textStyle="bold" android:textSize="14sp" />
+                </LinearLayout>
                 <ProgressBar android:id="@+id/progressInteligencia" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="match_parent" android:layout_height="4dp" android:progressTint="#3F51B5" android:layout_marginBottom="8dp"/>
 
-                <TextView android:id="@+id/txtResistencia" android:textSize="14sp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView android:id="@+id/txtResistencia" android:textSize="14sp" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"/>
+                    <TextView android:id="@+id/btnHelpResistencia" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="\?" android:textColor="#999999" android:textStyle="bold" android:textSize="14sp" />
+                </LinearLayout>
                 <ProgressBar android:id="@+id/progressResistencia" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="match_parent" android:layout_height="4dp" android:progressTint="#FF9800" android:layout_marginBottom="8dp"/>
 
-                <TextView android:id="@+id/txtCarisma" android:textSize="14sp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView android:id="@+id/txtCarisma" android:textSize="14sp" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"/>
+                    <TextView android:id="@+id/btnHelpCarisma" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="\?" android:textColor="#999999" android:textStyle="bold" android:textSize="14sp" />
+                </LinearLayout>
                 <ProgressBar android:id="@+id/progressCarisma" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="match_parent" android:layout_height="4dp" android:progressTint="#E91E63" android:layout_marginBottom="8dp"/>
 
             </LinearLayout>

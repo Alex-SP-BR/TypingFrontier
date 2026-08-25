@@ -226,7 +226,7 @@ object GameEngine {
         }
         
         // XP Reduzido para Físico (Mental continua 25 fixo)
-        var ganhoXP = if (isMental) 25 else when (intensidade) { "LEVE" -> 8; "MEDIO" -> 20; else -> 45 }
+        var ganhoXP = if (isMental) 25 else when (intensidade) { "LEVE" -> 6; "MEDIO" -> 15; else -> 34 }
         if (config?.bonusTreino == atributo) ganhoXP = (ganhoXP * 1.5).toInt()
 
         applyAttributeXP(atributo, ganhoXP)

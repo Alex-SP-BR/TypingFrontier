@@ -37,7 +37,7 @@ object PortugueseOrthographyRepository {
         OrthographyChallenge("PROCESSO", "PROCESO", "Processo é com SS."),
         OrthographyChallenge("POSSESSIVO", "POSESIVO", "Possessivo usa SS."),
         OrthographyChallenge("IMPRESSÃO", "IMPRESÃO", "Impressão é com SS."),
-        OrthographyChallenge("DEPESSA", "DEPESA", "Depressa usa SS."),
+        OrthographyChallenge("DEPRESSA", "DEPESA", "Depressa usa SS."),
         OrthographyChallenge("AVESSO", "AVESO", "Avesso é com SS."),
 
         // --- S e Z ---
@@ -70,7 +70,7 @@ object PortugueseOrthographyRepository {
         OrthographyChallenge("AZUL", "ASUL", "Azul é com Z."),
         OrthographyChallenge("AMIZADE", "AMISADE", "Amizade usa Z."),
         OrthographyChallenge("BATIZADO", "BATISADO", "Batizado é com Z."),
-        OrthographyChallenge("BUREAUCRACIA", "BUROCRACIA", "Burocracia usa S (derivado de bureau)."),
+        OrthographyChallenge("BUROCRACIA", "BUROCRASIA", "Burocracia é com C."),
 
         // --- S e Ç ---
         OrthographyChallenge("EXCEÇÃO", "EXCESÃO", "Exceção é com Ç."),
@@ -119,9 +119,7 @@ object PortugueseOrthographyRepository {
         OrthographyChallenge("ANEL", "ANEU", "Anel termina com L."),
         OrthographyChallenge("QUARTEL", "QUARTEU", "Quartel termina com L."),
         OrthographyChallenge("CORONEL", "CORONEU", "Coronel termina com L."),
-        OrthographyChallenge("MEL", "MEU", "Mel termina com L."),
         OrthographyChallenge("SAL", "SAU", "Sal termina com L."),
-        OrthographyChallenge("SOL", "SOU", "Sol termina com L."),
         OrthographyChallenge("BRASIL", "BRASIU", "Brasil termina com L."),
         OrthographyChallenge("CANTIL", "CANTIU", "Cantil termina com L."),
         OrthographyChallenge("BARRIL", "BARRIU", "Barril termina com L."),
@@ -129,10 +127,8 @@ object PortugueseOrthographyRepository {
         OrthographyChallenge("MINGAU", "MINGAL", "Mingau termina com U."),
         OrthographyChallenge("DEGRAUS", "DEGRALS", "Plural de degrau é degraus."),
         OrthographyChallenge("TROFÉUS", "TROFÉS", "Plural de troféu é troféus."),
-        OrthographyChallenge("PINCÉIS", "PINCÉIS", "Plural de pincel."),
+        OrthographyChallenge("PINCÉIS", "PINCEIS", "Plural de pincel tem acento."),
         OrthographyChallenge("PAU", "PAL", "Pau (madeira) termina com U."),
-        OrthographyChallenge("MAL", "MAU", "Mal (advérbio) oposto de bem."),
-        OrthographyChallenge("MAU", "MAL", "Mau (adjetivo) oposto de bom."),
         OrthographyChallenge("LEGAL", "LEGAU", "Legal termina com L."),
         OrthographyChallenge("VARAL", "VARAU", "Varal termina com L."),
 

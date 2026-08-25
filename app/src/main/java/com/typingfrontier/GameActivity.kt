@@ -94,6 +94,38 @@ class GameActivity : AppCompatActivity() {
                 .show()
         }
 
+        binding.btnHelpVida.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("❤️ Vida")
+                .setMessage("Representa sua condição física. Se chegar a zero, determinadas consequências podem ocorrer durante o jogo.")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
+        binding.btnHelpNivel.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("⭐ Nível")
+                .setMessage("Representa seu progresso geral. Ganhe XP em atividades e aventuras para subir de nível e aumentar o limite de seus atributos.")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
+        binding.btnHelpEnergia.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("⚡ Energia")
+                .setMessage("Representa sua disposição física para realizar atividades durante o dia.")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
+        binding.btnHelpMente.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("🧠 Energia Mental")
+                .setMessage("Representa sua capacidade mental para estudar e realizar atividades intelectuais.")
+                .setPositiveButton("Entendi", null)
+                .show()
+        }
+
         binding.btnComer.setOnClickListener {
             val result = GameEngine.dispatch(GameAction.Eat)
             

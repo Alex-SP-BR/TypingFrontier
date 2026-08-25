@@ -1,60 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F5F5F5"
-    android:orientation="vertical"
+    android:fillViewport="true"
     android:fitsSystemWindows="true">
 
-    <!-- HEADER -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
-        android:elevation="4dp"
-        android:orientation="vertical"
-        android:padding="0dp">
+        android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/imgManualBanner"
-            android:layout_width="match_parent"
-            android:layout_height="250dp"
-            android:scaleType="fitCenter"
-            android:background="#000000"
-            android:src="@drawable/app_icon_base" />
-
+        <!-- HEADER -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp"
-            android:gravity="center_vertical">
+            android:background="#FFFFFF"
+            android:elevation="4dp"
+            android:orientation="vertical"
+            android:padding="0dp">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="📖 Manual do Jogador"
-                android:textColor="#333333"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+            <ImageView
+                android:id="@+id/imgManualBanner"
+                android:layout_width="match_parent"
+                android:layout_height="250dp"
+                android:scaleType="fitCenter"
+                android:background="#000000"
+                android:src="@drawable/app_icon_base" />
 
-            <Button
-                android:id="@+id/btnFecharManual"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Fechar" />
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="📖 Manual do Jogador"
+                    android:textColor="#333333"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnFecharManual"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Fechar" />
+            </LinearLayout>
         </LinearLayout>
+
+        <!-- CONTEÚDO -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvManual"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"
+            android:clipToPadding="false"
+            android:padding="16dp" />
+
     </LinearLayout>
-
-    <!-- CONTEÚDO -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvManual"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:padding="16dp" />
-
-</LinearLayout>
+</androidx.core.widget.NestedScrollView>

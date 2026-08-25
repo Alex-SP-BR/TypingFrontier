@@ -282,8 +282,13 @@ object PortugueseGenerator {
                 val palavra = palavrasValidas.randomOrNull() ?: "casa"
 
                 val genero = mapaGeneros[palavra] ?: if (palavra.endsWith("a") || palavra.endsWith("as")) "feminino" else "masculino"
+                
+                val aCerta = (1..2).random() == 1
+                val questao = "Na frase: \"$frase\"\n\nA palavra \"$palavra\" está no masculino ou feminino?\n\n" +
+                        (if (aCerta) "A) Masculino\nB) Feminino" else "A) Feminino\nB) Masculino")
+
                 PortugueseQuestion(
-                    "A palavra \"$palavra\" está no masculino ou feminino?",
+                    questao,
                     genero,
                     "Identifique o gênero gramatical correto.",
                     20,
@@ -297,9 +302,9 @@ object PortugueseGenerator {
                 val sujeito = if (artigos.contains(primeira)) palavras.getOrNull(1) ?: primeira else primeira
 
                 PortugueseQuestion(
-                    "Qual é o sujeito da frase:\n\n\"$frase\"",
+                    "Qual é o núcleo do sujeito da frase:\n\n\"$frase\"",
                     sujeito,
-                    "O sujeito pratica a ação.",
+                    "O núcleo do sujeito é a palavra principal.",
                     30,
                     tipo
                 )
@@ -331,10 +336,32 @@ object PortugueseGenerator {
             }
 
             PortugueseExerciseType.CLASSE_GRAMATICAL -> {
-                val palavra = palavras.randomOrNull() ?: "palavra"
-                val classe = mapaClasses[palavra] ?: "substantivo"
+                val indexSorteado = palavras.indices.randomOrNull() ?: 0
+                val palavra = palavras.getOrNull(indexSorteado) ?: "palavra"
+                
+                var classe = mapaClasses[palavra] ?: "substantivo"
+                
+                // Correção contextual para a palavra "a" (Artigo vs Preposição)
+                if (palavra == "a") {
+                    val proximaPalavra = palavras.getOrNull(indexSorteado + 1)
+                    if (proximaPalavra != null && mapaClasses[proximaPalavra] == "verbo") {
+                        classe = "preposição"
+                    }
+                }
+
+                val todasAsClasses = listOf("substantivo", "verbo", "artigo", "preposição", "adjetivo", "advérbio", "conjunção")
+                val numAlternativas = (3..4).random()
+                val distratores = todasAsClasses.filter { it != classe }.shuffled().take(numAlternativas - 1)
+                val opcoes = (distratores + classe).shuffled()
+                
+                val builder = StringBuilder("Na frase: \"$frase\"\n\nA palavra \"$palavra\" é qual classe gramatical?\n\n")
+                opcoes.forEachIndexed { i, opt ->
+                    val letra = ('A'.code + i).toChar()
+                    builder.append("$letra) ${opt.replaceFirstChar { it.uppercase() }}\n")
+                }
+
                 PortugueseQuestion(
-                    "A palavra \"$palavra\" é qual classe gramatical?",
+                    builder.toString().trim(),
                     classe,
                     "Identifique se é substantivo, verbo, adjetivo, artigo, etc.",
                     60,
@@ -345,8 +372,14 @@ object PortugueseGenerator {
             PortugueseExerciseType.ACENTUACAO -> {
                 val palavra = palavras.randomOrNull() ?: "palavra"
                 val temAcento = if (palavra.any { "áéíóúâêôãõ".contains(it) }) "sim" else "não"
+                
+                val aCerta = (1..2).random() == 1
+                val palavraLimpa = removerAcentos(palavra)
+                val questao = "Na frase: \"$frase\"\n\nA palavra \"$palavraLimpa\" possui acento gráfico?\n\n" +
+                        (if (aCerta) "1 — Sim\n2 — Não" else "1 — Não\n2 — Sim")
+                
                 PortugueseQuestion(
-                    "A palavra \"$palavra\" possui acento?",
+                    questao,
                     temAcento,
                     "Observe a acentuação gráfica.",
                     70,
@@ -378,7 +411,7 @@ object PortugueseGenerator {
                 val resposta = sinonimos.random()
                 
                 PortugueseQuestion(
-                    "Digite um sinônimo simples para: $palavra",
+                    "Na frase: \"$frase\"\n\nDigite um sinônimo para a palavra: $palavra",
                     resposta,
                     "Exemplos de sinônimos: ${sinonimos.joinToString(", ")}.",
                     90,
@@ -412,16 +445,32 @@ object PortugueseGenerator {
             return sinonimos.any { it.equals(respostaUser.trim(), ignoreCase = true) }
         }
 
-        if (pergunta.tipo == PortugueseExerciseType.ORTOGRAFIA) {
-            val resp = respostaUser.trim().uppercase()
-            if (resp == "A" || resp == "B") {
-                // Verifica se a letra escolhida contém a palavra correta na pergunta original
-                return pergunta.pergunta.split("\n")
-                    .any { it.startsWith("$resp)") && it.contains(pergunta.respostaCorreta, ignoreCase = true) }
+        val resp = respostaUser.trim().uppercase()
+        
+        // Suporte para alternativas A, B, C, D, E ou 1, 2, 3, 4, 5
+        if (resp.length == 1) {
+            val char = resp[0]
+            val linhas = pergunta.pergunta.split("\n")
+            
+            return linhas.any { linha ->
+                val trimmada = linha.trim()
+                // Aceita prefixos como "A)", "1 —", "1 -", "1)"
+                val temPrefixo = trimmada.startsWith("$char)") || 
+                                 trimmada.startsWith("$char -") || 
+                                 trimmada.startsWith("$char —")
+                
+                temPrefixo && trimmada.contains(pergunta.respostaCorreta, ignoreCase = true)
             }
         }
         
         return false
+    }
+
+    private fun removerAcentos(palavra: String): String {
+        return palavra
+            .replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u')
+            .replace('â', 'a').replace('ê', 'e').replace('ô', 'o')
+            .replace('ã', 'a').replace('õ', 'o')
     }
 
     private val mapaSilabas = mapOf(

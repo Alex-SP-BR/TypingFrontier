@@ -36,6 +36,26 @@ class StatusActivity : AppCompatActivity() {
         setupAtributo(R.id.txtResistencia, R.id.progressResistencia, "Resistência", player.resistencia, player.progressoResistencia, player.progressoResistenciaMax)
         setupAtributo(R.id.txtCarisma, R.id.progressCarisma, "Carisma", player.carisma, player.progressoCarisma, player.progressoCarismaMax)
 
+        // HELP BUTTONS
+        findViewById<TextView>(R.id.btnHelpNivel).setOnClickListener {
+            showHelp("⭐ Nível", "Representa seu desenvolvimento geral. Subir de nível aumenta seus limites de atributos e desbloqueia novos conteúdos.")
+        }
+        findViewById<TextView>(R.id.btnHelpForca).setOnClickListener {
+            showHelp("💪 Força", "Poder físico para atividades pesadas e combates. Influencia o sucesso em desafios de força bruta na exploração.")
+        }
+        findViewById<TextView>(R.id.btnHelpVelocidade).setOnClickListener {
+            showHelp("⚡ Velocidade", "Agilidade e rapidez. Reduz o tempo de certas ações e ajuda a evitar perigos na exploração.")
+        }
+        findViewById<TextView>(R.id.btnHelpInteligencia).setOnClickListener {
+            showHelp("🧠 Inteligência", "Capacidade mental e conhecimento. Melhora o desempenho em estudos e profissões intelectuais.")
+        }
+        findViewById<TextView>(R.id.btnHelpResistencia).setOnClickListener {
+            showHelp("🛡️ Resistência", "Vigor e saúde. Reduz o consumo de energia e protege contra o cansaço excessivo.")
+        }
+        findViewById<TextView>(R.id.btnHelpCarisma).setOnClickListener {
+            showHelp("🗣️ Carisma", "Liderança e influência social. Melhora preços na loja e a relação com NPCs na cidade.")
+        }
+
         // EQUIPAMENTO
         val equip = ProfessionManager.getEquipment(player.equipamentoId)
         findViewById<TextView>(R.id.txtEquipamentosDetalhe).text = if (equip != null) {
@@ -47,6 +67,14 @@ class StatusActivity : AppCompatActivity() {
         if (player.temBlessing) {
             findViewById<TextView>(R.id.txtEquipamentosDetalhe).append("\n\n🕊️ Benção de Proteção Ativa")
         }
+    }
+
+    private fun showHelp(titulo: String, mensagem: String) {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(titulo)
+            .setMessage(mensagem)
+            .setPositiveButton("Entendi", null)
+            .show()
     }
 
     private fun setupAtributo(textId: Int, progressId: Int, nome: String, nivel: Int, progresso: Int, maxProg: Int) {

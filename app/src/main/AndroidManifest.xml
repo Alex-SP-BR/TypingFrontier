@@ -17,7 +17,8 @@
             android:exported="false" />
         <activity
             android:name=".MentalTrainingActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
         <activity
             android:name=".TrainingActivity"
             android:exported="false" />
@@ -45,6 +46,7 @@
         <activity
             android:name=".ExplorationActivity"
             android:exported="false"
+            android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.TypingFrontier.Dark" />
         <activity
             android:name=".GameActivity"

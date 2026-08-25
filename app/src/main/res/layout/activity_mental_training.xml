@@ -34,154 +34,167 @@
             android:textColor="#3F51B5" />
     </LinearLayout>
 
-    <include layout="@layout/layout_vital_bars" />
-
-    <!-- COMPACT HEADER -->
-    <com.google.android.material.card.MaterialCardView
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="2dp">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="12dp">
+            android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/txtAssuntoAtual"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Treinando: Matemática"
-                android:textColor="#3F51B5"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+            <include layout="@layout/layout_vital_bars" />
 
-            <LinearLayout
+            <!-- COMPACT HEADER -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-                <TextView
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:text="Inteligência"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-                <ProgressBar
-                    android:id="@+id/progressInteligencia"
-                    style="@android:style/Widget.ProgressBar.Horizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="6dp"
-                    android:layout_weight="1"
-                    android:progressTint="#3F51B5" />
-                <TextView
-                    android:id="@+id/txtProgressoInteligencia"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Lv.1"
-                    android:textSize="11sp" />
-            </LinearLayout>
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-                <TextView
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
-                    android:text="Carisma"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-                <ProgressBar
-                    android:id="@+id/progressCarisma"
-                    style="@android:style/Widget.ProgressBar.Horizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="6dp"
-                    android:layout_weight="1"
-                    android:progressTint="#E91E63" />
-                <TextView
-                    android:id="@+id/txtProgressoCarisma"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Lv.1"
-                    android:textSize="11sp" />
-            </LinearLayout>
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- ÁREA DA QUESTÃO MAIS CENTRALIZADA -->
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="2dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:id="@+id/txtQuestao"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:minHeight="60dp"
-                android:text="Carregando questão..."
-                android:textColor="#333333"
-                android:textSize="18sp" />
-
-            <TextView
-                android:id="@+id/txtFeedback"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginVertical="8dp"
-                android:gravity="center"
-                android:text="Digite o resultado acima"
-                android:textColor="#666666"
-                android:textSize="13sp" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Resposta">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edtResposta"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:imeOptions="actionDone"
-                    android:inputType="text"
-                    android:singleLine="true" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:orientation="vertical"
+                    android:padding="12dp">
 
-            <Button
-                android:id="@+id/btnResponder"
+                    <TextView
+                        android:id="@+id/txtAssuntoAtual"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Treinando: Matemática"
+                        android:textColor="#3F51B5"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="80dp"
+                            android:layout_height="wrap_content"
+                            android:text="Inteligência"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                        <ProgressBar
+                            android:id="@+id/progressInteligencia"
+                            style="@android:style/Widget.ProgressBar.Horizontal"
+                            android:layout_width="0dp"
+                            android:layout_height="6dp"
+                            android:layout_weight="1"
+                            android:progressTint="#3F51B5" />
+                        <TextView
+                            android:id="@+id/txtProgressoInteligencia"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="Lv.1"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="80dp"
+                            android:layout_height="wrap_content"
+                            android:text="Carisma"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                        <ProgressBar
+                            android:id="@+id/progressCarisma"
+                            style="@android:style/Widget.ProgressBar.Horizontal"
+                            android:layout_width="0dp"
+                            android:layout_height="6dp"
+                            android:layout_weight="1"
+                            android:progressTint="#E91E63" />
+                        <TextView
+                            android:id="@+id/txtProgressoCarisma"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="Lv.1"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ÁREA DA QUESTÃO MAIS CENTRALIZADA -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:text="Confirmar (ENTER)"
-                android:textAllCaps="false" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
 
-    <!-- ESPAÇO RESERVADO PARA PROPAGANDAS NO FUTURO -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/txtQuestao"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:minHeight="60dp"
+                        android:text="Carregando questão..."
+                        android:textColor="#333333"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        android:id="@+id/txtFeedback"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginVertical="8dp"
+                        android:gravity="center"
+                        android:text="Digite o resultado acima"
+                        android:textColor="#666666"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Resposta">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edtResposta"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:imeOptions="actionDone"
+                            android:inputType="text"
+                            android:singleLine="true" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <Button
+                        android:id="@+id/btnResponder"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:text="Confirmar (ENTER)"
+                        android:textAllCaps="false" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ESPAÇO RESERVADO PARA PROPAGANDAS NO FUTURO -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>
