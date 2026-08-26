@@ -10,6 +10,7 @@ import android.widget.TextView
 import com.typingfrontier.EconomyManager
 import com.typingfrontier.R
 import com.typingfrontier.economy.Equipment
+import com.typingfrontier.utils.CurrencyUtils
 
 class LojaAdapter(
     private val context: Context,
@@ -53,11 +54,11 @@ class LojaAdapter(
                 val credito = (itemEquipado.preco * 0.4).toInt()
                 val precoFinal = (precoOriginal - credito).coerceAtLeast(0)
                 
-                txtDescricao.text = "${item.descricao}\nBônus: +${item.bonus} em ${item.atributoAlvo}\n(Crédito de R$ $credito pelo item atual)"
-                txtPreco.text = "💰 R$ $precoFinal"
+                txtDescricao.text = "${item.descricao}\nBônus: +${item.bonus} em ${item.atributoAlvo}\n(Crédito de ${CurrencyUtils.formatar(credito)} pelo item atual)"
+                txtPreco.text = "💰 ${CurrencyUtils.formatar(precoFinal)}"
             } else {
                 txtDescricao.text = "${item.descricao}\nBônus: +${item.bonus} em ${item.atributoAlvo}"
-                txtPreco.text = "💰 R$ $precoOriginal"
+                txtPreco.text = "💰 ${CurrencyUtils.formatar(precoOriginal)}"
             }
 
             txtPreco.setTextColor(android.graphics.Color.parseColor("#2E7D32"))

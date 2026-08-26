@@ -5,6 +5,7 @@ import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.typingfrontier.utils.CurrencyUtils
 
 class TrainingActivity : AppCompatActivity() {
 
@@ -52,6 +53,10 @@ class TrainingActivity : AppCompatActivity() {
         txtVitalMente = findViewById(R.id.txtVitalMente)
         txtAvisoColapso = findViewById(R.id.txtAvisoColapso)
         txtVitalDinheiro = findViewById(R.id.txtVitalDinheiro)
+        
+        txtVitalDinheiro.setOnClickListener {
+            CurrencyUtils.mostrarSaldoExato(this, PlayerManager.player.dinheiro)
+        }
     }
 
     private fun configurarBotoes() {
@@ -89,7 +94,7 @@ class TrainingActivity : AppCompatActivity() {
         progressVelocidade.progress = p.progressoVelocidade
 
         // Atualiza Vitais
-        txtVitalDinheiro.text = "💰 R$ ${p.dinheiro}"
+        txtVitalDinheiro.text = "💰 ${CurrencyUtils.formatar(p.dinheiro)}"
 
         txtVitalEnergia.text = "⚡ ${p.energia}/${p.energiaMax}"
         progressVitalEnergia.max = p.energiaMax

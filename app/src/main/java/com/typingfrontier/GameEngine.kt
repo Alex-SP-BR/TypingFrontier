@@ -2,6 +2,7 @@ package com.typingfrontier
 
 import com.typingfrontier.economy.Equipment
 import com.typingfrontier.economy.ProfessionManager
+import com.typingfrontier.utils.CurrencyUtils
 
 /**
  * O Cérebro do Jogo. Centraliza todas as regras de negócio e validações.
@@ -51,14 +52,14 @@ object GameEngine {
             extraMsg = ProfessionManager.hospitalizar(p)
         }
 
-        return EngineResult.Success("💼 Trabalho concluído! Ganhou R$ $ganho.", extraMsg)
+        return EngineResult.Success("💼 Trabalho concluído! Ganhou ${CurrencyUtils.formatar(ganho)}.", extraMsg)
     }
 
     private fun processEat(): EngineResult {
         val p = PlayerManager.player
         val config = ProfessionManager.getConfig(p.profissao) ?: return EngineResult.Failure("Erro de perfil.")
 
-        if (p.dinheiro < config.custoComida) return EngineResult.Failure("Dinheiro insuficiente (R$ ${config.custoComida}).")
+        if (p.dinheiro < config.custoComida) return EngineResult.Failure("Dinheiro insuficiente (${CurrencyUtils.formatar(config.custoComida)}).")
         if (p.energia >= p.energiaMax) return EngineResult.Failure("Você já está satisfeito.")
         if (!TimeManager.podeAgir()) return EngineResult.Failure("Lanchonetes fechadas. Vá dormir.")
 
@@ -185,7 +186,7 @@ object GameEngine {
         }
 
         // 2. Validação de Recursos
-        if (p.dinheiro < custoDinheiro) return EngineResult.Failure("Dinheiro insuficiente (R$ $custoDinheiro).")
+        if (p.dinheiro < custoDinheiro) return EngineResult.Failure("Dinheiro insuficiente (${CurrencyUtils.formatar(custoDinheiro)}).")
         if (p.energia < gastoEnergia) return EngineResult.Failure("Energia insuficiente ($gastoEnergia necessária).")
         
         if (p.cansacoMax - p.cansacoMental < gastoMente) return EngineResult.Failure("Mente exausta! Você não consegue focar no treino.")
@@ -284,7 +285,7 @@ object GameEngine {
         // 3. Verificação de Saldo
         if (p.dinheiro < precoFinal) {
             val falta = precoFinal - p.dinheiro
-            return EngineResult.Failure("Dinheiro insuficiente. Falta R$ $falta.")
+            return EngineResult.Failure("Dinheiro insuficiente. Falta ${CurrencyUtils.formatar(falta)}.")
         }
 
         // 4. Execução da Compra
@@ -292,12 +293,12 @@ object GameEngine {
             if (p.temBlessing) return EngineResult.Failure("Você já possui uma benção ativa.")
             p.temBlessing = true
             p.dinheiro -= precoFinal
-            return EngineResult.Success("Benção adquirida por R$ $precoFinal!")
+            return EngineResult.Success("Benção adquirida por ${CurrencyUtils.formatar(precoFinal)}!")
         } else {
             p.dinheiro -= precoFinal
             p.equipamentoId = item.id
             val msgSucesso = if (creditoTroca > 0) {
-                "Equipado: ${item.nome}. Crédito de R$ $creditoTroca recebido pelo item antigo."
+                "Equipado: ${item.nome}. Crédito de ${CurrencyUtils.formatar(creditoTroca)} recebido pelo item antigo."
             } else {
                 "Equipado: ${item.nome}!"
             }

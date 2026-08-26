@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.typingfrontier.exploration.*
+import com.typingfrontier.utils.CurrencyUtils
 
 class ExplorationActivity : AppCompatActivity() {
 
@@ -56,6 +57,10 @@ class ExplorationActivity : AppCompatActivity() {
         progressMente = findViewById(R.id.progressVitalMente)
         txtDinheiro = findViewById(R.id.txtVitalDinheiro)
         txtAviso = findViewById(R.id.txtAvisoColapso)
+
+        txtDinheiro.setOnClickListener {
+            CurrencyUtils.mostrarSaldoExato(this, PlayerManager.player.dinheiro)
+        }
     }
 
     private fun configurarRecycler() {
@@ -157,7 +162,7 @@ class ExplorationActivity : AppCompatActivity() {
             val acaoProfissao = ExplorationManager.gerarDescricaoSucesso(p.profissao, etapaAtual, zona)
 
             txtDescricao.text = "✅ $acaoProfissao"
-            txtResultado.text = "Acumulado: +$xpAcumulado XP | R$ $dinheiroAcumulado"
+            txtResultado.text = "Acumulado: +$xpAcumulado XP | ${CurrencyUtils.formatar(dinheiroAcumulado)}"
             txtResultado.setTextColor(android.graphics.Color.GREEN)
             
             if (etapaAtual == 5) {
@@ -187,7 +192,7 @@ class ExplorationActivity : AppCompatActivity() {
             txtDinheiro.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
         }.start()
 
-        txtDescricao.text = "🏆 VITÓRIA!\nVocê saiu da zona com vida.\n\nColetou $xpAcumulado XP e R$ $dinheiroAcumulado."
+        txtDescricao.text = "🏆 VITÓRIA!\nVocê saiu da zona com vida.\n\nColetou $xpAcumulado XP e ${CurrencyUtils.formatar(dinheiroAcumulado)}."
         
         btnIrMaisFundo.visibility = View.GONE
         btnSairLoot.visibility = View.GONE
@@ -207,7 +212,7 @@ class ExplorationActivity : AppCompatActivity() {
         progressMente.max = p.cansacoMax
         progressMente.progress = mentalEnergia
         
-        txtDinheiro.text = "💰 R$ ${p.dinheiro}"
+        txtDinheiro.text = "💰 ${CurrencyUtils.formatar(p.dinheiro)}"
 
         if (p.energia < p.energiaMax * 0.1 || mentalEnergia < p.cansacoMax * 0.1) {
             txtAviso.visibility = View.VISIBLE

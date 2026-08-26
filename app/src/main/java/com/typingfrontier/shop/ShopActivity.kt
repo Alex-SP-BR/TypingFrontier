@@ -11,6 +11,7 @@ import com.typingfrontier.R
 import com.typingfrontier.GameEngine
 import com.typingfrontier.GameAction
 import com.typingfrontier.EngineResult
+import com.typingfrontier.utils.CurrencyUtils
 import com.typingfrontier.economy.ProfessionManager
 import com.typingfrontier.economy.Equipment
 
@@ -25,7 +26,10 @@ class ShopActivity : AppCompatActivity() {
         val btnVoltar = findViewById<Button>(R.id.btnVoltar)
         val txtSaldo = findViewById<TextView>(R.id.txtSaldoLoja)
 
-        txtSaldo.text = "Saldo: R$ ${player.dinheiro}"
+        txtSaldo.text = "Saldo: ${CurrencyUtils.formatar(player.dinheiro)}"
+        txtSaldo.setOnClickListener {
+            CurrencyUtils.mostrarSaldoExato(this, PlayerManager.player.dinheiro)
+        }
 
         val itensBase = ProfessionManager.getItemsForShop(player.profissao)
         val itensComBlessing = itensBase.toMutableList()
@@ -59,7 +63,7 @@ class ShopActivity : AppCompatActivity() {
                 }
             }
             
-            txtSaldo.text = "Saldo: R$ ${player.dinheiro}"
+            txtSaldo.text = "Saldo: ${CurrencyUtils.formatar(player.dinheiro)}"
             PlayerManager.save(this)
         }
 

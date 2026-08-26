@@ -64,7 +64,7 @@ class ManualActivity : AppCompatActivity() {
             
             ManualTopic("🕊️ Benções (Blessings)", "Proteção divina que impede a perda de Nível e Atributos caso você desmaie. Sempre compre uma antes de ir para lugares perigosos!"),
             
-            ManualTopic("💰 Economia", "O jogo equilibra ganhos e gastos. O trabalho garante o sustento (aluguel e comida), enquanto a Exploração e Missões são os caminhos para a verdadeira riqueza."),
+            ManualTopic("💰 Economia", "A moeda oficial e exclusiva do universo de Typing Frontier é o Fron (plural: Frons). Ela é obtida através de suas atividades, aventuras, recompensas e progressão geral. O jogo equilibra ganhos e gastos: o trabalho garante o sustento, enquanto a Exploração e Missões são os caminhos para a riqueza.\n\n• Apresentação: Para facilitar a leitura, valores altos podem aparecer abreviados (ex: 1K = 1.000, 1KK = 1.000.000, 1KKK = 1.000.000.000).\n• Saldo Detalhado: Ao tocar no saldo exibido no topo da tela, você poderá visualizar o valor exato que possui no momento."),
             
             ManualTopic("👥 Profissões", 
                 "• Policial: Especialista em Força. Ganha mais vida ao subir nível. Perfeito para exploração.\n" +

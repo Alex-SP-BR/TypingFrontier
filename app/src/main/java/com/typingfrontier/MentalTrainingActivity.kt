@@ -6,6 +6,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.typingfrontier.mental.*
+import com.typingfrontier.utils.CurrencyUtils
 
 class MentalTrainingActivity : AppCompatActivity() {
 
@@ -63,6 +64,10 @@ class MentalTrainingActivity : AppCompatActivity() {
         txtVitalMente = findViewById(R.id.txtVitalMente)
         txtAvisoColapso = findViewById(R.id.txtAvisoColapso)
         txtVitalDinheiro = findViewById(R.id.txtVitalDinheiro)
+
+        txtVitalDinheiro.setOnClickListener {
+            CurrencyUtils.mostrarSaldoExato(this, PlayerManager.player.dinheiro)
+        }
     }
 
     private fun configurarCliques() {
@@ -186,7 +191,7 @@ class MentalTrainingActivity : AppCompatActivity() {
         txtProgressoInteligencia.text = "Lv.${p.inteligencia} ${p.progressoInteligencia}/${p.progressoInteligenciaMax}"
         txtProgressoCarisma.text = "Lv.${p.carisma} ${p.progressoCarisma}/${p.progressoCarismaMax}"
 
-        txtVitalDinheiro.text = "💰 R$ ${p.dinheiro}"
+        txtVitalDinheiro.text = "💰 ${CurrencyUtils.formatar(p.dinheiro)}"
         txtVitalEnergia.text = "⚡ ${p.energia}/${p.energiaMax}"
         progressVitalEnergia.max = p.energiaMax
         progressVitalEnergia.progress = p.energia

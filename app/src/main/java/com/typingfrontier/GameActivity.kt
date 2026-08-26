@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.typingfrontier.databinding.ActivityGameBinding
+import com.typingfrontier.utils.CurrencyUtils
 
 class GameActivity : AppCompatActivity() {
 
@@ -218,6 +219,10 @@ class GameActivity : AppCompatActivity() {
         binding.btnSair.setOnClickListener {
             finishAffinity()
         }
+
+        binding.txtDinheiro.setOnClickListener {
+            CurrencyUtils.mostrarSaldoExato(this, PlayerManager.player.dinheiro)
+        }
     }
 
     // ------------------------------------------------
@@ -243,7 +248,7 @@ class GameActivity : AppCompatActivity() {
 
         binding.txtNomePlayer.text = p.nome
         binding.txtTempo.text = TimeManager.tempoFormatado()
-        binding.txtDinheiro.text = "💰 R$ ${p.dinheiro}"
+        binding.txtDinheiro.text = "💰 ${CurrencyUtils.formatar(p.dinheiro)}"
 
         // 🩹 AVISO DE TRAUMAS (Apenas informativo no load da tela ou repouso)
         if (p.traumasAcumulados > 0) {
