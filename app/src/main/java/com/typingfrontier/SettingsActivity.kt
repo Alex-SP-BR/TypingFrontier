@@ -3,7 +3,6 @@ package com.typingfrontier
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
-import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.slider.Slider
@@ -52,11 +51,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showAboutDialog() {
-        val version = try {
-            packageManager.getPackageInfo(packageName, 0).versionName
-        } catch (e: Exception) {
-            "1.2"
-        }
+        val version = BuildConfig.VERSION_NAME
 
         AlertDialog.Builder(this)
             .setTitle("TypingFrontier")
