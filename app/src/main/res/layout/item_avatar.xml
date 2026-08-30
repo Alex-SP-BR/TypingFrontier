@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp"
+    android:layout_margin="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/imgAvatar"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/homem"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/txtAvatarNome"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Avatar Nome"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="#333333"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:id="@+id/txtRequisito"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Requisito: Lvl 10"
+            android:textSize="12sp"
+            android:textColor="#E53935"
+            android:layout_marginBottom="4dp"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/txtAdsProgresso"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ads: 0/1"
+            android:textSize="12sp"
+            android:textColor="#1976D2"
+            android:layout_marginBottom="4dp"
+            android:visibility="gone"/>
+
+        <Button
+            android:id="@+id/btnAcao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Desbloquear"
+            android:textSize="10sp"
+            android:padding="0dp"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+
+        <TextView
+            android:id="@+id/txtStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="EQUIPADO"
+            android:textStyle="bold"
+            android:textColor="#4CAF50"
+            android:textSize="12sp"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

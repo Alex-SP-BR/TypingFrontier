@@ -7,7 +7,7 @@ object PlayerManager {
     var player = Player()
 
     private const val PREFS_NAME = "typing_frontier_save"
-    private const val CURRENT_SAVE_VERSION = 4
+    private const val CURRENT_SAVE_VERSION = 6
 
     // Constantes para a fórmula de XP (Opção C: Polinomial Híbrida)
     private const val XP_BASE = 20
@@ -157,6 +157,19 @@ object PlayerManager {
         editor.putInt("traumasAcumulados", player.traumasAcumulados)
         editor.putInt("diasParaRecuperarTrauma", player.diasParaRecuperarTrauma)
 
+        // 🏆 COLEÇÃO E CONQUISTAS
+        editor.putString("avatarEquipadoId", player.avatarEquipadoId)
+        editor.putStringSet("avataresDesbloqueados", player.avataresDesbloqueados)
+        editor.putStringSet("conquistasDesbloqueadas", player.conquistasDesbloqueadas)
+        
+        // 📊 ESTATÍSTICAS PARA CONQUISTAS
+        editor.putInt("mentalStreak", player.mentalStreak)
+        editor.putStringSet("zonasExploradas", player.zonasExploradas)
+        
+        // Save avataresProgressoAds Map
+        val progressoStr = player.avataresProgressoAds.entries.joinToString(";") { "${it.key}:${it.value}" }
+        editor.putString("avataresProgressoAds", progressoStr)
+
         // Save historiasAtivas Map
         val historiasStr = player.historiasAtivas.entries.joinToString(";") { "${it.key}:${it.value}" }
         editor.putString("historiasAtivas", historiasStr)
@@ -238,6 +251,26 @@ object PlayerManager {
         player.traumasAcumulados = prefs.getInt("traumasAcumulados", 0)
         player.diasParaRecuperarTrauma = prefs.getInt("diasParaRecuperarTrauma", 0)
 
+        // 🏆 COLEÇÃO E CONQUISTAS
+        player.avatarEquipadoId = prefs.getString("avatarEquipadoId", null)
+        player.avataresDesbloqueados = prefs.getStringSet("avataresDesbloqueados", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+        player.conquistasDesbloqueadas = prefs.getStringSet("conquistasDesbloqueadas", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+
+        // 📊 ESTATÍSTICAS PARA CONQUISTAS
+        player.mentalStreak = prefs.getInt("mentalStreak", 0)
+        player.zonasExploradas = prefs.getStringSet("zonasExploradas", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+
+        val progressoStr = prefs.getString("avataresProgressoAds", "") ?: ""
+        player.avataresProgressoAds.clear()
+        if (progressoStr.isNotEmpty()) {
+            progressoStr.split(";").forEach {
+                val parts = it.split(":")
+                if (parts.size == 2) {
+                    player.avataresProgressoAds[parts[0]] = parts[1].toIntOrNull() ?: 0
+                }
+            }
+        }
+
         // Load historiasAtivas Map
         val historiasStr = prefs.getString("historiasAtivas", "") ?: ""
         player.historiasAtivas.clear()
@@ -277,5 +310,45 @@ object PlayerManager {
             player.traumasAcumulados = 0
             player.diasParaRecuperarTrauma = 0
         }
+
+        if (loadedVersion < 5) {
+            // Migração para Versão 5: Inicializa Coleção e Conquistas
+            player.avatarEquipadoId = null
+            player.avataresDesbloqueados = mutableSetOf()
+            player.avataresProgressoAds = mutableMapOf()
+            player.conquistasDesbloqueadas = mutableSetOf()
+        }
+
+        if (loadedVersion < 6) {
+            // Migração para Versão 6: Inicializa estatísticas de conquistas
+            player.mentalStreak = 0
+            player.zonasExploradas = mutableSetOf()
+        }
+    }
+
+    /**
+     * Desbloqueia uma conquista com segurança, entregando as recompensas apenas uma vez.
+     */
+    fun desbloquearConquista(context: Context, achievementId: String) {
+        if (player.conquistasDesbloqueadas.contains(achievementId)) return
+
+        val conquista = com.typingfrontier.collection.CollectionRepository.getAchievementById(achievementId) ?: return
+
+        player.conquistasDesbloqueadas.add(achievementId)
+
+        // 1. Recompensa em Frons
+        if (conquista.recompensaDinheiro > 0) {
+            player.dinheiro += conquista.recompensaDinheiro
+        }
+
+        // 2. Recompensa em Avatar
+        if (conquista.avatarAssociadoId != null) {
+            player.avataresDesbloqueados.add(conquista.avatarAssociadoId)
+        }
+
+        // Persistência imediata
+        save(context)
+        
+        android.widget.Toast.makeText(context, "🏆 Conquista: ${conquista.nome}", android.widget.Toast.LENGTH_LONG).show()
     }
 }

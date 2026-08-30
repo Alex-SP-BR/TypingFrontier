@@ -199,6 +199,11 @@ class ExplorationActivity : AppCompatActivity() {
         btnFinalizar.visibility = View.VISIBLE
         btnFinalizar.text = "VOLTAR AO MAPA"
         
+        // 🏆 GATILHO DE CONQUISTA (Apenas se completou as 5 etapas com sucesso)
+        if (etapaAtual > 5) {
+            zonaAtual?.let { com.typingfrontier.collection.AchievementManager.checkExploration(this, it.id) }
+        }
+        
         PlayerManager.save(this)
     }
 

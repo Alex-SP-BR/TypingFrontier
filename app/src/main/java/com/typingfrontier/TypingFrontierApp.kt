@@ -9,12 +9,18 @@ import android.os.Looper
 
 class TypingFrontierApp : Application() {
 
+    companion object {
+        private lateinit var instance: TypingFrontierApp
+        fun getAppContext(): android.content.Context = instance.applicationContext
+    }
+
     private var activityCount = 0
     private val handler = Handler(Looper.getMainLooper())
     private var pauseRunnable: Runnable? = null
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         
         // Inicializa as configurações de som
         SoundManager.init(this)

@@ -4,8 +4,10 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import com.typingfrontier.economy.ProfessionManager
+import com.typingfrontier.collection.CollectionRepository
 
 class StatusActivity : AppCompatActivity() {
 
@@ -19,6 +21,19 @@ class StatusActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.txtIdentidade).text =
             "Nome: ${player.nome}\nProfissão: ${player.profissao}\nCidade: ${player.cidadeNascimento}"
+
+        val imgAvatar = findViewById<ImageView>(R.id.imgStatusAvatar)
+        val avatarValido = CollectionRepository.isAvatarValidoParaPlayer(player.avatarEquipadoId, player)
+        val avatarEquipado = if (avatarValido) CollectionRepository.getAvatarById(player.avatarEquipadoId) else null
+
+        if (avatarEquipado != null) {
+            imgAvatar.setImageResource(avatarEquipado.imagemRes)
+        } else {
+            imgAvatar.setImageResource(
+                if (player.sexo == "Masculino") R.drawable.homem
+                else R.drawable.mulher
+            )
+        }
 
         findViewById<TextView>(R.id.txtNivel).text = "Nível ${player.nivel}"
 

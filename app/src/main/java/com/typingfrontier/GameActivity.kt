@@ -9,6 +9,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.typingfrontier.databinding.ActivityGameBinding
 import com.typingfrontier.utils.CurrencyUtils
+import com.typingfrontier.collection.CentralActivity
+import com.typingfrontier.collection.CollectionRepository
+import com.typingfrontier.utils.ViewUtils
 
 class GameActivity : AppCompatActivity() {
 
@@ -182,6 +185,14 @@ class GameActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
 
+        binding.btnCentral.setOnClickListener {
+            startActivity(Intent(this, CentralActivity::class.java))
+        }
+
+        binding.imgPersonagem.setOnClickListener {
+            ampliarAvatarAtual()
+        }
+
         binding.btnLoja.setOnClickListener {
             startActivity(Intent(this, ShopActivity::class.java))
         }
@@ -232,6 +243,29 @@ class GameActivity : AppCompatActivity() {
         startActivity(Intent(this, ExplorationActivity::class.java))
     }
 
+    private fun ampliarAvatarAtual() {
+        val p = PlayerManager.player
+        val avatarValido = CollectionRepository.isAvatarValidoParaPlayer(p.avatarEquipadoId, p)
+        val avatarEquipado = if (avatarValido) CollectionRepository.getAvatarById(p.avatarEquipadoId) else null
+
+        if (avatarEquipado != null) {
+            ViewUtils.showZoomDialog(
+                this,
+                avatarEquipado.imagemRes,
+                avatarEquipado.nome,
+                "Nível ${avatarEquipado.nivelRequisito}"
+            )
+        } else {
+            val resId = if (p.sexo == "Masculino") R.drawable.homem else R.drawable.mulher
+            ViewUtils.showZoomDialog(
+                this,
+                resId,
+                "Avatar Original",
+                "Sempre disponível"
+            )
+        }
+    }
+
     // ------------------------------------------------
     // HUD
     // ------------------------------------------------
@@ -241,10 +275,18 @@ class GameActivity : AppCompatActivity() {
         
         // Removido o load() daqui para evitar que o save antigo sobrescreva as mudanças da Engine em tempo real.
 
-        binding.imgPersonagem.setImageResource(
-            if (p.sexo == "Masculino") R.drawable.homem
-            else R.drawable.mulher
-        )
+        // 🏆 SISTEMA DE AVATARES
+        val avatarValido = CollectionRepository.isAvatarValidoParaPlayer(p.avatarEquipadoId, p)
+        val avatarEquipado = if (avatarValido) CollectionRepository.getAvatarById(p.avatarEquipadoId) else null
+
+        if (avatarEquipado != null) {
+            binding.imgPersonagem.setImageResource(avatarEquipado.imagemRes)
+        } else {
+            binding.imgPersonagem.setImageResource(
+                if (p.sexo == "Masculino") R.drawable.homem
+                else R.drawable.mulher
+            )
+        }
 
         binding.txtNomePlayer.text = p.nome
         binding.txtTempo.text = TimeManager.tempoFormatado()

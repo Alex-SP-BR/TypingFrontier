@@ -176,6 +176,10 @@ class MentalTrainingActivity : AppCompatActivity() {
         }
 
         atualizarBarras()
+        
+        // 🏆 GATILHO DE CONQUISTA: MENTAL
+        com.typingfrontier.collection.AchievementManager.checkMental(this, isCorrect, tipoTreinoAtual.name)
+
         PlayerManager.save(this)
         if (btnResponder.isEnabled) iniciarNovaQuestao()
     }

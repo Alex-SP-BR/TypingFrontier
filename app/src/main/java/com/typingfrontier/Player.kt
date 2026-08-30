@@ -89,7 +89,17 @@ data class Player(
 
     // 🩹 SISTEMA DE TRAUMAS
     var traumasAcumulados: Int = 0,
-    var diasParaRecuperarTrauma: Int = 0
+    var diasParaRecuperarTrauma: Int = 0,
+
+    // 🏆 COLEÇÃO E CONQUISTAS
+    var avatarEquipadoId: String? = null,
+    var avataresDesbloqueados: MutableSet<String> = mutableSetOf(),
+    var avataresProgressoAds: MutableMap<String, Int> = mutableMapOf(),
+    var conquistasDesbloqueadas: MutableSet<String> = mutableSetOf(),
+    
+    // 📊 ESTATÍSTICAS PARA CONQUISTAS
+    var mentalStreak: Int = 0,
+    var zonasExploradas: MutableSet<String> = mutableSetOf()
 
 ) {
 

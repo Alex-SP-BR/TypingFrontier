@@ -49,6 +49,33 @@ A versão 1.4 do Typing Frontier está identificada no Git pela tag:
 
 A tag `v1.4` foi criada para identificar especificamente o estado do código correspondente à versão 1.4 do projeto.
 
+Foram implementados e integrados:
+
+- Central do jogador como hub para acesso aos recursos de coleção;
+- sistema de Avatares;
+- Avatar Original, mantendo os personagens padrão masculino e feminino;
+- desbloqueio e troca de avatares;
+- equipamento de avatares já desbloqueados;
+- retorno ao Avatar Original;
+- avatares de progressão vinculados a níveis do jogador;
+- regras de compatibilidade dos avatares com o sexo definido no cadastro;
+- sistema de Conquistas;
+- sistema de Insígnias associado às conquistas;
+- categorias de conquistas relacionadas à exploração, treinamento físico, treinamento mental, economia e conquistas especiais;
+- sistema de registro e persistência das conquistas;
+- recompensas associadas às conquistas;
+- associação de conquistas específicas a recompensas de avatares;
+- visualização ampliada dos avatares;
+- visualização ampliada das insígnias;
+- separação entre visualização, equipamento e desbloqueio;
+- ajuda contextual nas telas de Avatares e Conquistas;
+- documentação desses sistemas no Manual do Jogador;
+- ajustes visuais de posicionamento e espaçamento das telas da Central, Avatares e Conquistas.
+
+A implementação foi realizada preservando a arquitetura existente do projeto, mantendo a compatibilidade com os sistemas de jogo, persistência de dados, economia e demais funcionalidades existentes.
+
+As funcionalidades de visualização ampliada foram implementadas de forma independente das ações de equipamento e desbloqueio, evitando alterações acidentais no estado do jogador durante a visualização de personagens ou insígnias.
+
 ---
 
 ## Publicação
@@ -57,7 +84,7 @@ O Typing Frontier: RPG Digitação foi disponibilizado por meio do Google Play.
 
 As versões do aplicativo enviadas ao Google Play são associadas às respectivas versões compiladas do projeto.
 
-A versão 1.4 foi enviada ao Google Play e encontra-se em processo de análise/publicação.
+A versão 1.4 foi publicada no Google Play e corresponde à versão disponibilizada aos usuários.
 
 ---
 

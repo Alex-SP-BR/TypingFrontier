@@ -73,7 +73,21 @@ class ManualActivity : AppCompatActivity() {
                 "• Professor: Líder em Carisma. Ganha bônus de salário mais facilmente.\n" +
                 "• Detetive: Equilibrado entre Velocidade e Inteligência. Ótimo para achar pistas."),
             
-            ManualTopic("💡 Dicas para Iniciantes", "1. Treine sua mente cedo para aumentar seu salário.\n2. Sempre guarde dinheiro para o aluguel.\n3. Não explore áreas difíceis sem uma Benção.\n4. Use a Pausa estratégica após o trabalho para recuperar sua concentração.")
+            ManualTopic("💡 Dicas para Iniciantes", "1. Treine sua mente cedo para aumentar seu salário.\n2. Sempre guarde dinheiro para o aluguel.\n3. Não explore áreas difíceis sem uma Benção.\n4. Use a Pausa estratégica após o trabalho para recuperar sua concentração."),
+            
+            ManualTopic("👤 Avatares", "Sua representação visual no mundo de Typing Frontier.\n\n" +
+                "• Avatar Original: Você começa com um visual padrão baseado no seu sexo (Masculino ou Feminino). Ele é permanente e sempre disponível.\n" +
+                "• Novos Avatares: Podem ser desbloqueados ao atingir níveis específicos (10, 20, 50, etc).\n" +
+                "• Desbloqueio: Alguns avatares exigem assistir a uma quantidade de anúncios recompensados após o nível ser atingido.\n" +
+                "• Equipar: Após desbloqueado, você pode equipar o novo visual na Central. Você pode trocar livremente entre seus avatares desbloqueados ou voltar ao original a qualquer momento.\n" +
+                "• Ampliar: Na coleção ou na tela principal, toque na imagem do seu personagem para vê-lo em tamanho maior. Isso é apenas visual e não altera seu equipamento."),
+
+            ManualTopic("🏆 Conquistas e Insígnias", "Marcos que celebram sua jornada e evolução.\n\n" +
+                "• Insígnias: Cada conquista possui uma imagem única. Elas aparecem bloqueadas (cinza) até que você cumpra o requisito.\n" +
+                "• Categorias: Existem conquistas de Exploração, Treino Físico, Treino Mental, Economia e Conquistas Supremas.\n" +
+                "• Obtenção: Conquistas são detectadas automaticamente pelo sistema assim que o objetivo é alcançado.\n" +
+                "• Recompensas: Muitas conquistas oferecem Frons como bônus, e algumas conquistas lendárias podem desbloquear avatares exclusivos.\n" +
+                "• Visualização: Toque na insígnia na lista de conquistas para vê-la ampliada. Ver uma insígnia não altera seu progresso ou recompensa.")
         )
     }
 

@@ -52,6 +52,15 @@
             android:name=".GameActivity"
             android:exported="false" />
         <activity
+            android:name=".collection.CentralActivity"
+            android:exported="false" />
+        <activity
+            android:name=".collection.AvatarCollectionActivity"
+            android:exported="false" />
+        <activity
+            android:name=".collection.AchievementActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

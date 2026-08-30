@@ -24,6 +24,10 @@ object GameEngine {
                 is GameAction.CompleteMission -> processCompleteMission(action.xp, action.money)
             }
             verifyIntegrity()
+            
+            // 🏆 GATILHO DE CONQUISTA: ECONOMIA
+            com.typingfrontier.collection.AchievementManager.checkEconomy(TypingFrontierApp.getAppContext())
+            
             return result
         } catch (e: Exception) {
             EngineResult.Failure("Erro na Engine: ${e.message}")
@@ -359,6 +363,11 @@ object GameEngine {
                 }
                 p.progressoCarismaMax = calcularLimite(p.carisma)
             }
+        }
+
+        // 🏆 GATILHO DE CONQUISTA: ATRIBUTOS FÍSICOS
+        if (atributo == "FORCA" || atributo == "RESISTENCIA" || atributo == "VELOCIDADE") {
+            com.typingfrontier.collection.AchievementManager.checkPhysical(TypingFrontierApp.getAppContext())
         }
     }
 
