@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="4dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/txtReportTarget"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TÓPICO"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="#1976D2"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:layout_marginEnd="8dp"/>
+
+            <TextView
+                android:id="@+id/txtReportStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PENDENTE"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#333333"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txtReportReason"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Motivo da denúncia"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:id="@+id/txtReportAuthor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Autor: ..."
+            android:textSize="14sp"
+            android:textColor="#333333"/>
+
+        <TextView
+            android:id="@+id/txtReportAuthorRole"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cargo: ..."
+            android:textSize="13sp"
+            android:textStyle="italic"
+            android:textColor="#1976D2"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:id="@+id/txtReportReporter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Denunciante: @..."
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/txtReportDesc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Descrição opcional fornecida pelo usuário."
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/txtReportDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="há 2 horas"
+            android:textSize="11sp"
+            android:textColor="#999999"
+            android:gravity="end"/>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

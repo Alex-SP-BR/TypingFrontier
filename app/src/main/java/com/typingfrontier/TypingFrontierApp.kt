@@ -24,6 +24,20 @@ class TypingFrontierApp : Application() {
         
         // Inicializa as configurações de som
         SoundManager.init(this)
+
+        // Inicializa AdMob
+        com.typingfrontier.utils.AdManager.init(this)
+
+        // Carrega o save local
+        PlayerManager.load(this)
+
+        // Inicializa Supabase (Camada Social)
+        com.typingfrontier.social.SupabaseManager.init()
+        
+        // Inicializa Identidade Social e Sincroniza Ranking (Offline-first)
+        com.typingfrontier.social.SocialProfileRepository.initializeSocialIdentity {
+            com.typingfrontier.social.SocialProfileRepository.syncStatistics()
+        }
         
         // Inicia o serviço para monitorar se o usuário "limpa" o app dos recentes
         try {
@@ -49,6 +63,9 @@ class TypingFrontierApp : Application() {
             override fun onActivityPaused(activity: Activity) {}
 
             override fun onActivityStopped(activity: Activity) {
+                // Sincroniza ranking social em background quando o jogador sai de uma tela
+                com.typingfrontier.social.SocialProfileRepository.syncStatistics()
+
                 activityCount--
                 if (activityCount == 0) {
                     // Se não abrir nenhuma outra tela em 500ms, o app foi para o background

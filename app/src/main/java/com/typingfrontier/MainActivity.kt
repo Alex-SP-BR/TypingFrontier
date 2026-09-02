@@ -19,8 +19,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Tenta carregar o jogador existente
-        PlayerManager.load(this)
+        // Fluxo de Consentimento UMP
+        com.typingfrontier.utils.AdManager.iniciarFluxoConsentimento(this)
 
         binding.btnStart.setOnClickListener {
             val p = PlayerManager.player

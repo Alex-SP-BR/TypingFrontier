@@ -19,11 +19,29 @@
 
     <EditText
         android:id="@+id/edtNome"
-        android:hint="Digite seu nome"
+        android:hint="Nome do Personagem (Interno)"
         android:minHeight="48dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"/>
+
+    <EditText
+        android:id="@+id/edtUsername"
+        android:hint="Username Social (Opcional)"
+        android:minHeight="48dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:maxLength="20"
+        android:digits="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"/>
+
+    <TextView
+        android:text="O Username será sua identidade no Ranking e Fórum."
+        android:textSize="12sp"
+        android:textColor="#666666"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"/>
 
     <TextView
         android:text="Sexo"

@@ -9,6 +9,8 @@ import com.typingfrontier.databinding.ItemAvatarBinding
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.widget.Toast
+import android.app.Activity
+import com.typingfrontier.utils.AdManager
 import com.typingfrontier.utils.ViewUtils
 
 class AvatarAdapter(
@@ -111,10 +113,86 @@ class AvatarAdapter(
                 binding.btnAcao.isEnabled = true
                 
                 binding.btnAcao.setOnClickListener {
-                    Toast.makeText(holder.itemView.context, "Recurso de anúncios em breve!", Toast.LENGTH_SHORT).show()
+                    processarCliqueAnuncio(avatar, holder)
                 }
             }
         }
+    }
+
+    private fun processarCliqueAnuncio(avatar: Avatar, holder: AvatarViewHolder) {
+        val activity = holder.itemView.context as? Activity ?: return
+        val p = PlayerManager.player
+
+        // 1. Validação Inicial (Antes do Anúncio)
+        if (avatar.id == "default") return
+        
+        if (!avatar.sexo.equals(p.sexo, ignoreCase = true)) {
+            Toast.makeText(activity, "Este avatar não é compatível com seu personagem.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        if (p.nivel < avatar.nivelRequisito) {
+            Toast.makeText(activity, "Você precisa atingir o nível ${avatar.nivelRequisito}.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        if (p.avataresDesbloqueados.contains(avatar.id)) {
+            notifyDataSetChanged()
+            return
+        }
+
+        val assistidosAntes = p.avataresProgressoAds[avatar.id] ?: 0
+        if (assistidosAntes >= avatar.adsNecessarios) {
+            // Caso raro onde o progresso está completo mas não marcado como desbloqueado
+            p.avataresDesbloqueados.add(avatar.id)
+            PlayerManager.save(activity)
+            notifyDataSetChanged()
+            return
+        }
+
+        // 2. Chamar o AdManager para exibir o Rewarded Ad
+        AdManager.showRewardedAd(
+            activity,
+            onRewardEarned = {
+                // 3. Callback de Recompensa Oficial - VALIDAR NOVAMENTE (Segurança)
+                val pAtual = PlayerManager.player
+                
+                val podeReceber = avatar.sexo.equals(pAtual.sexo, ignoreCase = true) &&
+                        pAtual.nivel >= avatar.nivelRequisito &&
+                        !pAtual.avataresDesbloqueados.contains(avatar.id)
+                
+                if (podeReceber) {
+                    val assistidos = pAtual.avataresProgressoAds[avatar.id] ?: 0
+                    if (assistidos < avatar.adsNecessarios) {
+                        // INCREMENTAR PROGRESSO UMA ÚNICA VEZ
+                        val novoValor = assistidos + 1
+                        pAtual.avataresProgressoAds[avatar.id] = novoValor
+                        
+                        // Verificar se desbloqueou completamente
+                        if (novoValor >= avatar.adsNecessarios) {
+                            pAtual.avataresDesbloqueados.add(avatar.id)
+                            Toast.makeText(activity, "🎉 Avatar ${avatar.nome} desbloqueado!", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(activity, "Progresso: $novoValor/${avatar.adsNecessarios}", Toast.LENGTH_SHORT).show()
+                        }
+                        
+                        // Persistência imediata
+                        PlayerManager.save(activity)
+                        
+                        // Atualizar interface na Thread Principal
+                        activity.runOnUiThread {
+                            notifyDataSetChanged()
+                        }
+                    }
+                }
+            },
+            onAdClosed = {
+                // Anúncio fechado. A atualização já ocorre no onRewardEarned se houver sucesso.
+            },
+            onAdFailed = { mensagemErro ->
+                Toast.makeText(activity, mensagemErro, Toast.LENGTH_SHORT).show()
+            }
+        )
     }
 
     private fun validarEquipar(avatar: Avatar, context: android.content.Context): Boolean {

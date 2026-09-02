@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:background="#F5F5F5">
+
+        <TextView
+            android:id="@+id/txtDialogTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Análise de Denúncia"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#333333"/>
+
+        <ImageButton
+            android:id="@+id/btnHelpGeneral"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@android:drawable/ic_menu_help"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="#1976D2"
+            android:contentDescription="Ajuda"/>
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DENÚNCIA"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#757575"/>
+
+            <TextView
+                android:id="@+id/txtReportMeta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="..."
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="12dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DENUNCIANTE"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#757575"/>
+
+            <TextView
+                android:id="@+id/txtReporterInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="..."
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="12dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AUTOR DO CONTEÚDO"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#757575"/>
+
+            <TextView
+                android:id="@+id/txtAuthorDetails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="..."
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="12dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PUBLICAÇÃO"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#757575"/>
+
+            <TextView
+                android:id="@+id/txtContentDetails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="..."
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="16dp"
+                android:background="#F9F9F9"
+                android:padding="8dp"/>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#DDDDDD"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Action Rows -->
+            <LinearLayout
+                android:id="@+id/layoutActionDelete"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone">
+                <Button
+                    android:id="@+id/btnExcluirConteudo"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="EXCLUIR CONTEÚDO"
+                    android:backgroundTint="#D32F2F"
+                    android:textColor="#FFFFFF"/>
+                <ImageButton
+                    android:id="@+id/btnHelpExcluir"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/ic_menu_help"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="#D32F2F"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layoutActionResolve"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+                <Button
+                    android:id="@+id/btnResolverSemExcluir"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="RESOLVER SEM EXCLUIR"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                <ImageButton
+                    android:id="@+id/btnHelpResolver"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/ic_menu_help"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="#1976D2"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layoutActionDismiss"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+                <Button
+                    android:id="@+id/btnDescartarDenuncia"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="DESCARTAR DENÚNCIA"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                <ImageButton
+                    android:id="@+id/btnHelpDescartar"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/ic_menu_help"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="#1976D2"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layoutActionBan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone">
+                <Button
+                    android:id="@+id/btnBanirAutor"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="BANIR AUTOR"
+                    android:backgroundTint="#212121"
+                    android:textColor="#FFFFFF"/>
+                <ImageButton
+                    android:id="@+id/btnHelpBanir"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/ic_menu_help"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="#212121"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/txtUserBannedLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚠️ USUÁRIO JÁ BANIDO"
+                android:textColor="#D32F2F"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:visibility="gone"
+                android:layout_marginTop="8dp"/>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

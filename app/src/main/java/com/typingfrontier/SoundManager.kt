@@ -143,6 +143,8 @@ object SoundManager {
         }.start()
     }
 
+    fun isMusicPlaying(): Boolean = mediaPlayer?.isPlaying ?: false
+
     fun pause() {
         mediaPlayer?.pause()
     }

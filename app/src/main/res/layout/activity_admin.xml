@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F5F5"
+    android:padding="16dp"
+    android:fitsSystemWindows="true">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🛠️ Painel Administrativo"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:id="@+id/txtSeuCargo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SEU CARGO: ..."
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#1976D2"
+        android:layout_marginBottom="24dp"/>
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="2dp"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Gerenciamento"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:layout_marginBottom="16dp"/>
+
+            <Button
+                android:id="@+id/btnVerDenuncias"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🚩 Analisar Denúncias"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_marginBottom="8dp"/>
+
+            <Button
+                android:id="@+id/btnGerenciarBan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🚫 Gerenciar Banimentos"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_marginBottom="8dp"/>
+
+            <Button
+                android:id="@+id/btnGerenciarRoles"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚖️ Gerenciar Roles"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp"/>
+
+            <Button
+                android:id="@+id/btnSupervisaoMod"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="👁️ Supervisão da Moderação"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:visibility="gone"/>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <Button
+        android:id="@+id/btnVoltar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Voltar para a Central"
+        style="@style/Widget.MaterialComponents.Button.TextButton"/>
+
+</LinearLayout>
