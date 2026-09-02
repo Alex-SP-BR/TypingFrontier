@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 object AdManager {
     private const val TAG = "AdManager"
     
-    // ID real do bloco de anúncios recompensados
+    // ID real do bloco de anúncios recompensados (TESTE CONTROLADO)
     private const val REWARDED_AD_UNIT_ID = "ca-app-pub-4553906388461124/2680340478"
 
     private var rewardedAd: RewardedAd? = null
