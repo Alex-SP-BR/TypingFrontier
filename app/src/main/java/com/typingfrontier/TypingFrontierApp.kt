@@ -55,6 +55,7 @@ class TypingFrontierApp : Application() {
                 if (activityCount == 0) {
                     // App voltando do background para o primeiro plano
                     SoundManager.resume()
+                    com.typingfrontier.social.PresenceManager.updateAppStatus(true)
                 }
                 activityCount++
             }
@@ -72,6 +73,7 @@ class TypingFrontierApp : Application() {
                     pauseRunnable = Runnable {
                         if (activityCount == 0) {
                             SoundManager.pause()
+                            com.typingfrontier.social.PresenceManager.updateAppStatus(false)
                         }
                     }
                     handler.postDelayed(pauseRunnable!!, 500)

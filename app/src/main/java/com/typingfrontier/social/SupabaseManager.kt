@@ -6,6 +6,7 @@ import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.SettingsSessionManager
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.realtime.Realtime
 
 /**
  * Gerenciador da infraestrutura Supabase para a camada social do Typing Frontier.
@@ -27,6 +28,7 @@ object SupabaseManager {
                 // Garante a persistência da sessão no Android usando SharedPreferences (via multiplatform-settings)
                 sessionManager = SettingsSessionManager()
             }
+            install(Realtime)
         }
     }
 }

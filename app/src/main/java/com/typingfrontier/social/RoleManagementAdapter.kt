@@ -7,10 +7,18 @@ import androidx.recyclerview.widget.RecyclerView
 import com.typingfrontier.databinding.ItemUserRoleBinding
 
 class RoleManagementAdapter(
-    private var users: List<SocialProfile>,
+    private var allUsers: List<SocialProfile>,
     private val currentAdminId: String,
     private val onRoleClick: (SocialProfile) -> Unit
 ) : RecyclerView.Adapter<RoleManagementAdapter.ViewHolder>() {
+
+    private var filteredUsers: List<SocialProfile> = allUsers
+    private var currentQuery: String = ""
+    private var currentRoleFilter: String? = null
+    
+    // Set de IDs de usuários online para renderização rápida
+    private var onlineUserIds: Set<String> = emptySet()
+    private var isPresenceActive: Boolean = false
 
     class ViewHolder(val binding: ItemUserRoleBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -20,11 +28,23 @@ class RoleManagementAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val user = users[position]
+        val user = filteredUsers[position]
         val binding = holder.binding
 
         binding.txtUsername.text = "@${user.username}"
         binding.txtCurrentRole.text = "Role: ${user.role}"
+
+        // Atualiza status de presença
+        if (!isPresenceActive) {
+            binding.txtPresenceStatus.text = "○ STATUS INDISPONÍVEL"
+            binding.txtPresenceStatus.setTextColor(android.graphics.Color.parseColor("#999999"))
+        } else if (onlineUserIds.contains(user.id)) {
+            binding.txtPresenceStatus.text = "● ONLINE"
+            binding.txtPresenceStatus.setTextColor(android.graphics.Color.parseColor("#388E3C"))
+        } else {
+            binding.txtPresenceStatus.text = "○ OFFLINE"
+            binding.txtPresenceStatus.setTextColor(android.graphics.Color.parseColor("#999999"))
+        }
 
         // O administrador não pode alterar a própria role nem a de outros administradores
         val canModify = user.id != currentAdminId && user.role != "administrator"
@@ -37,10 +57,37 @@ class RoleManagementAdapter(
         }
     }
 
-    override fun getItemCount(): Int = users.size
+    override fun getItemCount(): Int = filteredUsers.size
 
     fun updateData(newList: List<SocialProfile>) {
-        users = newList
+        allUsers = newList
+        applyFilters()
+    }
+
+    fun filterBySearch(query: String) {
+        currentQuery = query
+        applyFilters()
+    }
+
+    fun filterByRole(role: String?) {
+        currentRoleFilter = role
+        applyFilters()
+    }
+
+    fun updatePresenceStatus(newOnlineIds: Set<String>, active: Boolean) {
+        onlineUserIds = newOnlineIds
+        isPresenceActive = active
+        notifyDataSetChanged()
+    }
+
+    private fun applyFilters() {
+        val normalizedQuery = currentQuery.lowercase().trim().removePrefix("@")
+        
+        filteredUsers = allUsers.filter { user ->
+            val matchesSearch = normalizedQuery.isEmpty() || user.username.lowercase().contains(normalizedQuery)
+            val matchesRole = currentRoleFilter == null || user.role == currentRoleFilter
+            matchesSearch && matchesRole
+        }
         notifyDataSetChanged()
     }
 }

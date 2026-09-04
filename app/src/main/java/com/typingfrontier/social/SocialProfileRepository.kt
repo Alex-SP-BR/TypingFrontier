@@ -143,6 +143,9 @@ object SocialProfileRepository {
                             }
                         }
 
+                        // Inicia a infraestrutura de presença online
+                        PresenceManager.startPresence()
+
                         onComplete?.invoke()
                     }
                 } catch (e: Exception) {
