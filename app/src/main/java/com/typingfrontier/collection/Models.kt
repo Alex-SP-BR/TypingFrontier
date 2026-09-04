@@ -13,7 +13,9 @@ enum class CollectionCategory {
     RESISTENCIA,
     EXPLORACAO,
     ECONOMIA,
-    ESPECIAL
+    ESPECIAL,
+    ADMINISTRATIVO,
+    COLECAO
 }
 
 data class Avatar(
@@ -23,7 +25,9 @@ data class Avatar(
     val categoria: CollectionCategory,
     @DrawableRes val imagemRes: Int,
     val nivelRequisito: Int,
-    val adsNecessarios: Int
+    val adsNecessarios: Int,
+    val roleRequisito: String? = null,
+    val precoFrons: Int = 0
 )
 
 data class Achievement(

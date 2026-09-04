@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import com.typingfrontier.PlayerManager
+import com.typingfrontier.social.SocialProfileRepository
 import com.typingfrontier.databinding.ActivityAvatarCollectionBinding
 
 class AvatarCollectionActivity : AppCompatActivity() {
@@ -17,6 +18,7 @@ class AvatarCollectionActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupRecyclerView()
+        setupFilters()
 
         binding.btnVoltar.setOnClickListener {
             finish()
@@ -25,6 +27,27 @@ class AvatarCollectionActivity : AppCompatActivity() {
         binding.btnHelpAvatares.setOnClickListener {
             mostrarAjudaAvatares()
         }
+    }
+
+    private fun setupFilters() {
+        binding.btnFilterTodos.setOnClickListener { carregarLista("TODOS") }
+        binding.btnFilterProgressao.setOnClickListener { carregarLista("PROGRESSÃO") }
+        binding.btnFilterColecao.setOnClickListener { carregarLista("COLEÇÃO") }
+        binding.btnFilterAdmin.setOnClickListener { carregarLista("ADMINISTRATIVOS") }
+    }
+
+    private fun carregarLista(filtro: String) {
+        val p = PlayerManager.player
+        val lista = mutableListOf<Avatar>()
+        
+        // Avatar Padrão aparece apenas em "TODOS" (no topo) ou conforme lógica específica
+        if (filtro == "TODOS") {
+            lista.add(CollectionRepository.getAvatarPadrao(p.sexo))
+        }
+
+        lista.addAll(CollectionRepository.getAvataresPorCategoria(p.sexo, filtro))
+        
+        adapter.updateList(lista)
     }
 
     private fun mostrarAjudaAvatares() {
@@ -42,21 +65,19 @@ class AvatarCollectionActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        val p = PlayerManager.player
-        val avataresNivel = CollectionRepository.getAvataresPorSexo(p.sexo)
-        
-        // Adiciona o Avatar Padrão no topo da lista
-        val listaCompleta = mutableListOf<Avatar>()
-        listaCompleta.add(CollectionRepository.getAvatarPadrao(p.sexo))
-        listaCompleta.addAll(avataresNivel)
-        
-        adapter = AvatarAdapter(listaCompleta) {
-            // Callback quando um avatar é equipado
+        adapter = AvatarAdapter(emptyList()) {
             PlayerManager.save(this)
         }
         
         binding.rvAvatares.layoutManager = GridLayoutManager(this, 2)
         binding.rvAvatares.adapter = adapter
+
+        // Garante que a role esteja carregada antes de popular a lista
+        SocialProfileRepository.initializeSocialIdentity {
+            runOnUiThread {
+                carregarLista("TODOS")
+            }
+        }
     }
 
     override fun onResume() {

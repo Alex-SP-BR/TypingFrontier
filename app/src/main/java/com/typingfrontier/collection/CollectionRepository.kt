@@ -50,6 +50,50 @@ object CollectionRepository {
         Avatar("lvl1000_f", "Divina", "Feminino", CollectionCategory.NIVEL, R.drawable.avatar_nivel_1000_feminino, 1000, 10)
     )
 
+    private val avataresAdmin = listOf(
+        // MODERATOR
+        Avatar("adm_mod_m1", "Sentinela", "Masculino", CollectionCategory.ADMINISTRATIVO, R.drawable.admin_mod_m1, 1, 0, "moderator"),
+        Avatar("adm_mod_m2", "Guardião", "Masculino", CollectionCategory.ADMINISTRATIVO, R.drawable.admin_mod_m2, 1, 0, "moderator"),
+        Avatar("adm_mod_f1", "Sentinela", "Feminino", CollectionCategory.ADMINISTRATIVO, R.drawable.admin_mod_f1, 1, 0, "moderator"),
+        Avatar("adm_mod_f2", "Guardiã", "Feminino", CollectionCategory.ADMINISTRATIVO, R.drawable.admin_mod_f2, 1, 0, "moderator"),
+        
+        // SENIOR_MODERATOR
+        Avatar("adm_smod_m1", "Vigilante", "Masculino", CollectionCategory.ADMINISTRATIVO, R.drawable.admin_smod_m1, 1, 0, "senior_moderator"),
+        Avatar("adm_smod_m2", "Comandante", "Masculino", CollectionCategory.ADMINISTRATIVO, R.drawable.admin_smod_m2, 1, 0, "senior_moderator"),
+        Avatar("adm_smod_f1", "Vigilante", "Feminino", CollectionCategory.ADMINISTRATIVO, R.drawable.admin_smod_f1, 1, 0, "senior_moderator"),
+        Avatar("adm_smod_f2", "Comandante", "Feminino", CollectionCategory.ADMINISTRATIVO, R.drawable.admin_smod_f2, 1, 0, "senior_moderator"),
+        
+        // ADMINISTRATOR
+        Avatar("adm_admin_m1", "Fundador", "Masculino", CollectionCategory.ADMINISTRATIVO, R.drawable.admin_admin_m1, 1, 0, "administrator"),
+        Avatar("adm_admin_m2", "Líder", "Masculino", CollectionCategory.ADMINISTRATIVO, R.drawable.admin_admin_m2, 1, 0, "administrator")
+    )
+
+    private val avataresComerciais = listOf(
+        // 01-05: Frons OU Ads
+        Avatar("comercial_01_masculino", "Coleção #01", "Masculino", CollectionCategory.COLECAO, R.drawable.comercial_01_masculino, 1, 5, precoFrons = 5000),
+        Avatar("comercial_01_feminino", "Coleção #01", "Feminino", CollectionCategory.COLECAO, R.drawable.comercial_01_feminino, 1, 5, precoFrons = 5000),
+        Avatar("comercial_02_masculino", "Coleção #02", "Masculino", CollectionCategory.COLECAO, R.drawable.comercial_02_masculino, 1, 10, precoFrons = 10000),
+        Avatar("comercial_02_feminino", "Coleção #02", "Feminino", CollectionCategory.COLECAO, R.drawable.comercial_02_feminino, 1, 10, precoFrons = 10000),
+        Avatar("comercial_03_masculino", "Coleção #03", "Masculino", CollectionCategory.COLECAO, R.drawable.comercial_03_masculino, 1, 15, precoFrons = 20000),
+        Avatar("comercial_03_feminino", "Coleção #03", "Feminino", CollectionCategory.COLECAO, R.drawable.comercial_03_feminino, 1, 15, precoFrons = 20000),
+        Avatar("comercial_04_masculino", "Coleção #04", "Masculino", CollectionCategory.COLECAO, R.drawable.comercial_04_masculino, 1, 20, precoFrons = 35000),
+        Avatar("comercial_04_feminino", "Coleção #04", "Feminino", CollectionCategory.COLECAO, R.drawable.comercial_04_feminino, 1, 20, precoFrons = 35000),
+        Avatar("comercial_05_masculino", "Coleção #05", "Masculino", CollectionCategory.COLECAO, R.drawable.comercial_05_masculino, 1, 25, precoFrons = 50000),
+        Avatar("comercial_05_feminino", "Coleção #05", "Feminino", CollectionCategory.COLECAO, R.drawable.comercial_05_feminino, 1, 25, precoFrons = 50000),
+        
+        // 06-10: SOMENTE Frons
+        Avatar("comercial_06_masculino", "Coleção #06", "Masculino", CollectionCategory.COLECAO, R.drawable.comercial_06_masculino, 1, 0, precoFrons = 100000),
+        Avatar("comercial_06_feminino", "Coleção #06", "Feminino", CollectionCategory.COLECAO, R.drawable.comercial_06_feminino, 1, 0, precoFrons = 100000),
+        Avatar("comercial_07_masculino", "Coleção #07", "Masculino", CollectionCategory.COLECAO, R.drawable.comercial_07_masculino, 1, 0, precoFrons = 250000),
+        Avatar("comercial_07_feminino", "Coleção #07", "Feminino", CollectionCategory.COLECAO, R.drawable.comercial_07_feminino, 1, 0, precoFrons = 250000),
+        Avatar("comercial_08_masculino", "Coleção #08", "Masculino", CollectionCategory.COLECAO, R.drawable.comercial_08_masculino, 1, 0, precoFrons = 750000),
+        Avatar("comercial_08_feminino", "Coleção #08", "Feminino", CollectionCategory.COLECAO, R.drawable.comercial_08_feminino, 1, 0, precoFrons = 750000),
+        Avatar("comercial_09_masculino", "Coleção #09", "Masculino", CollectionCategory.COLECAO, R.drawable.comercial_09_masculino, 1, 0, precoFrons = 2500000),
+        Avatar("comercial_09_feminino", "Coleção #09", "Feminino", CollectionCategory.COLECAO, R.drawable.comercial_09_feminino, 1, 0, precoFrons = 2500000),
+        Avatar("comercial_10_masculino", "Coleção #10", "Masculino", CollectionCategory.COLECAO, R.drawable.comercial_10_masculino, 1, 0, precoFrons = 10000000),
+        Avatar("comercial_10_feminino", "Coleção #10", "Feminino", CollectionCategory.COLECAO, R.drawable.comercial_10_feminino, 1, 0, precoFrons = 10000000)
+    )
+
     private val conquistas = listOf(
         // 🌍 EXPLORAÇÃO (16)
         Achievement("exp_1", "Primeira Aventura Concluída", "Vença as 5 etapas de sua primeira zona de exploração.", CollectionCategory.EXPLORACAO, "Concluir 5 etapas de 1 zona", R.drawable.insignia_exp_1, 50),
@@ -127,14 +171,48 @@ object CollectionRepository {
     )
 
     fun getAvatarById(id: String?): Avatar? {
-        return avataresNivel.find { it.id == id }
+        return (avataresNivel + avataresAdmin + avataresComerciais).find { it.id == id }
     }
     
     fun getAvataresPorSexo(sexo: String): List<Avatar> {
-        return avataresNivel.filter { it.sexo.equals(sexo, ignoreCase = true) }
+        val list = mutableListOf<Avatar>()
+        
+        // 1. Progressão
+        list.addAll(avataresNivel.filter { it.sexo.equals(sexo, ignoreCase = true) })
+        
+        // 2. Coleção (Comerciais)
+        list.addAll(avataresComerciais.filter { it.sexo.equals(sexo, ignoreCase = true) })
+        
+        // 3. Administrativos
+        val userRole = com.typingfrontier.social.SocialProfileRepository.currentProfile?.role ?: "usuario"
+        list.addAll(avataresAdmin.filter { 
+            it.sexo.equals(sexo, ignoreCase = true) && isRoleCompatible(userRole, it.roleRequisito)
+        })
+        
+        return list
     }
 
-    fun getAllAvatares(): List<Avatar> = avataresNivel
+    private fun isRoleCompatible(userRole: String, requiredRole: String?): Boolean {
+        if (requiredRole == null) return true
+        if (userRole == "administrator") return true 
+        
+        // Regra 6 simplificada: cada role tem seus avatares exclusivos.
+        return userRole == requiredRole
+    }
+
+    fun getAllAvatares(): List<Avatar> = avataresNivel + avataresAdmin + avataresComerciais
+
+    fun getAvataresPorCategoria(sexo: String, categoria: String): List<Avatar> {
+        val userRole = com.typingfrontier.social.SocialProfileRepository.currentProfile?.role ?: "usuario"
+        return when (categoria) {
+            "PROGRESSÃO" -> avataresNivel.filter { it.sexo.equals(sexo, ignoreCase = true) }
+            "COLEÇÃO" -> avataresComerciais.filter { it.sexo.equals(sexo, ignoreCase = true) }
+            "ADMINISTRATIVOS" -> avataresAdmin.filter { 
+                it.sexo.equals(sexo, ignoreCase = true) && isRoleCompatible(userRole, it.roleRequisito) 
+            }
+            else -> getAvataresPorSexo(sexo) // TODOS
+        }
+    }
 
     fun getAvatarPadrao(sexo: String): Avatar {
         return if (sexo.equals("Masculino", ignoreCase = true)) {
@@ -151,7 +229,15 @@ object CollectionRepository {
         // 1. Sexo
         if (!avatar.sexo.equals(p.sexo, ignoreCase = true)) return false
         
-        // 2. Desbloqueado
+        // 2. Role (para avatares administrativos)
+        if (avatar.roleRequisito != null) {
+            val userRole = com.typingfrontier.social.SocialProfileRepository.currentProfile?.role ?: "usuario"
+            if (userRole != avatar.roleRequisito) return false
+            // Avatares administrativos não exigem desbloqueio por anúncio/nível, apenas a role.
+            return true
+        }
+        
+        // 3. Desbloqueado (para avatares de nível)
         if (!p.avataresDesbloqueados.contains(avatarId)) return false
         
         return true

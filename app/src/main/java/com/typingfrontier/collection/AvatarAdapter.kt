@@ -12,6 +12,7 @@ import android.widget.Toast
 import android.app.Activity
 import com.typingfrontier.utils.AdManager
 import com.typingfrontier.utils.ViewUtils
+import com.typingfrontier.utils.CurrencyUtils
 
 class AvatarAdapter(
     private var avatares: List<Avatar>,
@@ -30,23 +31,46 @@ class AvatarAdapter(
         val p = PlayerManager.player
         val binding = holder.binding
 
+        val isAdmin = avatar.categoria == CollectionCategory.ADMINISTRATIVO
+        val isComercial = avatar.categoria == CollectionCategory.COLECAO
+        val isPadrao = avatar.id == "default"
+
         binding.txtAvatarNome.text = avatar.nome
         binding.imgAvatar.setImageResource(avatar.imagemRes)
 
-        val isPadrao = avatar.id == "default"
-        val desbloqueado = isPadrao || p.avataresDesbloqueados.contains(avatar.id)
+        // Enquadramento especial para avatares administrativos e comerciais (Corpo inteiro -> Foco no torso/cabeça)
+        if (isAdmin || isComercial) {
+            binding.imgAvatar.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+        } else {
+            binding.imgAvatar.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+        }
+        
+        // Regra de Desbloqueio: Padrão, já desbloqueado ou Administrativo com Role válida
+        val desbloqueado = isPadrao || 
+                          p.avataresDesbloqueados.contains(avatar.id) ||
+                          (isAdmin && CollectionRepository.isAvatarValidoParaPlayer(avatar.id, p))
+
         val equipado = (p.avatarEquipadoId == avatar.id) || (isPadrao && p.avatarEquipadoId == null)
-        val nivelAlcancado = isPadrao || p.nivel >= avatar.nivelRequisito
-        val adsAssistidos = if (isPadrao) 0 else p.avataresProgressoAds[avatar.id] ?: 0
+        
+        // Requisito de nível: Ignorado para Administrativo, Comercial e Padrão
+        val nivelAlcancado = isPadrao || isAdmin || isComercial || p.nivel >= avatar.nivelRequisito
+        
+        val adsAssistidos = if (isPadrao || isAdmin) 0 else p.avataresProgressoAds[avatar.id] ?: 0
 
         // Visualização ampliada (Apenas se desbloqueado)
         binding.imgAvatar.setOnClickListener {
             if (desbloqueado) {
+                val subtitulo = when {
+                    isPadrao -> "Avatar Original"
+                    isAdmin -> "Administrativo"
+                    isComercial -> "Coleção"
+                    else -> "Nível ${avatar.nivelRequisito}"
+                }
                 ViewUtils.showZoomDialog(
                     holder.itemView.context,
                     avatar.imagemRes,
                     avatar.nome,
-                    if (isPadrao) "Avatar Original" else "Nível ${avatar.nivelRequisito}"
+                    subtitulo
                 )
             } else {
                 Toast.makeText(holder.itemView.context, "Desbloqueie para ampliar", Toast.LENGTH_SHORT).show()
@@ -56,6 +80,7 @@ class AvatarAdapter(
         // Reset views
         binding.txtRequisito.visibility = View.VISIBLE
         binding.txtAdsProgresso.visibility = View.GONE
+        binding.txtPrecoFrons.visibility = View.GONE
         binding.btnAcao.visibility = View.GONE
         binding.txtStatus.visibility = View.GONE
         
@@ -70,7 +95,12 @@ class AvatarAdapter(
             binding.imgAvatar.alpha = 1.0f
         }
 
-        binding.txtRequisito.text = if (isPadrao) "Sempre disponível" else "NÍVEL ${avatar.nivelRequisito}"
+        binding.txtRequisito.text = when {
+            isPadrao -> "Sempre disponível"
+            isAdmin -> "ADMINISTRATIVO"
+            isComercial -> "COLEÇÃO"
+            else -> "NÍVEL ${avatar.nivelRequisito}"
+        }
         binding.txtRequisito.setTextColor(if (nivelAlcancado) android.graphics.Color.parseColor("#4CAF50") else android.graphics.Color.parseColor("#E53935"))
 
         when {
@@ -88,10 +118,12 @@ class AvatarAdapter(
                         p.avatarEquipadoId = null
                         notifyDataSetChanged()
                         onAvatarEquipado()
-                    } else if (validarEquipar(avatar, holder.itemView.context)) {
+                    } else if (CollectionRepository.isAvatarValidoParaPlayer(avatar.id, p)) {
                         p.avatarEquipadoId = avatar.id
                         notifyDataSetChanged()
                         onAvatarEquipado()
+                    } else {
+                        Toast.makeText(holder.itemView.context, "Acesso negado.", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -102,13 +134,35 @@ class AvatarAdapter(
                 binding.txtAdsProgresso.setTextColor(android.graphics.Color.GRAY)
                 binding.btnAcao.visibility = View.GONE
             }
+            isComercial -> {
+                // Comercial Bloqueado
+                binding.txtPrecoFrons.text = "💰 ${CurrencyUtils.formatar(avatar.precoFrons)}"
+                binding.txtPrecoFrons.visibility = View.VISIBLE
+                
+                binding.btnAcao.text = "COMPRAR"
+                binding.btnAcao.visibility = View.VISIBLE
+                
+                if (avatar.adsNecessarios > 0) {
+                    val textoAds = if (adsAssistidos == 0) {
+                        "Assistir a ${avatar.adsNecessarios} anúncios OU"
+                    } else {
+                        "Anúncios assistidos: $adsAssistidos de ${avatar.adsNecessarios}"
+                    }
+                    binding.txtAdsProgresso.text = textoAds
+                    binding.txtAdsProgresso.visibility = View.VISIBLE
+                }
+
+                binding.btnAcao.setOnClickListener {
+                    mostrarOpcoesCompra(avatar, holder)
+                }
+            }
             else -> {
-                // Disponível para desbloqueio por anúncios
-                binding.txtAdsProgresso.text = "$adsAssistidos/${avatar.adsNecessarios}"
+                // Progressão Bloqueado (Anúncios)
+                binding.txtAdsProgresso.text = "Anúncios: $adsAssistidos de ${avatar.adsNecessarios}"
                 binding.txtAdsProgresso.visibility = View.VISIBLE
                 binding.txtAdsProgresso.setTextColor(android.graphics.Color.parseColor("#1976D2"))
                 
-                binding.btnAcao.text = "DESBLOQUEAR"
+                binding.btnAcao.text = "ASSISTIR ANÚNCIO"
                 binding.btnAcao.visibility = View.VISIBLE
                 binding.btnAcao.isEnabled = true
                 
@@ -117,6 +171,42 @@ class AvatarAdapter(
                 }
             }
         }
+    }
+
+    private fun mostrarOpcoesCompra(avatar: Avatar, holder: AvatarViewHolder) {
+        val context = holder.itemView.context
+        val activity = context as? Activity ?: return
+        val p = PlayerManager.player
+
+        val options = mutableListOf<String>()
+        options.add("Comprar por ${CurrencyUtils.formatar(avatar.precoFrons)}")
+        if (avatar.adsNecessarios > 0) {
+            val assistidos = p.avataresProgressoAds[avatar.id] ?: 0
+            options.add("Assistir a anúncios ($assistidos de ${avatar.adsNecessarios})")
+        }
+
+        androidx.appcompat.app.AlertDialog.Builder(context)
+            .setTitle("Adquirir ${avatar.nome}")
+            .setItems(options.toTypedArray()) { _, which ->
+                when (options[which]) {
+                    options[0] -> { // COMPRAR FRONS
+                        if (p.dinheiro >= avatar.precoFrons) {
+                            p.dinheiro -= avatar.precoFrons
+                            p.avataresDesbloqueados.add(avatar.id)
+                            PlayerManager.save(context)
+                            notifyDataSetChanged()
+                            Toast.makeText(context, "🎉 Avatar ${avatar.nome} adquirido!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Saldo insuficiente!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    else -> { // ASSISTIR AD
+                        processarCliqueAnuncio(avatar, holder)
+                    }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun processarCliqueAnuncio(avatar: Avatar, holder: AvatarViewHolder) {
@@ -173,7 +263,7 @@ class AvatarAdapter(
                             pAtual.avataresDesbloqueados.add(avatar.id)
                             Toast.makeText(activity, "🎉 Avatar ${avatar.nome} desbloqueado!", Toast.LENGTH_LONG).show()
                         } else {
-                            Toast.makeText(activity, "Progresso: $novoValor/${avatar.adsNecessarios}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(activity, "Anúncios assistidos: $novoValor de ${avatar.adsNecessarios}", Toast.LENGTH_SHORT).show()
                         }
                         
                         // Persistência imediata
@@ -193,24 +283,6 @@ class AvatarAdapter(
                 Toast.makeText(activity, mensagemErro, Toast.LENGTH_SHORT).show()
             }
         )
-    }
-
-    private fun validarEquipar(avatar: Avatar, context: android.content.Context): Boolean {
-        val p = PlayerManager.player
-        
-        // 1. Verificar se o avatar pertence ao sexo do jogador
-        if (!avatar.sexo.equals(p.sexo, ignoreCase = true)) {
-            Toast.makeText(context, "Este avatar não é compatível com seu personagem.", Toast.LENGTH_SHORT).show()
-            return false
-        }
-        
-        // 2. Verificar se está desbloqueado
-        if (!p.avataresDesbloqueados.contains(avatar.id)) {
-            Toast.makeText(context, "Avatar ainda não desbloqueado.", Toast.LENGTH_SHORT).show()
-            return false
-        }
-        
-        return true
     }
 
     override fun getItemCount(): Int = avatares.size

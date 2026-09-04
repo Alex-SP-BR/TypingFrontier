@@ -3,6 +3,7 @@ package com.typingfrontier.social
 import android.util.Log
 import com.typingfrontier.PlayerManager
 import com.typingfrontier.TypingFrontierApp
+import com.typingfrontier.collection.CollectionRepository
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.signInAnonymously
 import io.github.jan.supabase.auth.status.SessionStatus
@@ -104,6 +105,14 @@ object SocialProfileRepository {
                             } else {
                                 currentProfile = profile
                                 Log.d(TAG, "Perfil social recuperado: ${profile.username} (Role: ${profile.role})")
+                                
+                                // Validação de Avatar Administrativo (Segurança contra perda de Role)
+                                val player = PlayerManager.player
+                                if (!CollectionRepository.isAvatarValidoParaPlayer(player.avatarEquipadoId, player)) {
+                                    Log.w(TAG, "Avatar equipado inválido para a role atual. Resetando para padrão.")
+                                    player.avatarEquipadoId = null
+                                    // Sincronização será feita no bloco seguinte se houver mudança
+                                }
                             }
                         }
 
