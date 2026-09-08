@@ -32,10 +32,10 @@ object HudSettingsManager {
         
         HudCategory.values().forEach { category ->
             val prefix = category.name
-            settingsCache["${prefix}_SHOW_XP"] = prefs.getBoolean("${prefix}_SHOW_XP", true)
-            settingsCache["${prefix}_SHOW_HP"] = prefs.getBoolean("${prefix}_SHOW_HP", true)
-            settingsCache["${prefix}_SHOW_PHYSICAL_ENERGY"] = prefs.getBoolean("${prefix}_SHOW_PHYSICAL_ENERGY", true)
-            settingsCache["${prefix}_SHOW_MENTAL_ENERGY"] = prefs.getBoolean("${prefix}_SHOW_MENTAL_ENERGY", true)
+            settingsCache["${prefix}_SHOW_XP"] = prefs.getBoolean("${prefix}_SHOW_XP", getDefaultXp(category))
+            settingsCache["${prefix}_SHOW_HP"] = prefs.getBoolean("${prefix}_SHOW_HP", getDefaultHp(category))
+            settingsCache["${prefix}_SHOW_PHYSICAL_ENERGY"] = prefs.getBoolean("${prefix}_SHOW_PHYSICAL_ENERGY", getDefaultPhysical(category))
+            settingsCache["${prefix}_SHOW_MENTAL_ENERGY"] = prefs.getBoolean("${prefix}_SHOW_MENTAL_ENERGY", getDefaultMental(category))
         }
     }
 
@@ -55,7 +55,7 @@ object HudSettingsManager {
     // --- MÉTODOS DE ACESSO ---
 
     fun isXpVisible(category: HudCategory): Boolean {
-        return settingsCache["${category.name}_SHOW_XP"] ?: true
+        return settingsCache["${category.name}_SHOW_XP"] ?: getDefaultXp(category)
     }
 
     fun setXpVisible(category: HudCategory, visible: Boolean) {
@@ -63,7 +63,7 @@ object HudSettingsManager {
     }
 
     fun isHealthVisible(category: HudCategory): Boolean {
-        return settingsCache["${category.name}_SHOW_HP"] ?: true
+        return settingsCache["${category.name}_SHOW_HP"] ?: getDefaultHp(category)
     }
 
     fun setHealthVisible(category: HudCategory, visible: Boolean) {
@@ -71,7 +71,7 @@ object HudSettingsManager {
     }
 
     fun isPhysicalEnergyVisible(category: HudCategory): Boolean {
-        return settingsCache["${category.name}_SHOW_PHYSICAL_ENERGY"] ?: true
+        return settingsCache["${category.name}_SHOW_PHYSICAL_ENERGY"] ?: getDefaultPhysical(category)
     }
 
     fun setPhysicalEnergyVisible(category: HudCategory, visible: Boolean) {
@@ -79,10 +79,40 @@ object HudSettingsManager {
     }
 
     fun isMentalEnergyVisible(category: HudCategory): Boolean {
-        return settingsCache["${category.name}_SHOW_MENTAL_ENERGY"] ?: true
+        return settingsCache["${category.name}_SHOW_MENTAL_ENERGY"] ?: getDefaultMental(category)
     }
 
     fun setMentalEnergyVisible(category: HudCategory, visible: Boolean) {
         settingsCache["${category.name}_SHOW_MENTAL_ENERGY"] = visible
+    }
+
+    // --- DEFAULTS ---
+
+    private fun getDefaultXp(category: HudCategory): Boolean {
+        return when (category) {
+            HudCategory.EXPLORE, HudCategory.ADVENTURE -> true
+            HudCategory.TRAINING_PHYSICAL, HudCategory.TRAINING_MENTAL -> false
+        }
+    }
+
+    private fun getDefaultHp(category: HudCategory): Boolean {
+        return when (category) {
+            HudCategory.EXPLORE, HudCategory.ADVENTURE -> true
+            HudCategory.TRAINING_PHYSICAL, HudCategory.TRAINING_MENTAL -> false
+        }
+    }
+
+    private fun getDefaultPhysical(category: HudCategory): Boolean {
+        return when (category) {
+            HudCategory.ADVENTURE, HudCategory.TRAINING_PHYSICAL, HudCategory.TRAINING_MENTAL -> true
+            HudCategory.EXPLORE -> false
+        }
+    }
+
+    private fun getDefaultMental(category: HudCategory): Boolean {
+        return when (category) {
+            HudCategory.ADVENTURE, HudCategory.TRAINING_PHYSICAL, HudCategory.TRAINING_MENTAL -> true
+            HudCategory.EXPLORE -> false
+        }
     }
 }
