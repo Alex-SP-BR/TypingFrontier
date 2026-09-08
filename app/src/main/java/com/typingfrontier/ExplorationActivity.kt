@@ -88,6 +88,9 @@ class ExplorationActivity : AppCompatActivity() {
 
         layoutSelecao.visibility = View.GONE
         layoutAventura.visibility = View.VISIBLE
+        
+        atualizarHUD()
+
         txtZonaNome.text = zona.nome
         txtEtapa.text = "Entrada"
         
@@ -208,46 +211,12 @@ class ExplorationActivity : AppCompatActivity() {
     }
 
     private fun atualizarHUD() {
-        val p = PlayerManager.player
-        progressEnergia.max = p.energiaMax
-        progressEnergia.progress = p.energia
-        
-        // Cansaço Mental como Barra de Consumo (Invertida)
-        val mentalEnergia = (p.cansacoMax - p.cansacoMental).coerceAtLeast(0)
-        progressMente.max = p.cansacoMax
-        progressMente.progress = mentalEnergia
-        
-        txtDinheiro.text = "💰 ${CurrencyUtils.formatar(p.dinheiro)}"
-
-        if (p.energia < p.energiaMax * 0.1 || mentalEnergia < p.cansacoMax * 0.1) {
-            txtAviso.visibility = View.VISIBLE
-            val anim = android.view.animation.AlphaAnimation(1f, 0.4f).apply {
-                duration = 500
-                repeatCount = android.view.animation.Animation.INFINITE
-                repeatMode = android.view.animation.Animation.REVERSE
-            }
-
-            if (p.energia < p.energiaMax * 0.1) {
-                progressEnergia.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.RED)
-                if (progressEnergia.animation == null) progressEnergia.startAnimation(anim)
-            } else {
-                progressEnergia.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FBC02D"))
-                progressEnergia.clearAnimation()
-            }
-
-            if (mentalEnergia < p.cansacoMax * 0.1) {
-                progressMente.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.RED)
-                if (progressMente.animation == null) progressMente.startAnimation(anim)
-            } else {
-                progressMente.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#7B1FA2"))
-                progressMente.clearAnimation()
-            }
+        val views = com.typingfrontier.utils.HudHelper.HudViews(findViewById(android.R.id.content))
+        val category = if (layoutAventura.visibility == View.VISIBLE) {
+            com.typingfrontier.HudSettingsManager.HudCategory.ADVENTURE
         } else {
-            txtAviso.visibility = View.GONE
-            progressEnergia.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FBC02D"))
-            progressMente.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#7B1FA2"))
-            progressEnergia.clearAnimation()
-            progressMente.clearAnimation()
+            com.typingfrontier.HudSettingsManager.HudCategory.EXPLORE
         }
+        com.typingfrontier.utils.HudHelper.atualizar(this, views, category)
     }
 }

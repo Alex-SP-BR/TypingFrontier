@@ -35,6 +35,10 @@ class StatusActivity : AppCompatActivity() {
             )
         }
 
+        imgAvatar.setOnClickListener {
+            com.typingfrontier.utils.HudHelper.ampliarAvatar(this)
+        }
+
         findViewById<TextView>(R.id.txtNivel).text = "Nível ${player.nivel}"
 
         findViewById<ProgressBar>(R.id.progressNivel).apply {

@@ -39,6 +39,9 @@
             android:name=".ManualActivity"
             android:exported="false" />
         <activity
+            android:name=".HudSettingsActivity"
+            android:exported="false" />
+        <activity
             android:name=".SettingsActivity"
             android:exported="false" />
         <activity

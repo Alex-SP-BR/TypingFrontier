@@ -28,6 +28,10 @@ class SettingsActivity : AppCompatActivity() {
             showAboutDialog()
         }
 
+        findViewById<Button>(R.id.btnHudSettings).setOnClickListener {
+            startActivity(Intent(this, HudSettingsActivity::class.java))
+        }
+
         findViewById<Button>(R.id.btnBack).setOnClickListener {
             finish()
         }

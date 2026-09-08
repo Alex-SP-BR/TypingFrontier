@@ -195,38 +195,7 @@ class MentalTrainingActivity : AppCompatActivity() {
         txtProgressoInteligencia.text = "Lv.${p.inteligencia} ${p.progressoInteligencia}/${p.progressoInteligenciaMax}"
         txtProgressoCarisma.text = "Lv.${p.carisma} ${p.progressoCarisma}/${p.progressoCarismaMax}"
 
-        txtVitalDinheiro.text = "💰 ${CurrencyUtils.formatar(p.dinheiro)}"
-        txtVitalEnergia.text = "⚡ ${p.energia}/${p.energiaMax}"
-        progressVitalEnergia.max = p.energiaMax
-        progressVitalEnergia.progress = p.energia
-        
-        // Cansaço Mental como Barra de Consumo (Invertida)
-        val mentalEnergia = (p.cansacoMax - p.cansacoMental).coerceAtLeast(0)
-        txtVitalMente.text = "🧠 $mentalEnergia/${p.cansacoMax}"
-        progressVitalMente.max = p.cansacoMax
-        progressVitalMente.progress = mentalEnergia
-
-        if (p.energia < p.energiaMax * 0.1 || mentalEnergia < p.cansacoMax * 0.1) {
-            txtAvisoColapso.visibility = android.view.View.VISIBLE
-            progressVitalEnergia.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.RED)
-            progressVitalMente.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.RED)
-
-            // Pulsa as barras se estiver em risco
-            if (progressVitalEnergia.animation == null) {
-                val anim = android.view.animation.AlphaAnimation(1f, 0.4f).apply {
-                    duration = 500
-                    repeatCount = android.view.animation.Animation.INFINITE
-                    repeatMode = android.view.animation.Animation.REVERSE
-                }
-                progressVitalEnergia.startAnimation(anim)
-                progressVitalMente.startAnimation(anim)
-            }
-        } else {
-            txtAvisoColapso.visibility = android.view.View.GONE
-            progressVitalEnergia.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FBC02D"))
-            progressVitalMente.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#7B1FA2"))
-            progressVitalEnergia.clearAnimation()
-            progressVitalMente.clearAnimation()
-        }
+        val hudViews = com.typingfrontier.utils.HudHelper.HudViews(findViewById(android.R.id.content))
+        com.typingfrontier.utils.HudHelper.atualizar(this, hudViews, com.typingfrontier.HudSettingsManager.HudCategory.TRAINING_MENTAL)
     }
 }

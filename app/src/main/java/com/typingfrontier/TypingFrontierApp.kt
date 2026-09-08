@@ -24,6 +24,9 @@ class TypingFrontierApp : Application() {
         
         // Inicializa as configurações de som
         SoundManager.init(this)
+        
+        // Inicializa as configurações de HUD
+        HudSettingsManager.init(this)
 
         // Inicializa AdMob
         com.typingfrontier.utils.AdManager.init(this)
