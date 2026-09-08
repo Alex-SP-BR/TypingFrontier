@@ -7,7 +7,7 @@ object PlayerManager {
     var player = Player()
 
     private const val PREFS_NAME = "typing_frontier_save"
-    private const val CURRENT_SAVE_VERSION = 6
+    private const val CURRENT_SAVE_VERSION = 7
 
     // Constantes para a fórmula de XP (Opção C: Polinomial Híbrida)
     private const val XP_BASE = 20
@@ -149,6 +149,7 @@ object PlayerManager {
 
         editor.putBoolean("trabalhouHoje", player.trabalhouHoje)
         editor.putBoolean("pausouHoje", player.pausouHoje)
+        editor.putInt("horasExtrasFeitasHoje", player.horasExtrasFeitasHoje)
 
         editor.putInt("dia", player.dia)
         editor.putInt("hora", player.hora)
@@ -243,6 +244,7 @@ object PlayerManager {
 
         player.trabalhouHoje = prefs.getBoolean("trabalhouHoje", false)
         player.pausouHoje = prefs.getBoolean("pausouHoje", false)
+        player.horasExtrasFeitasHoje = prefs.getInt("horasExtrasFeitasHoje", 0)
 
         player.dia = prefs.getInt("dia", 1)
         player.hora = prefs.getInt("hora", 8)
@@ -319,10 +321,9 @@ object PlayerManager {
             player.conquistasDesbloqueadas = mutableSetOf()
         }
 
-        if (loadedVersion < 6) {
-            // Migração para Versão 6: Inicializa estatísticas de conquistas
-            player.mentalStreak = 0
-            player.zonasExploradas = mutableSetOf()
+        if (loadedVersion < 7) {
+            // Migração para Versão 7: Inicializa contador de Horas Extras
+            player.horasExtrasFeitasHoje = 0
         }
     }
 

@@ -125,7 +125,7 @@ object ProfessionManager {
             val perdaXP = (player.experienciaAtual * 0.15).toInt() // Perde 15% do XP atual do nível
             player.experienciaAtual -= perdaXP
             
-            return "🚑 VOCÊ DESMAIOU!\nAcordou no hospital fraco. Seu corpo resistiu ao trauma, mas você perdeu $perdaXP XP e todo o lucro da exploração.\n\n⚠️ Desgaste: ${player.traumasAcumulados}/$limite traumas."
+            return "🚑 VOCÊ DESMAIOU!\nAcordou no hospital fraco. Seu corpo resistiu ao trauma, mas você perdeu $perdaXP de Experiência e todo o lucro da exploração.\n\n⚠️ Desgaste: ${player.traumasAcumulados}/$limite traumas."
         } else {
             // PUNIÇÃO GRAVE: ESTADO CRÍTICO (COLAPSO)
             player.traumasAcumulados = 0 // Reseta o ciclo após o colapso

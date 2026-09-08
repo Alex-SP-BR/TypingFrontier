@@ -13,6 +13,7 @@ object GameEngine {
         return try {
             val result = when (action) {
                 is GameAction.Work -> processWork()
+                is GameAction.Overtime -> processOvertime()
                 is GameAction.Eat -> processEat()
                 is GameAction.Sleep -> processSleep()
                 is GameAction.Rest -> processRest()
@@ -41,8 +42,11 @@ object GameEngine {
         
         val custoEnergia = 35 // Invariante: Custo > Recuperação Comida
         
-        if (p.energia < custoEnergia) return EngineResult.Failure("Energia insuficiente ($custoEnergia necessária).")
-        if (p.cansacoMental >= p.cansacoMax * 0.95) return EngineResult.Failure("Mente esgotada! Você precisa descansar.")
+        if (p.energia < custoEnergia) {
+            val msg = if (TimeManager.podeAgir()) "Energia insuficiente ($custoEnergia necessária). Que tal fazer um lanche?" else "Energia insuficiente ($custoEnergia necessária)."
+            return EngineResult.Failure(msg)
+        }
+        if (p.cansacoMental >= p.cansacoMax * 0.95) return EngineResult.Failure("Energia Mental esgotada! Faça uma pausa ou vá dormir.")
 
         p.trabalhouHoje = true
         p.energia -= custoEnergia
@@ -59,12 +63,94 @@ object GameEngine {
         return EngineResult.Success("💼 Trabalho concluído! Ganhou ${CurrencyUtils.formatar(ganho)}.", extraMsg)
     }
 
+    /**
+     * Lógica central para a execução da Hora Extra.
+     * Consome recursos e avança o tempo. Recompensa financeira será adicionada na Etapa 5.
+     */
+    private fun processOvertime(): EngineResult {
+        val p = PlayerManager.player
+        
+        // 1. Verificações de Condição
+        if (!p.trabalhouHoje) return EngineResult.Failure("Você precisa concluir o trabalho normal antes.")
+        
+        val duracaoMinutos = getMaiorDuracaoOvertimeDisponivel() ?: return EngineResult.Failure("Sem tempo suficiente antes das 22h.")
+        
+        val numeroHE = p.horasExtrasFeitasHoje + 1
+        val percentual = Math.min(numeroHE * 0.05, 0.5)
+        
+        // Cálculos de Custo (Modelo B Híbrido)
+        val custoEnergia = (5 + (p.energiaMax * percentual)).toInt()
+        val gastoMente = (2.5 + (p.cansacoMax * percentual)).toInt()
+
+        // 2. Validação de Recursos
+        if (p.energia < custoEnergia) return EngineResult.Failure("Energia física insuficiente ($custoEnergia necessária).")
+        if (p.cansacoMax - p.cansacoMental < gastoMente) return EngineResult.Failure("Capacidade mental insuficiente ($gastoMente necessária).")
+
+        // 3. Execução
+        val salarioNormal = ProfessionManager.calcularSalario(p)
+        val duracaoHoras = duracaoMinutos / 60.0
+        val fatorEficiencia = Math.max(0.5, 1.0 - (p.horasExtrasFeitasHoje * 0.1))
+        val recompensa = (salarioNormal / 8.0) * duracaoHoras * 2.0 * fatorEficiencia
+
+        p.energia -= custoEnergia
+        p.cansacoMental += gastoMente
+        p.dinheiro += recompensa.toInt()
+
+        TimeManager.avancarTempo(minutos = duracaoMinutos)
+        p.horasExtrasFeitasHoje++
+        
+        return EngineResult.Success("Hora Extra #$numeroHE concluída com sucesso! Ganhou ${CurrencyUtils.formatar(recompensa.toInt())}.")
+    }
+
+    /**
+     * Retorna a maior duração possível (em minutos) que cabe até as 22:00.
+     */
+    fun getMaiorDuracaoOvertimeDisponivel(): Int? {
+        val p = PlayerManager.player
+        val minutosAtuais = p.hora * 60 + p.minuto
+        val minutosLimite = 22 * 60 // 1320 minutos
+        val tempoRestante = minutosLimite - minutosAtuais
+
+        val opcoes = listOf(330, 300, 270, 240, 210, 180, 150, 120, 60, 30)
+        return opcoes.find { it <= tempoRestante }
+    }
+
+    /**
+     * Retorna a quantidade de anúncios necessários para a próxima Hora Extra.
+     */
+    fun getAnunciosNecessariosOvertime(duracaoMinutos: Int): Int {
+        return when (duracaoMinutos) {
+            330, 300 -> 1 // 5h30, 5h
+            270 -> 2      // 4h30
+            else -> 3     // 4h e abaixo (até 30min)
+        }
+    }
+
+    /**
+     * Calcula em qual horário a Hora Extra terminará.
+     */
+    fun calcularHorarioTerminoOvertime(duracaoMinutos: Int): Pair<Int, Int> {
+        val p = PlayerManager.player
+        var h = p.hora
+        var m = p.minuto + duracaoMinutos
+        
+        h += m / 60
+        m %= 60
+        
+        if (h > 22) {
+            h = 22
+            m = 0
+        }
+        
+        return h to m
+    }
+
     private fun processEat(): EngineResult {
         val p = PlayerManager.player
         val config = ProfessionManager.getConfig(p.profissao) ?: return EngineResult.Failure("Erro de perfil.")
 
-        if (p.dinheiro < config.custoComida) return EngineResult.Failure("Dinheiro insuficiente (${CurrencyUtils.formatar(config.custoComida)}).")
-        if (p.energia >= p.energiaMax) return EngineResult.Failure("Você já está satisfeito.")
+        if (p.dinheiro < config.custoComida) return EngineResult.Failure("Frons insuficientes (${CurrencyUtils.formatar(config.custoComida)}).")
+        if (p.energia >= p.energiaMax) return EngineResult.Failure("Sua Energia já está no máximo! Não precisa comer agora.")
         if (!TimeManager.podeAgir()) return EngineResult.Failure("Lanchonetes fechadas. Vá dormir.")
 
         p.dinheiro -= config.custoComida
@@ -87,7 +173,12 @@ object GameEngine {
                                     p.dinheiro > custoVida
         
         if (temEnergiaParaQueimar) {
-            return EngineResult.Failure("Você ainda tem energia! Aproveite para estudar mais um pouco e cansar sua mente antes de dormir. (O esforço extra consumirá 10% de seus recursos máximos).")
+            val msg = if (TimeManager.podeAgir()) {
+                "Você ainda tem disposição! Estude ou treine mais um pouco antes de dormir."
+            } else {
+                "Você ainda tem disposição! Estude mais um pouco antes de dormir."
+            }
+            return EngineResult.Failure(msg)
         }
 
         // REDE DE SEGURANÇA: Permite dormir se for tarde (22h) OU se estiver exausto 
@@ -111,7 +202,7 @@ object GameEngine {
             p.cansacoMental = 0
             p.ajustarVida()
             TimeManager.resetarDia()
-            return EngineResult.Success("🏚️ Você dormiu na rua por falta de dinheiro.", "Energia: 30% | Vida: -20 HP. Dia ${p.dia} começou.")
+            return EngineResult.Success("🏚️ Você dormiu na rua por falta de Frons.", "Energia: 30% | Vida: -20 HP. Dia ${p.dia} começou.")
         }
 
         // Sono Normal
@@ -190,10 +281,13 @@ object GameEngine {
         }
 
         // 2. Validação de Recursos
-        if (p.dinheiro < custoDinheiro) return EngineResult.Failure("Dinheiro insuficiente (${CurrencyUtils.formatar(custoDinheiro)}).")
-        if (p.energia < gastoEnergia) return EngineResult.Failure("Energia insuficiente ($gastoEnergia necessária).")
+        if (p.dinheiro < custoDinheiro) return EngineResult.Failure("Frons insuficientes (${CurrencyUtils.formatar(custoDinheiro)}).")
+        if (p.energia < gastoEnergia) {
+            val msg = if (TimeManager.podeAgir()) "Energia insuficiente ($gastoEnergia necessária). Que tal fazer um lanche?" else "Energia insuficiente ($gastoEnergia necessária)."
+            return EngineResult.Failure(msg)
+        }
         
-        if (p.cansacoMax - p.cansacoMental < gastoMente) return EngineResult.Failure("Mente exausta! Você não consegue focar no treino.")
+        if (p.cansacoMax - p.cansacoMental < gastoMente) return EngineResult.Failure("Energia Mental esgotada! Faça uma pausa ou vá dormir.")
 
         // 3. Execução e Tempo
         p.dinheiro -= custoDinheiro
@@ -235,15 +329,19 @@ object GameEngine {
         if (config?.bonusTreino == atributo) ganhoXP = (ganhoXP * 1.5).toInt()
 
         applyAttributeXP(atributo, ganhoXP)
-        return EngineResult.Success("${if (isMental) "Estudo" else "Treino"} concluído!", "+$ganhoXP XP")
+        val msgSucesso = if (isMental) "Você se sente mais sábio! Ganhou $ganhoXP de Experiência." else "Treino concluído! +$ganhoXP XP"
+        return EngineResult.Success(msgSucesso)
     }
 
     private fun processExplore(zoneId: String): EngineResult {
         val p = PlayerManager.player
 
         if (!TimeManager.podeAgir()) return EngineResult.Failure("Muito tarde para explorar.")
-        if (p.energia < 5) return EngineResult.Failure("Energia insuficiente (necessário 5).")
-        if (p.cansacoMax - p.cansacoMental < 7) return EngineResult.Failure("Mente exausta! Você não consegue focar na exploração.")
+        if (p.energia < 5) {
+            val msg = if (TimeManager.podeAgir()) "Energia insuficiente (necessário 5). Que tal fazer um lanche?" else "Energia insuficiente (necessário 5)."
+            return EngineResult.Failure(msg)
+        }
+        if (p.cansacoMax - p.cansacoMental < 7) return EngineResult.Failure("Energia Mental esgotada! Faça uma pausa ou vá dormir.")
         
         p.energia -= 5
         p.cansacoMental += 7
@@ -289,7 +387,7 @@ object GameEngine {
         // 3. Verificação de Saldo
         if (p.dinheiro < precoFinal) {
             val falta = precoFinal - p.dinheiro
-            return EngineResult.Failure("Dinheiro insuficiente. Falta ${CurrencyUtils.formatar(falta)}.")
+            return EngineResult.Failure("Frons insuficientes. Falta ${CurrencyUtils.formatar(falta)}.")
         }
 
         // 4. Execução da Compra

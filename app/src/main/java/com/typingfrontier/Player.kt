@@ -81,6 +81,7 @@ data class Player(
     // ⚡ RESTRIÇÃO DIÁRIA
     var trabalhouHoje: Boolean = false,
     var pausouHoje: Boolean = false, // Nova restrição diária
+    var horasExtrasFeitasHoje: Int = 0,
 
     // ⏰ TEMPO
     var dia: Int = 1,

@@ -16,6 +16,14 @@ import com.typingfrontier.utils.ViewUtils
 class GameActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityGameBinding
+    
+    // ESTADO DA FILA DE ANÚNCIOS (HORA EXTRA)
+    private var overtimeAdsNeeded = 0
+    private var overtimeAdsCompleted = 0
+    private var isOvertimeSessionInProgress = false
+    
+    // PRIORIDADE DA LOUSA
+    private var prioridadeAtual = 5
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,6 +32,11 @@ class GameActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         configurarTelaPrincipal()
+        
+        // Inicialização da lousa
+        prioridadeAtual = 5
+        binding.txtDescricao.text = "O que vamos fazer hoje?"
+
         atualizarHUD()
     }
 
@@ -45,7 +58,7 @@ class GameActivity : AppCompatActivity() {
         binding.btnHelpExplore.setOnClickListener {
             androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("🌍 Explorar")
-                .setMessage("Aventure-se na cidade para ganhar XP e dinheiro. Cada avanço consome 5 de Energia, 7 de Energia Mental e 1h15 do dia. Cuidado: falhas críticas podem levar à hospitalização!")
+                .setMessage("Aventure-se na cidade para ganhar Experiência e Frons. Cada avanço consome 5 de Energia, 7 de Energia Mental e 1h15 do dia. Cuidado: falhas críticas podem levar à hospitalização!")
                 .setPositiveButton("Entendi", null)
                 .show()
         }
@@ -61,7 +74,7 @@ class GameActivity : AppCompatActivity() {
         binding.btnHelpTrainPhysical.setOnClickListener {
             androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("🏋️ Físico")
-                .setMessage("Melhore Força, Resistência ou Velocidade. Consome Energia, Energia Mental e tempo (30m a 1h). Risco de falha se estiver com a mente exausta!")
+                .setMessage("Melhore Força, Resistência ou Velocidade. Consome Energia, Energia Mental e tempo (30m a 1h). Risco de falha se estiver com a Energia Mental exausta!")
                 .setPositiveButton("Entendi", null)
                 .show()
         }
@@ -69,7 +82,7 @@ class GameActivity : AppCompatActivity() {
         binding.btnHelpTrainMental.setOnClickListener {
             androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("🧠 Mental")
-                .setMessage("Estude Português ou Matemática para desenvolver Inteligência e Carisma. Não consome tempo, mas estudar de madrugada consome muito mais Energia e Mente.")
+                .setMessage("Estude Português ou Matemática para desenvolver Inteligência e Carisma. Não consome tempo, mas estudar de madrugada consome muito mais Energia e Energia Mental.")
                 .setPositiveButton("Entendi", null)
                 .show()
         }
@@ -77,7 +90,7 @@ class GameActivity : AppCompatActivity() {
         binding.btnHelpEat.setOnClickListener {
             androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("🥪 Comer")
-                .setMessage("Recupere 20 pontos de Energia Física por meio de uma refeição. Custa dinheiro conforme sua profissão. Lanchonetes fecham às 22h.")
+                .setMessage("Recupere 20 pontos de Energia por meio de uma refeição. Custa Frons conforme sua profissão. Lanchonetes fecham às 22h.")
                 .setPositiveButton("Entendi", null)
                 .show()
         }
@@ -135,10 +148,10 @@ class GameActivity : AppCompatActivity() {
             
             when (result) {
                 is EngineResult.Success -> {
-                    binding.txtDescricao.text = result.message
+                    exibirMensagem(result.message, result.extra, prioridade = 4)
                 }
                 is EngineResult.Failure -> {
-                    binding.txtDescricao.text = result.message
+                    exibirMensagem(result.message, prioridade = 3)
                 }
             }
 
@@ -147,26 +160,27 @@ class GameActivity : AppCompatActivity() {
         }
 
         binding.btnTrabalhar.setOnClickListener {
-            val result = GameEngine.dispatch(GameAction.Work)
-            
-            when (result) {
-                is EngineResult.Success -> {
-                    binding.txtDescricao.text = result.message
-                    result.extra?.let {
-                        binding.txtDescricao.append("\n\n$it")
+            val p = PlayerManager.player
+            if (!p.trabalhouHoje) {
+                // TRABALHO NORMAL
+                val result = GameEngine.dispatch(GameAction.Work)
+                when (result) {
+                    is EngineResult.Success -> {
+                        exibirMensagem(result.message, result.extra, prioridade = 4)
+                        binding.txtDinheiro.animate().scaleX(1.4f).scaleY(1.4f).setDuration(200).withEndAction {
+                            binding.txtDinheiro.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
+                        }.start()
                     }
-                    // FEEDBACK VISUAL: Dinheiro pulando
-                    binding.txtDinheiro.animate().scaleX(1.4f).scaleY(1.4f).setDuration(200).withEndAction {
-                        binding.txtDinheiro.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
-                    }.start()
+                    is EngineResult.Failure -> {
+                        exibirMensagem(result.message, prioridade = 3)
+                    }
                 }
-                is EngineResult.Failure -> {
-                    binding.txtDescricao.text = result.message
-                }
+                atualizarHUD()
+                PlayerManager.save(this)
+            } else {
+                // HORA EXTRA
+                iniciarPreparacaoHoraExtra()
             }
-
-            atualizarHUD()
-            PlayerManager.save(this)
         }
 
         binding.btnTreinoFisico.setOnClickListener {
@@ -201,11 +215,12 @@ class GameActivity : AppCompatActivity() {
             val result = GameEngine.dispatch(GameAction.Sleep)
             when (result) {
                 is EngineResult.Success -> {
-                    binding.txtDescricao.text = result.message
-                    result.extra?.let { binding.txtDescricao.append("\n\n$it") }
+                    // Após dormir, tudo reseta, então a prioridade também volta ao normal.
+                    prioridadeAtual = 5
+                    exibirMensagem(result.message, result.extra, prioridade = 4)
                 }
                 is EngineResult.Failure -> {
-                    binding.txtDescricao.text = result.message
+                    exibirMensagem(result.message, prioridade = 3)
                 }
             }
             atualizarHUD()
@@ -216,11 +231,10 @@ class GameActivity : AppCompatActivity() {
             val result = GameEngine.dispatch(GameAction.Rest)
             when (result) {
                 is EngineResult.Success -> {
-                    binding.txtDescricao.text = result.message
-                    result.extra?.let { binding.txtDescricao.append("\n\n$it") }
+                    exibirMensagem(result.message, result.extra, prioridade = 4)
                 }
                 is EngineResult.Failure -> {
-                    binding.txtDescricao.text = result.message
+                    exibirMensagem(result.message, prioridade = 3)
                 }
             }
             atualizarHUD()
@@ -241,6 +255,135 @@ class GameActivity : AppCompatActivity() {
     // ------------------------------------------------
     private fun abrirExploracao() {
         startActivity(Intent(this, ExplorationActivity::class.java))
+    }
+
+    // ------------------------------------------------
+    // FILA DE ANÚNCIOS (HORA EXTRA)
+    // ------------------------------------------------
+
+    private fun iniciarPreparacaoHoraExtra() {
+        val p = PlayerManager.player
+        val duracaoMinutos = GameEngine.getMaiorDuracaoOvertimeDisponivel()
+        if (duracaoMinutos == null) {
+            exibirMensagem("🕒 Sem tempo suficiente para Hora Extra hoje (limite 22:00).", prioridade = 3)
+            return
+        }
+
+        val adsNecessarios = GameEngine.getAnunciosNecessariosOvertime(duracaoMinutos)
+        val horarioTermino = GameEngine.calcularHorarioTerminoOvertime(duracaoMinutos)
+        
+        // Simulação de custos para o diálogo
+        val numeroHE = p.horasExtrasFeitasHoje + 1
+        val percentual = Math.min(numeroHE * 0.05, 0.5)
+        val custoEnergia = (5 + (p.energiaMax * percentual)).toInt()
+        val gastoMente = (2.5 + (p.cansacoMax * percentual)).toInt()
+        
+        // Recompensa estimada
+        val salarioNormal = ProfessionManager.calcularSalario(p)
+        val duracaoHoras = duracaoMinutos / 60.0
+        val fatorEficiencia = Math.max(0.5, 1.0 - (p.horasExtrasFeitasHoje * 0.1))
+        val recompensa = ((salarioNormal / 8.0) * duracaoHoras * 2.0 * fatorEficiencia).toInt()
+
+        val msg = "⏱️ Hora Extra #$numeroHE\n\n" +
+                "⏳ Duração: ${formatarDuracao(duracaoMinutos)}\n" +
+                "🏁 Término: ${horarioTermino.first}:${horarioTermino.second.toString().padStart(2, '0')}\n" +
+                "💰 Ganho: ${CurrencyUtils.formatar(recompensa)}\n\n" +
+                "⚡ Energia: -$custoEnergia\n" +
+                "🧠 Cansaço Mental: +$gastoMente\n" +
+                "📺 Requisito: $adsNecessarios ${if (adsNecessarios == 1) "anúncio" else "anúncios"}\n\n" +
+                "⚠️ Esta atividade não concede XP."
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Confirmar Jornada")
+            .setMessage(msg)
+            .setPositiveButton("Assistir e Iniciar") { _, _ ->
+                if (p.energia < custoEnergia || (p.cansacoMax - p.cansacoMental) < gastoMente) {
+                    Toast.makeText(this, "Recursos insuficientes!", Toast.LENGTH_SHORT).show()
+                } else {
+                    executarFilaAdsOvertime(adsNecessarios)
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun formatarDuracao(totalMinutos: Int): String {
+        val h = totalMinutos / 60
+        val m = totalMinutos % 60
+        return if (h > 0) {
+            if (m > 0) "${h}h ${m}min" else "${h}h"
+        } else {
+            "${m}min"
+        }
+    }
+
+    private fun executarFilaAdsOvertime(totalAds: Int) {
+        overtimeAdsNeeded = totalAds
+        overtimeAdsCompleted = 0
+        isOvertimeSessionInProgress = true
+        solicitarProximoAdOvertime()
+    }
+
+    private fun solicitarProximoAdOvertime() {
+        if (!isOvertimeSessionInProgress) return
+
+        com.typingfrontier.utils.AdManager.showRewardedAd(
+            this,
+            onRewardEarned = {
+                runOnUiThread {
+                    overtimeAdsCompleted++
+                }
+            },
+            onAdClosed = {
+                runOnUiThread {
+                    if (overtimeAdsCompleted < overtimeAdsNeeded) {
+                        mostrarDialogoProgressoAds()
+                    } else {
+                        concluirHoraExtra()
+                    }
+                }
+            },
+            onAdFailed = { erro ->
+                runOnUiThread {
+                    Toast.makeText(this, "Anúncio indisponível: $erro", Toast.LENGTH_SHORT).show()
+                    mostrarDialogoProgressoAds()
+                }
+            }
+        )
+    }
+
+    private fun mostrarDialogoProgressoAds() {
+        val faltam = overtimeAdsNeeded - overtimeAdsCompleted
+        val msg = "Progresso: $overtimeAdsCompleted de $overtimeAdsNeeded concluídos.\n\n" +
+                "Faltam $faltam ${if (faltam == 1) "anúncio" else "anúncios"} para liberar a Hora Extra.\n" +
+                "Deseja continuar?"
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("⏱️ Fila de Anúncios")
+            .setMessage(msg)
+            .setPositiveButton("Ver Próximo") { _, _ -> solicitarProximoAdOvertime() }
+            .setNegativeButton("Desistir") { _, _ -> isOvertimeSessionInProgress = false }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun concluirHoraExtra() {
+        isOvertimeSessionInProgress = false
+        val result = GameEngine.dispatch(GameAction.Overtime)
+        
+        when (result) {
+            is EngineResult.Success -> {
+                exibirMensagem(result.message, prioridade = 4)
+                binding.txtDinheiro.animate().scaleX(1.4f).scaleY(1.4f).setDuration(200).withEndAction {
+                    binding.txtDinheiro.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
+                }.start()
+            }
+            is EngineResult.Failure -> {
+                exibirMensagem(result.message, prioridade = 3)
+            }
+        }
+        atualizarHUD()
+        PlayerManager.save(this)
     }
 
     private fun ampliarAvatarAtual() {
@@ -292,14 +435,18 @@ class GameActivity : AppCompatActivity() {
         binding.txtTempo.text = TimeManager.tempoFormatado()
         binding.txtDinheiro.text = "💰 ${CurrencyUtils.formatar(p.dinheiro)}"
 
+        // 🔘 BOTÃO TRABALHAR DINÂMICO
+        if (p.trabalhouHoje) {
+            binding.btnTrabalhar.text = "⏱️ Hora Extra"
+        } else {
+            binding.btnTrabalhar.text = "💼 Trabalhar"
+        }
+
         // 🩹 AVISO DE TRAUMAS (Apenas informativo no load da tela ou repouso)
         if (p.traumasAcumulados > 0) {
             val totalDias = (p.traumasAcumulados - 1) * 2 + p.diasParaRecuperarTrauma
             val msgTrauma = "🩹 Seu corpo está se recuperando. Recomendado descansar mais $totalDias ${if (totalDias == 1) "dia" else "dias"}."
-            // Se a descrição estiver vazia ou com a pergunta padrão, mostra o aviso
-            if (binding.txtDescricao.text == "O que vamos fazer hoje?") {
-                binding.txtDescricao.text = msgTrauma
-            }
+            exibirMensagem(msgTrauma, prioridade = 2)
         }
 
         binding.lblNivel.text = "⭐ Nível ${p.nivel}: ${p.experienciaAtual}/${p.experienciaParaProximoNivel} XP"
@@ -357,6 +504,28 @@ class GameActivity : AppCompatActivity() {
         } else {
             binding.progressMente.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#7B1FA2"))
             binding.progressMente.clearAnimation()
+        }
+    }
+
+    /**
+     * Gerencia a lousa de mensagens com sistema de prioridades.
+     */
+    private fun exibirMensagem(mensagem: String, extra: String? = null, prioridade: Int) {
+        var finalPrioridade = prioridade
+        
+        // Detecção automática de eventos graves nos extras
+        if (extra != null) {
+            if (extra.contains("VOCÊ DESMAIOU") || extra.contains("COLAPSO CORPORAL") || extra.contains("ESTADO CRÍTICO")) {
+                finalPrioridade = 1
+            }
+        }
+
+        // Se a nova mensagem for mais ou igualmente importante que a atual, substitui.
+        if (finalPrioridade <= prioridadeAtual) {
+            prioridadeAtual = finalPrioridade
+            
+            val textoFinal = if (extra != null) "$mensagem\n\n$extra" else mensagem
+            binding.txtDescricao.text = textoFinal
         }
     }
 }

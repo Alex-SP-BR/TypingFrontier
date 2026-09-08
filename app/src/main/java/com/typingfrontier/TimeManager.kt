@@ -43,6 +43,7 @@ object TimeManager {
         p.minuto = 0
         p.trabalhouHoje = false
         p.pausouHoje = false
+        p.horasExtrasFeitasHoje = 0
         
         // Nota: Custos financeiros e resets de status são processados 
         // pela GameEngine antes de chamar este reset de relógio.

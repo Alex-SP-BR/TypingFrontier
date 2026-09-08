@@ -7,6 +7,7 @@ import com.typingfrontier.economy.Equipment
  */
 sealed class GameAction {
     object Work : GameAction()
+    object Overtime : GameAction()
     object Eat : GameAction()
     object Sleep : GameAction()
     object Rest : GameAction()

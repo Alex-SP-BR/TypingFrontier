@@ -25,69 +25,59 @@ class ManualActivity : AppCompatActivity() {
 
     private fun getManualTopics(): List<ManualTopic> {
         return listOf(
-            ManualTopic("🎯 Introdução", "Bem-vindo ao TypingFrontier! Este é um simulador de vida e RPG focado em evolução pessoal através da digitação. Aqui, suas escolhas e sua dedicação definem o seu sucesso."),
+            ManualTopic("🎯 Introdução", "Bem-vindo ao Typing Frontier! Explore um mundo onde sua velocidade de digitação e suas escolhas moldam seu futuro. Evolua seu personagem, gerencie sua vida e conquiste a cidade!"),
             
-            ManualTopic("📊 Status do Personagem", "Seu personagem possui diversos atributos que influenciam seu desempenho:\n\n• Força: Ajuda em tarefas físicas e exploração.\n• Resistência: Reduz o cansaço e dano recebido.\n• Velocidade: Aumenta a eficiência e sucesso em fugas.\n• Inteligência: Melhora o salário e habilidades mentais.\n• Carisma: Melhora recompensas sociais e diálogos."),
+            ManualTopic("📊 Atributos", "Cada atributo influencia seu desempenho de forma única:\n\n• Força: Essencial para tarefas físicas e segurança na exploração.\n• Resistência: Diminui o consumo de Energia e permite aguentar mais traumas antes de um colapso.\n• Velocidade: Aumenta sua eficiência e as chances de sucesso em fugas.\n• Inteligência: Melhora seu salário e habilidades de aprendizado.\n• Carisma: Melhora seu impacto social e negociações."),
             
-            ManualTopic("❤️ Vida (HP)", "Sua saúde física. Se chegar a zero, você desmaia e é hospitalizado. Dormir bem ou comer ajuda a manter sua vida estável. Cuidado com explorações perigosas!"),
+            ManualTopic("❤️ Vida (HP)", "Sua saúde física. Se sua Vida chegar a zero, você desmaia e precisará ser hospitalizado. Mantenha sua saúde em dia com uma boa alimentação e noites de sono tranquilo."),
 
-            ManualTopic("🩹 Traumas e Colapso", "Hospitalizações sucessivas sem descanso geram traumas no corpo:\n\n• Limite: Calculado pela sua Vida e Resistência. Quanto mais forte, mais traumas você aguenta.\n• Trauma Leve: Perda de XP e lucro, mas sem perda de nível.\n• Estado Crítico (Colapso): Ocorre ao atingir seu limite de traumas. Gera perda de nível e sequelas nos atributos.\n• Recuperação: Cada trauma exige 2 noites de sono em casa para ser curado."),
+            ManualTopic("🩹 Traumas e Colapso", "Se for hospitalizado muitas vezes seguidas sem descansar, seu corpo acumulará traumas:\n\n• Limite de Traumas: Depende de quanta Vida e Resistência você possui. Quanto mais forte você for, mais traumas aguentará.\n• Trauma Leve: Causa perda de Experiência e dos lucros da exploração atual.\n• Colapso Corporal: Ocorre ao atingir seu limite de traumas. Você perde um nível de personagem e alguns atributos podem sofrer reduções permanentes.\n• Recuperação: Para curar seus traumas, basta ter noites de sono normal em sua casa."),
             
-            ManualTopic("⚡ Energia", "A energia é o seu fôlego para o dia. Quase todas as ações consomem energia. Se ela acabar, você não poderá mais trabalhar ou treinar até comer ou dormir."),
+            ManualTopic("⚡ Energia", "Representa seu vigor físico para o dia a dia. Quase todas as ações gastam Energia. Se você ficar exausto, não poderá trabalhar ou treinar até comer algo ou dormir. Se tentar agir sem Energia, o jogo sugerirá um lanche rápido."),
             
-            ManualTopic("🧠 Energia Mental", "Reflete sua concentração. É um recurso mais limitado que a energia física. Estudar, trabalhar e treinar consomem esta energia. Se acabar, você precisará de uma pausa ou uma boa noite de sono."),
+            ManualTopic("🧠 Energia Mental", "Representa seu foco para tarefas intelectuais. Estudar e trabalhar consomem Energia Mental. Ela é mais limitada que a física; se ela acabar, você precisará de uma pausa estratégica ou de uma noite de sono."),
             
-            ManualTopic("💼 Trabalho", "Sua fonte primária de sustento. Trabalhar gera dinheiro baseado no seu nível e atributos mentais. O trabalho serve para pagar as contas e financiar sua evolução. Você pode trabalhar apenas uma vez por dia."),
+            ManualTopic("💼 Trabalho", "Sua principal fonte de renda. O salário aumenta conforme você sobe de nível e melhora sua Inteligência. Você pode trabalhar normalmente uma vez por dia, e o expediente termina às 22h. Lembre-se: trabalhar exige Energia e Energia Mental."),
             
-            ManualTopic("🥪 Alimentação", "Essencial para recuperar energia física durante o dia. Cada refeição custa dinheiro e ajuda você a continuar produzindo sem precisar dormir cedo."),
-            
-            ManualTopic("🧘 Descanso (Pausa)", "Uma pausa rápida ajuda a recuperar um pouco de energia mental sem gastar dinheiro. Disponível apenas uma vez por dia."),
-            
-            ManualTopic("😴 Dormir", "A ação mais importante para fechar o ciclo. Dormir reseta sua energia e mente, e restaura sua capacidade de trabalhar. Exige o pagamento do aluguel diário. Se não tiver dinheiro, você dormirá na rua com penalidades."),
-            
-            ManualTopic("🧠 Treino Mental", "O pilar do jogo! Pratique português e matemática para subir Inteligência e Carisma. É barato e incentiva o aprendizado constante. Disponível a qualquer hora, mas estudar durante a madrugada consome muito mais recursos do seu personagem."),
-            
-            ManualTopic("🏋️ Treino Físico", "Melhora Força, Resistência e Velocidade. Cada sessão consome tempo, energia física e mental.\n\n• Tempo: Entre 30min e 1h por treino.\n• Risco de Falha: Treinos possuem chance de erro. Você ganha +1% de chance de sucesso a cada 3 níveis de personagem.\n• Exaustão: Se a Energia Mental estiver abaixo de 20%, o risco de falha aumenta consideravelmente."),
+            ManualTopic("⏱️ Hora Extra", "Precisa de mais Frons? Após o turno normal, você pode realizar jornadas extras assistindo a anúncios. \n\nFique atento: quanto mais você trabalha extra no mesmo dia, mais Energia e Energia Mental são consumidas, e menos dinheiro você ganha. É uma atividade exclusivamente financeira e não gera Experiência."),
 
-            ManualTopic("🌍 Exploração", "Aventure-se por São Paulo! Ganhe muito dinheiro e XP arriscando-se em zonas desconhecidas.\n\n• Limites: Máximo de 5 avanços (etapas) por expedição.\n• Tempo: Cada etapa consome 1 hora e 15 minutos do seu dia.\n• Recompensas: Quanto mais fundo você for, maior o multiplicador de recompensa (até 4.5x na 5ª etapa).\n• Fuga: Você pode sair a qualquer momento com o que coletou."),
+            ManualTopic("🥪 Alimentação", "Essencial para recuperar Energia durante o dia. Cada refeição custa Frons. Planeje-se bem, pois as lanchonetes fecham rigorosamente às 22h."),
+            
+            ManualTopic("🧘 Pausa (Descanso)", "Uma pausa rápida ajuda a recuperar um pouco de Energia Mental sem gastar Frons ou tempo. Você pode fazer uma pausa por dia."),
+            
+            ManualTopic("😴 Dormir", "A hora de recarregar! Dormir recupera toda sua Energia e Energia Mental. Você precisa pagar o aluguel do dia para dormir bem. Se não tiver dinheiro, terá que dormir na rua, o que prejudica sua Vida. \n\nDica: se você ainda tiver disposição, o jogo recomenda estudar um pouco mais antes de dormir."),
+            
+            ManualTopic("🧠 Treino Mental", "Estude Português e Matemática para ficar mais inteligente e carismático. É um investimento barato e essencial para sua evolução. Você pode estudar até de madrugada, mas o esforço de Energia e Energia Mental será muito maior fora do horário comercial."),
+            
+            ManualTopic("🏋️ Treino Físico", "Melhore sua Força, Resistência e Velocidade na academia ou no parque. Cada sessão consome tempo e recursos. Fique atento: o treino físico é bloqueado após as 22h e o risco de lesão aumenta se você estiver com a Energia Mental baixa."),
 
-            ManualTopic("📍 Requisitos de Exploração", "Recomendações de nível de atributo para ter boas chances de sucesso. Atributos mentais são essenciais, enquanto físicos servem como apoio tático:\n\n" +
-                "• Parque da Cidade\n  - Foco: Inteligência Lv.1+\n  - Apoio: Velocidade Lv.1+\n\n" +
-                "• Centro Comercial\n  - Foco: Carisma Lv.6+\n  - Apoio: Força Lv.5+\n\n" +
-                "• Subúrbio Industrial\n  - Foco: Inteligência Lv.20+\n  - Apoio: Resistência Lv.15+\n\n" +
-                "• Beco Escuro\n  - Foco: Inteligência Lv.35+\n  - Apoio: Força Lv.25+\n\n" +
-                "• Lab Abandonado\n  - Foco: Inteligência Lv.45+\n  - Apoio Secundário: Resistência Lv.35+\n  - Apoio Terciário: Velocidade Lv.30+\n\n" +
-                "• Cassino Clandestino\n  - Foco: Carisma Lv.55+\n  - Apoio Secundário: Força Lv.45+\n  - Apoio Terciário: Velocidade Lv.40+\n\n" +
-                "• Esgotos Profundos\n  - Foco: Inteligência Lv.65+\n  - Apoio Secundário: Velocidade Lv.55+\n  - Apoio Terciário: Resistência Lv.50+"),
+            ManualTopic("🌍 Exploração", "Aventure-se em zonas perigosas para ganhar grandes quantidades de Frons e Experiência. \n\nCada expedição tem 5 etapas. Quanto mais longe você for, maior será o prêmio! Mas cuidado: após as 18h o risco aumenta, embora as recompensas também sejam 50% maiores. Você pode fugir a qualquer momento com o que coletou."),
+
+            ManualTopic("📍 Dicas de Exploração", "Cada local exige habilidades diferentes para o sucesso. O sistema avalia seu atributo principal e usa os secundários como apoio tático:\n\n" +
+                "• Parque da Cidade: Foco em Inteligência.\n" +
+                "• Centro Comercial: Foco em Carisma.\n" +
+                "• Subúrbio Industrial: Foco em Inteligência e Resistência.\n" +
+                "• Beco Escuro: Foco em Inteligência e Força.\n" +
+                "• Lab Abandonado: Exige alta Inteligência e Resistência.\n" +
+                "• Cassino Clandestino: Exige alto Carisma e Força.\n" +
+                "• Esgotos Profundos: O desafio máximo de Inteligência e Velocidade."),
             
-            ManualTopic("🎒 Equipamentos", "Itens permanentes que dão bônus massivos. Você pode trocar seu item atual na loja recebendo um crédito de 40% do valor do antigo."),
+            ManualTopic("🎒 Equipamentos", "Itens que aumentam seus atributos permanentemente. Se quiser algo melhor, pode trocar seu item atual na loja e ganhar um crédito de 40% do valor do antigo para abater no preço do novo."),
             
-            ManualTopic("🕊️ Benções (Blessings)", "Proteção divina que impede a perda de Nível e Atributos caso você desmaie. Sempre compre uma antes de ir para lugares perigosos!"),
+            ManualTopic("🕊️ Benções (Blessings)", "Uma proteção especial que impede a perda de Nível e Atributos em caso de Colapso Corporal. A benção é consumida ao te salvar. Sempre compre uma antes de enfrentar grandes perigos!"),
             
-            ManualTopic("💰 Economia", "A moeda oficial e exclusiva do universo de Typing Frontier é o Fron (plural: Frons). Ela é obtida através de suas atividades, aventuras, recompensas e progressão geral. O jogo equilibra ganhos e gastos: o trabalho garante o sustento, enquanto a Exploração e Missões são os caminhos para a riqueza.\n\n• Apresentação: Para facilitar a leitura, valores altos podem aparecer abreviados (ex: 1K = 1.000, 1KK = 1.000.000, 1KKK = 1.000.000.000).\n• Saldo Detalhado: Ao tocar no saldo exibido no topo da tela, você poderá visualizar o valor exato que possui no momento."),
+            ManualTopic("💰 Economia", "A moeda oficial é o Fron. Guarde suas moedas para financiar sua evolução! Para facilitar a leitura, valores altos podem aparecer como 1K (mil) ou 1KK (milhão). Toque no saldo no topo da tela para ver o valor exato."),
             
             ManualTopic("👥 Profissões", 
-                "• Policial: Especialista em Força. Ganha mais vida ao subir nível. Perfeito para exploração.\n" +
-                "• Médico: Mestre da Inteligência. Ganha mais mente ao evoluir. Evolui atributos rápido.\n" +
-                "• Engenheiro: Focado em Resistência e Mente. Ótima gestão de energia.\n" +
-                "• Professor: Líder em Carisma. Ganha bônus de salário mais facilmente.\n" +
-                "• Detetive: Equilibrado entre Velocidade e Inteligência. Ótimo para achar pistas."),
+                "• Policial: Ganha mais Vida ao evoluir (+15 por nível). Especialista em exploração e combate.\n" +
+                "• Médico: Especialista em Inteligência e Energia Mental. Ganha bônus de Experiência (+20%) em explorações.\n" +
+                "• Engenheiro: Possui a melhor gestão de vigor físico. Ganha mais Energia (+10 por nível) ao evoluir.\n" +
+                "• Professor: Especialista em Carisma e persuasão. Ganha bônus de Frons (+30%) negociando em explorações.\n" +
+                "• Detetive: Focado em Velocidade e investigação. Possui o dobro de sorte para encontrar itens raros."),
             
-            ManualTopic("💡 Dicas para Iniciantes", "1. Treine sua mente cedo para aumentar seu salário.\n2. Sempre guarde dinheiro para o aluguel.\n3. Não explore áreas difíceis sem uma Benção.\n4. Use a Pausa estratégica após o trabalho para recuperar sua concentração."),
-            
-            ManualTopic("👤 Avatares", "Sua representação visual no mundo de Typing Frontier.\n\n" +
-                "• Avatar Original: Você começa com um visual padrão baseado no seu sexo (Masculino ou Feminino). Ele é permanente e sempre disponível.\n" +
-                "• Novos Avatares: Podem ser desbloqueados ao atingir níveis específicos (10, 20, 50, etc).\n" +
-                "• Desbloqueio: Alguns avatares exigem assistir a uma quantidade de anúncios recompensados após o nível ser atingido.\n" +
-                "• Equipar: Após desbloqueado, você pode equipar o novo visual na Central. Você pode trocar livremente entre seus avatares desbloqueados ou voltar ao original a qualquer momento.\n" +
-                "• Ampliar: Na coleção ou na tela principal, toque na imagem do seu personagem para vê-lo em tamanho maior. Isso é apenas visual e não altera seu equipamento."),
+            ManualTopic("👤 Avatares", "Sua imagem no mundo de Typing Frontier. Além do visual padrão, você pode desbloquear novos estilos subindo de nível, completando a coleção comercial ou através de cargos especiais na comunidade."),
 
-            ManualTopic("🏆 Conquistas e Insígnias", "Marcos que celebram sua jornada e evolução.\n\n" +
-                "• Insígnias: Cada conquista possui uma imagem única. Elas aparecem bloqueadas (cinza) até que você cumpra o requisito.\n" +
-                "• Categorias: Existem conquistas de Exploração, Treino Físico, Treino Mental, Economia e Conquistas Supremas.\n" +
-                "• Obtenção: Conquistas são detectadas automaticamente pelo sistema assim que o objetivo é alcançado.\n" +
-                "• Recompensas: Muitas conquistas oferecem Frons como bônus, e algumas conquistas lendárias podem desbloquear avatares exclusivos.\n" +
-                "• Visualização: Toque na insígnia na lista de conquistas para vê-la ampliada. Ver uma insígnia não altera seu progresso ou recompensa.")
+            ManualTopic("🏆 Conquistas", "Celebre sua evolução! Ganhe Frons extras e desbloqueie avatares exclusivos ao alcançar marcos de exploração, treinamento e riqueza.")
         )
     }
 
