@@ -111,8 +111,10 @@ class MentalTrainingActivity : AppCompatActivity() {
                 perguntaAtual = null
                 perguntaMatematicaAtual = MathGenerator.gerar(p.inteligencia)
                 txtQuestao.text = perguntaMatematicaAtual?.pergunta
-                // Habilita teclado numérico apenas para Matemática (Inteligência)
-                edtResposta.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
+                // Habilita teclado numérico com suporte a decimais e sinais para Matemática
+                edtResposta.inputType = android.text.InputType.TYPE_CLASS_NUMBER or 
+                                      android.text.InputType.TYPE_NUMBER_FLAG_SIGNED or 
+                                      android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
             }
             TipoTreino.PORTUGUES -> {
                 perguntaMatematicaAtual = null
@@ -127,19 +129,33 @@ class MentalTrainingActivity : AppCompatActivity() {
     }
 
     private fun verificarResposta() {
-        val resposta = edtResposta.text.toString().trim()
-        if (resposta.isEmpty()) return
+        val respostaRaw = edtResposta.text.toString().trim()
+        if (respostaRaw.isEmpty()) return
 
         val atributoAlvo = if (tipoTreinoAtual == TipoTreino.MATEMATICA) "INTELIGENCIA" else "CARISMA"
         
         val isCorrect = if (tipoTreinoAtual == TipoTreino.MATEMATICA) {
-            resposta == perguntaMatematicaAtual?.respostaCorreta.toString()
+            val questao = perguntaMatematicaAtual ?: return
+            
+            // Normalização: substitui vírgula por ponto para conversão Double
+            val respostaNormalizada = respostaRaw.replace(",", ".")
+            val respostaDouble = respostaNormalizada.toDoubleOrNull()
+            
+            if (respostaDouble == null) {
+                // Entrada inválida (não numérica)
+                txtFeedback.setTextColor(android.graphics.Color.parseColor("#C62828"))
+                txtFeedback.text = "⚠️ Resposta inválida. Use apenas números."
+                return
+            }
+
+            // Comparação com tolerância (Epsilon) para evitar erros de ponto flutuante
+            Math.abs(respostaDouble - questao.respostaCorreta) < 0.0001
         } else {
             val q = perguntaAtual ?: return
-            val baseMatch = resposta.equals(q.respostaCorreta, ignoreCase = true)
+            val baseMatch = respostaRaw.equals(q.respostaCorreta, ignoreCase = true)
             
             // Se não for o sinônimo principal, verifica no mapa de sinônimos aceitáveis
-            baseMatch || PortugueseGenerator.validarSinonimo(q, resposta)
+            baseMatch || PortugueseGenerator.validarSinonimo(q, respostaRaw)
         }
 
         val action = if (isCorrect) GameAction.Train(atributoAlvo, "LEVE") else GameAction.StudyError(atributoAlvo)
@@ -158,14 +174,37 @@ class MentalTrainingActivity : AppCompatActivity() {
                     }.start()
                 } else {
                     txtFeedback.setTextColor(android.graphics.Color.parseColor("#C62828"))
-                    val correta = if (tipoTreinoAtual == TipoTreino.MATEMATICA) {
-                        val q = perguntaMatematicaAtual?.pergunta ?: ""
-                        val formatada = if (q.contains("?")) q.replace("?", perguntaMatematicaAtual?.respostaCorreta.toString()) else "${perguntaMatematicaAtual?.respostaCorreta}"
-                        "O correto é:\n$formatada"
+                    
+                    if (tipoTreinoAtual == TipoTreino.MATEMATICA) {
+                        val questao = perguntaMatematicaAtual
+                        val solucao = if (questao != null) MathSolver.solve(questao) else null
+                        
+                        if (solucao != null) {
+                            // Exibe a resolução estruturada do MathSolver
+                            val sb = StringBuilder("❌ Resposta incorreta.\n\n")
+                            solucao.passos.forEach { sb.append("$it\n") }
+                            
+                            val respFormatada = if (solucao.resultadoFinal % 1 == 0.0) 
+                                solucao.resultadoFinal.toInt().toString() 
+                            else 
+                                solucao.resultadoFinal.toString().replace(".", ",")
+                                
+                            sb.append("\nResultado: $respFormatada")
+                            txtFeedback.text = sb.toString().trim()
+                        } else {
+                            // Fallback para categorias sem solver ainda
+                            val q = questao?.pergunta ?: ""
+                            val respFormatada = if (questao?.respostaCorreta?.rem(1) == 0.0) 
+                                questao.respostaCorreta.toInt().toString() 
+                            else 
+                                questao?.respostaCorreta.toString().replace(".", ",")
+
+                            val perguntaFormatada = if (q.contains("?")) q.replace("?", respFormatada) else respFormatada
+                            txtFeedback.text = "❌ Resposta incorreta.\nO correto é:\n$perguntaFormatada"
+                        }
                     } else {
-                        "Resposta correta: \"${perguntaAtual?.respostaCorreta}\""
+                        txtFeedback.text = "❌ Resposta incorreta.\nResposta correta: \"${perguntaAtual?.respostaCorreta}\""
                     }
-                    txtFeedback.text = "❌ Resposta incorreta.\n$correta"
                 }
             }
             is EngineResult.Failure -> {

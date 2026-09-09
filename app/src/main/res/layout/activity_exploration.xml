@@ -7,28 +7,34 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Espaçador de segurança superior para não atropelar o status do cel -->
+    <!-- Espaçador de segurança superior reduzido -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="32dp" />
-
-    <!-- HEADER / HUD COMPACTO -->
-    <include layout="@layout/layout_vital_bars" />
+        android:layout_height="0dp" />
 
     <!-- TELA DE SELEÇÃO DE ZONA -->
     <LinearLayout
         android:id="@+id/layoutSelecaoZona"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:orientation="vertical">
+
+        <!-- HUD FIXO NA SELEÇÃO -->
+        <include
+            android:id="@+id/includeHudSelection"
+            layout="@layout/layout_vital_bars"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="4dp"
             android:text="Onde você quer se aventurar?"
             android:textColor="#FFFFFF"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <androidx.recyclerview.widget.RecyclerView
@@ -36,14 +42,14 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginTop="12dp" />
+            android:layout_marginTop="4dp" />
 
         <Button
             android:id="@+id/btnVoltarMapa"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="40dp"
+            android:layout_marginBottom="0dp"
             android:text="Voltar ao Mapa"
             android:textColor="#BBBBBB" />
     </LinearLayout>
@@ -52,106 +58,126 @@
     <LinearLayout
         android:id="@+id/layoutAventura"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:orientation="vertical"
         android:visibility="gone">
 
+        <!-- A ScrollView agora recebe o peso diretamente para evitar conflitos de medição em Landscape -->
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="4dp"
+            android:fillViewport="true"
             android:scrollbars="none">
 
-            <com.google.android.material.card.MaterialCardView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="#1E1E1E"
-                app:cardCornerRadius="12dp">
+                android:orientation="vertical">
 
-                <LinearLayout
+                <!-- HUD ROLÁVEL NA AVENTURA -->
+                <include
+                    android:id="@+id/includeHudAdventure"
+                    layout="@layout/layout_vital_bars"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_marginTop="12dp" />
 
-                    <TextView
-                        android:id="@+id/txtZonaNome"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Explorando: Zona"
-                        android:textColor="#FFD600"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    app:cardBackgroundColor="#1E1E1E"
+                    app:cardCornerRadius="12dp">
 
-                    <TextView
-                        android:id="@+id/txtEtapaAventura"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Etapa 1"
-                        android:textColor="#AAAAAA"
-                        android:textSize="14sp" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="12dp"
-                        android:background="#333333" />
-
-                    <TextView
-                        android:id="@+id/txtDescricaoEvento"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="80dp"
-                        android:text="Você entra silenciosamente no local..."
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:id="@+id/txtZonaNome"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Explorando: Zona"
+                            android:textColor="#FFD600"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/txtEtapaAventura"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Etapa 1"
+                            android:textColor="#AAAAAA"
+                            android:textSize="14sp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginVertical="8dp"
+                            android:background="#333333" />
+
+                        <TextView
+                            android:id="@+id/txtDescricaoEvento"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:minHeight="60dp"
+                            android:text="Você entra silenciosamente no local..."
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/txtResultadoEvento"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:textColor="#4CAF50"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:id="@+id/layoutAcoesAventura"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <Button
+                        android:id="@+id/btnIrMaisFundo"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:backgroundTint="#D32F2F"
+                        android:text="IR MAIS FUNDO ➡"
                         android:textColor="#FFFFFF"
-                        android:textSize="16sp" />
-
-                    <TextView
-                        android:id="@+id/txtResultadoEvento"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:textColor="#4CAF50"
                         android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnSairComLoot"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="FUGIR COM O QUE TENHO 🏃"
+                        android:textColor="#FFFFFF"
+                        app:strokeColor="#FFFFFF" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+
+                <Button
+                    android:id="@+id/btnFinalizar"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="CONTINUAR"
+                    android:visibility="gone" />
+
+            </LinearLayout>
         </ScrollView>
-
-        <LinearLayout
-            android:id="@+id/layoutAcoesAventura"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <Button
-                android:id="@+id/btnIrMaisFundo"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:backgroundTint="#D32F2F"
-                android:text="IR MAIS FUNDO ➡"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnSairComLoot"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="40dp"
-                android:text="FUGIR COM O QUE TENHO 🏃"
-                android:textColor="#FFFFFF"
-                app:strokeColor="#FFFFFF" />
-        </LinearLayout>
-
-        <Button
-            android:id="@+id/btnFinalizar"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:layout_marginBottom="40dp"
-            android:text="CONTINUAR"
-            android:visibility="gone" />
 
     </LinearLayout>
 

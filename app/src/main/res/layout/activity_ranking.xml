@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:padding="8dp"
         android:gravity="center_vertical">
 
         <TextView
@@ -76,7 +76,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Voltar"
-        android:layout_margin="16dp"
+        android:layout_margin="8dp"
         style="@style/Widget.MaterialComponents.Button.TextButton"/>
 
 </LinearLayout>

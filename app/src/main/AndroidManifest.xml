@@ -21,7 +21,8 @@
         <activity
             android:name=".MentalTrainingActivity"
             android:exported="false"
-            android:configChanges="orientation|screenSize" />
+            android:configChanges="orientation|screenSize"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".TrainingActivity"
             android:exported="false" />
@@ -68,10 +69,12 @@
             android:exported="false" />
         <activity
             android:name=".social.AdminActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
         <activity
             android:name=".social.ReportActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
         <activity
             android:name=".social.RankingActivity"
             android:exported="false" />
@@ -86,10 +89,12 @@
             android:exported="false" />
         <activity
             android:name=".social.RoleManagementActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
         <activity
             android:name=".social.ModerationSupervisionActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
         <activity
             android:name=".MainActivity"
             android:exported="true">

@@ -211,12 +211,15 @@ class ExplorationActivity : AppCompatActivity() {
     }
 
     private fun atualizarHUD() {
-        val views = com.typingfrontier.utils.HudHelper.HudViews(findViewById(android.R.id.content))
-        val category = if (layoutAventura.visibility == View.VISIBLE) {
-            com.typingfrontier.HudSettingsManager.HudCategory.ADVENTURE
-        } else {
+        val isAventura = layoutAventura.visibility == View.VISIBLE
+        val hudRootId = if (isAventura) R.id.includeHudAdventure else R.id.includeHudSelection
+        val hudRoot = findViewById<View>(hudRootId) ?: findViewById(android.R.id.content)
+
+        val views = com.typingfrontier.utils.HudHelper.HudViews(hudRoot)
+        val category = if (isAventura)
+            com.typingfrontier.HudSettingsManager.HudCategory.ADVENTURE 
+        else 
             com.typingfrontier.HudSettingsManager.HudCategory.EXPLORE
-        }
         com.typingfrontier.utils.HudHelper.atualizar(this, views, category)
     }
 }

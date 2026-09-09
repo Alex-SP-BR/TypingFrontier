@@ -9,6 +9,8 @@ import android.view.animation.Animation
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import com.typingfrontier.HudSettingsManager
+import com.typingfrontier.HudSettingsManager.HudCategory
 import com.typingfrontier.PlayerManager
 import com.typingfrontier.R
 import com.typingfrontier.TimeManager
@@ -49,18 +51,21 @@ object HudHelper {
         val txtAvisoColapso: View? = root.findViewById(R.id.txtAvisoColapso)
     }
 
-    fun atualizar(activity: Activity, views: HudViews, category: com.typingfrontier.HudSettingsManager.HudCategory? = null) {
+    fun atualizar(activity: Activity, views: HudViews, category: HudCategory? = null) {
         val p = PlayerManager.player
 
         // APLICA PERSONALIZAÇÃO SE HOUVER CATEGORIA (Exceto na GameActivity que não passa categoria)
-        category?.let { cat ->
+        if (category != null) {
             configurarExibicao(
                 views = views,
-                showXP = com.typingfrontier.HudSettingsManager.isXpVisible(cat),
-                showVida = com.typingfrontier.HudSettingsManager.isHealthVisible(cat),
-                showEnergia = com.typingfrontier.HudSettingsManager.isPhysicalEnergyVisible(cat),
-                showMente = com.typingfrontier.HudSettingsManager.isMentalEnergyVisible(cat)
+                showXP = HudSettingsManager.isXpVisible(category),
+                showVida = HudSettingsManager.isHealthVisible(category),
+                showEnergia = HudSettingsManager.isPhysicalEnergyVisible(category),
+                showMente = HudSettingsManager.isMentalEnergyVisible(category)
             )
+        } else {
+            // Garante que tudo esteja visível se não houver categoria (comportamento padrão)
+            configurarExibicao(views)
         }
 
         // 🏆 SISTEMA DE AVATARES
@@ -108,11 +113,7 @@ object HudHelper {
 
         // Energia
         views.lblEnergia?.let {
-            if (it.text.toString().contains("Energia Mental")) {
-                 // Skip if it is the old label for Mente
-            } else {
-                it.text = "⚡ Energia: ${p.energia}/${p.energiaMax}"
-            }
+            it.text = "⚡ Energia: ${p.energia}/${p.energiaMax}"
         }
         views.progressEnergia?.max = p.energiaMax
         views.progressEnergia?.progress = p.energia

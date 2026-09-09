@@ -11,48 +11,54 @@
         android:layout_height="40dp"
         android:layout_gravity="top" />
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:gravity="center"
-        android:orientation="vertical">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none">
 
-        <ImageView
-            android:id="@+id/imgMainLogo"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="350dp"
-            android:layout_marginBottom="32dp"
-            android:src="@drawable/app_icon_base"
-            android:scaleType="fitCenter" />
-
-        <Button
-            android:id="@+id/btnStart"
-            android:layout_width="200dp"
-            android:layout_height="56dp"
-            android:text="Iniciar Jornada"
-            android:textAllCaps="false" />
-
-        <Button
-            android:id="@+id/btnSettings"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Configurações"
-            android:textAllCaps="false"
-            android:textColor="#666666" />
-    </LinearLayout>
+            android:gravity="center"
+            android:orientation="vertical">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginBottom="8dp"
-        android:alpha="0.4"
-        android:gravity="center"
-        android:text="© Alex Cardoso Bento"
-        android:textColor="#333333"
-        android:textSize="11sp" />
+            <ImageView
+                android:id="@+id/imgMainLogo"
+                android:layout_width="match_parent"
+                android:layout_height="250dp"
+                android:layout_marginBottom="32dp"
+                android:src="@drawable/app_icon_base"
+                android:scaleType="fitCenter" />
+
+            <Button
+                android:id="@+id/btnStart"
+                android:layout_width="200dp"
+                android:layout_height="56dp"
+                android:text="Iniciar Jornada"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btnSettings"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Configurações"
+                android:textAllCaps="false"
+                android:textColor="#666666" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.4"
+                android:gravity="center"
+                android:text="© Alex Cardoso Bento"
+                android:textColor="#333333"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </ScrollView>
 
 </FrameLayout>

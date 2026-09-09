@@ -188,12 +188,12 @@
                 android:textColor="#455A64"
                 android:textSize="13sp" />
 
+            <!-- BOTTOM SPACE FOR ADS -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="60dp" />
+
         </LinearLayout>
     </ScrollView>
-
-    <!-- BOTTOM SPACE FOR ADS -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="60dp" />
 
 </LinearLayout>
