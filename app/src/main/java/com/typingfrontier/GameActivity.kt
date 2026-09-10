@@ -25,6 +25,10 @@ class GameActivity : AppCompatActivity() {
     // PRIORIDADE DA LOUSA
     private var prioridadeAtual = 5
 
+    private var soundPool: android.media.SoundPool? = null
+    private var soundIdA: Int = 0
+    private var soundIdB: Int = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -38,6 +42,7 @@ class GameActivity : AppCompatActivity() {
         binding.txtDescricao.text = "O que vamos fazer hoje?"
 
         atualizarHUD()
+        prepararSons()
     }
 
     override fun onResume() {
@@ -167,6 +172,7 @@ class GameActivity : AppCompatActivity() {
                 when (result) {
                     is EngineResult.Success -> {
                         exibirMensagem(result.message, result.extra, prioridade = 4)
+                        dispararAnimacaoMoeda(1)
                         binding.txtDinheiro.animate().scaleX(1.4f).scaleY(1.4f).setDuration(200).withEndAction {
                             binding.txtDinheiro.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
                         }.start()
@@ -374,6 +380,7 @@ class GameActivity : AppCompatActivity() {
         when (result) {
             is EngineResult.Success -> {
                 exibirMensagem(result.message, prioridade = 4)
+                dispararAnimacaoMoeda(1)
                 binding.txtDinheiro.animate().scaleX(1.4f).scaleY(1.4f).setDuration(200).withEndAction {
                     binding.txtDinheiro.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
                 }.start()
@@ -433,7 +440,13 @@ class GameActivity : AppCompatActivity() {
 
         binding.txtNomePlayer.text = p.nome
         binding.txtTempo.text = TimeManager.tempoFormatado()
-        binding.txtDinheiro.text = "💰 ${CurrencyUtils.formatar(p.dinheiro)}"
+        
+        // Configuração do ícone da moeda com tamanho controlado (20dp)
+        val coinIcon = androidx.core.content.ContextCompat.getDrawable(this, R.drawable.fron_coin)
+        val size = (20 * resources.displayMetrics.density).toInt()
+        coinIcon?.setBounds(0, 0, size, size)
+        binding.txtDinheiro.setCompoundDrawables(coinIcon, null, null, null)
+        binding.txtDinheiro.text = CurrencyUtils.formatar(p.dinheiro)
 
         // 🔘 BOTÃO TRABALHAR DINÂMICO
         if (p.trabalhouHoje) {
@@ -526,6 +539,118 @@ class GameActivity : AppCompatActivity() {
             
             val textoFinal = if (extra != null) "$mensagem\n\n$extra" else mensagem
             binding.txtDescricao.text = textoFinal
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        soundPool?.release()
+        soundPool = null
+    }
+
+    private fun prepararSons() {
+        val audioAttributes = android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_GAME)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
+        soundPool = android.media.SoundPool.Builder()
+            .setMaxStreams(4)
+            .setAudioAttributes(audioAttributes)
+            .build()
+
+        soundIdA = soundPool?.load(this, R.raw.coin_sound_a, 1) ?: 0
+        soundIdB = soundPool?.load(this, R.raw.coin_sound_b, 1) ?: 0
+    }
+
+    /**
+     * Executa a animação visual das moedas de Frons voando em direção ao contador.
+     * Reutiliza o padrão aprovado de 4 moedas (1 estática + 3 animadas).
+     */
+    private fun dispararAnimacaoMoeda(bonus: Int) {
+        if (bonus <= 0) return
+
+        val container = findViewById<android.widget.FrameLayout>(android.R.id.content) ?: return
+        val density = resources.displayMetrics.density
+        val coinSize = (22 * density).toInt()
+
+        // Definição das 4 moedas (Recurso ID, IsVideo)
+        val moedasConfig = listOf(
+            R.drawable.fron_coin to false,
+            R.raw.fron_coin_animation_1 to true,
+            R.raw.fron_coin_animation_2 to true,
+            R.raw.fron_coin_animation_3 to true
+        )
+
+        // Origem: txtDescricao (região onde o feedback de pagamento/sucesso aparece)
+        val startLoc = IntArray(2)
+        binding.txtDescricao.getLocationInWindow(startLoc)
+
+        // Destino: txtDinheiro no HUD
+        val endLoc = IntArray(2)
+        binding.txtDinheiro.getLocationInWindow(endLoc)
+
+        val rootLoc = IntArray(2)
+        container.getLocationInWindow(rootLoc)
+
+        moedasConfig.forEachIndexed { index, (resId, isVideo) ->
+            container.postDelayed({
+                val coinView = if (isVideo) {
+                    android.widget.VideoView(this@GameActivity).apply {
+                        setVideoURI(android.net.Uri.parse("android.resource://$packageName/$resId"))
+                        setOnPreparedListener { mp ->
+                            mp.isLooping = true
+                            try { mp.setVolume(0f, 0f) } catch (e: Exception) {}
+                        }
+                        start()
+                    }
+                } else {
+                    android.widget.ImageView(this@GameActivity).apply {
+                        setImageResource(resId)
+                    }
+                }
+
+                coinView.layoutParams = android.widget.FrameLayout.LayoutParams(coinSize, coinSize)
+                coinView.alpha = 0f
+                container.addView(coinView)
+
+                // Espaçamento inicial (spread) para não sobrepor todas no início
+                val spreadX = (index - 1.5f) * 20f * density
+                val spreadY = (if (index % 2 == 0) -15f else 15f) * density
+
+                val startX = startLoc[0] - rootLoc[0] + (binding.txtDescricao.width / 2f) - (coinSize / 2f) + spreadX
+                val startY = startLoc[1] - rootLoc[1] + (binding.txtDescricao.height / 2f) - (coinSize / 2f) + spreadY
+
+                val endX = endLoc[0] - rootLoc[0] + (binding.txtDinheiro.width / 2f) - (coinSize / 2f)
+                val endY = endLoc[1] - rootLoc[1] + (binding.txtDinheiro.height / 2f) - (coinSize / 2f)
+
+                coinView.x = startX
+                coinView.y = startY
+
+                coinView.animate()
+                    .translationX(endX)
+                    .translationY(endY)
+                    .alpha(1f)
+                    .scaleX(1.1f)
+                    .scaleY(1.1f)
+                    .setDuration(900)
+                    .withEndAction {
+                        // Toca o som no momento da chegada (Impacto)
+                        val soundToPlay = if (index % 2 == 0) soundIdA else soundIdB
+                        soundPool?.play(soundToPlay, 0.5f, 0.5f, 1, 0, 1f)
+
+                        // Feedback de "depósito" no contador
+                        coinView.animate()
+                            .alpha(0f)
+                            .scaleX(0.5f)
+                            .scaleY(0.5f)
+                            .setDuration(200)
+                            .withEndAction {
+                                container.removeView(coinView)
+                            }
+                    }
+                    .start()
+            }, index * 200L)
         }
     }
 }

@@ -1,7 +1,10 @@
 package com.typingfrontier
 
 import android.app.AlertDialog
+import android.media.AudioAttributes
+import android.media.SoundPool
 import android.os.Bundle
+import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -33,6 +36,11 @@ class MentalTrainingActivity : AppCompatActivity() {
     private var perguntaMatematicaAtual: MathQuestion? = null
     private var tipoTreinoAtual: TipoTreino = TipoTreino.MATEMATICA
 
+    // ÁUDIO RECOMPENSA
+    private var soundPool: SoundPool? = null
+    private var soundIdA: Int = 0
+    private var soundIdB: Int = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mental_training)
@@ -44,6 +52,22 @@ class MentalTrainingActivity : AppCompatActivity() {
         atualizarBarras()
 
         SoundManager.play(this, "foco")
+        prepararSons()
+    }
+
+    private fun prepararSons() {
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_GAME)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+        
+        soundPool = SoundPool.Builder()
+            .setMaxStreams(4)
+            .setAudioAttributes(audioAttributes)
+            .build()
+        
+        soundIdA = soundPool?.load(this, R.raw.coin_sound_a, 1) ?: 0
+        soundIdB = soundPool?.load(this, R.raw.coin_sound_b, 1) ?: 0
     }
 
     private fun vincularViews() {
@@ -165,7 +189,19 @@ class MentalTrainingActivity : AppCompatActivity() {
             is EngineResult.Success -> {
                 if (isCorrect) {
                     txtFeedback.setTextColor(android.graphics.Color.parseColor("#2E7D32"))
-                    txtFeedback.text = "✅ Correto! ${result.message}"
+                    txtFeedback.text = "🏆 Correto! ${result.message}"
+
+                    // RECOMPENSA EXTRA POR DIFICULDADE
+                    val bonus = calcularBonusDificuldade()
+                    if (bonus > 0) {
+                        GameEngine.dispatch(GameAction.CollectRewards(0, bonus))
+
+                        // Remove a moeda como compound drawable para preservar o troféu de mérito
+                        txtFeedback.setCompoundDrawables(null, null, null, null)
+
+                        txtFeedback.append("\nBônus de Dificuldade: +$bonus Frons!")
+                        dispararAnimacaoMoeda(bonus)
+                    }
                     
                     // FEEDBACK VISUAL: Bounce na barra de atributo correspondente
                     val viewAlvo = if (tipoTreinoAtual == TipoTreino.MATEMATICA) progressInteligencia else progressCarisma
@@ -236,5 +272,157 @@ class MentalTrainingActivity : AppCompatActivity() {
 
         val hudViews = com.typingfrontier.utils.HudHelper.HudViews(findViewById(android.R.id.content))
         com.typingfrontier.utils.HudHelper.atualizar(this, hudViews, com.typingfrontier.HudSettingsManager.HudCategory.TRAINING_MENTAL)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        soundPool?.release()
+        soundPool = null
+    }
+
+    /**
+     * Calcula a recompensa adicional baseada no tipo de exercício e no patamar do jogador.
+     */
+    private fun calcularBonusDificuldade(): Int {
+        val p = PlayerManager.player
+        val dificuldade: String // "NORMAL", "MEDIO", "DIFICIL", "MUITO_DIFICIL"
+        val patamar: Int = if (tipoTreinoAtual == TipoTreino.MATEMATICA) p.inteligencia else p.carisma
+
+        dificuldade = if (tipoTreinoAtual == TipoTreino.MATEMATICA) {
+            val tipo = perguntaMatematicaAtual?.tipo ?: return 0
+            when (tipo) {
+                MathExerciseType.OPERACOES_COMBINADAS,
+                MathExerciseType.PORCENTAGEM,
+                MathExerciseType.DECIMAIS -> "DIFICIL"
+
+                MathExerciseType.FRACOES,
+                MathExerciseType.PROBLEMAS -> "MUITO_DIFICIL"
+
+                MathExerciseType.RADICIACAO,
+                MathExerciseType.EQUACAO,
+                MathExerciseType.POTENCIACAO,
+                MathExerciseType.SEQUENCIAS -> "MEDIO"
+
+                else -> "NORMAL"
+            }
+        } else {
+            val tipo = perguntaAtual?.tipo ?: return 0
+            when (tipo) {
+                PortugueseExerciseType.OBJETO_DIRETO,
+                PortugueseExerciseType.CLASSE_GRAMATICAL -> "DIFICIL"
+
+                PortugueseExerciseType.VOCABULARIO,
+                PortugueseExerciseType.INTERPRETACAO -> "MUITO_DIFICIL"
+
+                PortugueseExerciseType.SUJEITO,
+                PortugueseExerciseType.VERBO,
+                PortugueseExerciseType.ORTOGRAFIA,
+                PortugueseExerciseType.ACENTUACAO -> "MEDIO"
+
+                else -> "NORMAL"
+            }
+        }
+
+        // NORMAL e MEDIO não recebem bônus
+        if (dificuldade == "NORMAL" || dificuldade == "MEDIO") return 0
+
+        // Matriz de Recompensa
+        return when {
+            patamar <= 40 -> if (dificuldade == "DIFICIL") 10 else 20
+            patamar <= 80 -> if (dificuldade == "DIFICIL") 25 else 50
+            patamar <= 150 -> if (dificuldade == "DIFICIL") 75 else 125
+            else -> if (dificuldade == "DIFICIL") 150 else 250
+        }
+    }
+
+    /**
+     * Executa a animação visual da sequência de 4 moedas (1 PNG + 3 MP4) voando ao destino.
+     */
+    private fun dispararAnimacaoMoeda(bonus: Int) {
+        if (bonus <= 0) return
+
+        val container = findViewById<FrameLayout>(android.R.id.content) ?: return
+        val density = resources.displayMetrics.density
+        val coinSize = (22 * density).toInt()
+
+        // Definição das 4 moedas (Recurso ID, IsVideo)
+        val moedasConfig = listOf(
+            R.drawable.fron_coin to false,
+            R.raw.fron_coin_animation_1 to true,
+            R.raw.fron_coin_animation_2 to true,
+            R.raw.fron_coin_animation_3 to true
+        )
+
+        // Captura coordenadas base uma única vez para a sequência
+        val startLoc = IntArray(2)
+        txtFeedback.getLocationInWindow(startLoc)
+
+        val endLoc = IntArray(2)
+        txtVitalDinheiro.getLocationInWindow(endLoc)
+
+        val rootLoc = IntArray(2)
+        container.getLocationInWindow(rootLoc)
+
+        moedasConfig.forEachIndexed { index, (resId, isVideo) ->
+            container.postDelayed({
+                val coinView = if (isVideo) {
+                    VideoView(this@MentalTrainingActivity).apply {
+                        setVideoURI(android.net.Uri.parse("android.resource://$packageName/$resId"))
+                        setOnPreparedListener { mp ->
+                            mp.isLooping = true
+                            try { mp.setVolume(0f, 0f) } catch (e: Exception) {}
+                        }
+                        start()
+                    }
+                } else {
+                    ImageView(this@MentalTrainingActivity).apply {
+                        setImageResource(resId)
+                    }
+                }
+
+                coinView.layoutParams = FrameLayout.LayoutParams(coinSize, coinSize)
+                coinView.alpha = 0f
+                container.addView(coinView)
+
+                // Espaçamento inicial (leque) para não ficarem sobrepostas
+                val spreadX = (index - 1.5f) * 15f * density
+                val spreadY = (if (index % 2 == 0) -10f else 10f) * density
+
+                val startX = startLoc[0] - rootLoc[0] + (txtFeedback.width / 2f) - (coinSize / 2f) + spreadX
+                val startY = startLoc[1] - rootLoc[1] + (txtFeedback.height / 2f) - (coinSize / 2f) + spreadY
+
+                val endX = endLoc[0] - rootLoc[0] + (txtVitalDinheiro.width / 2f) - (coinSize / 2f)
+                val endY = endLoc[1] - rootLoc[1] + (txtVitalDinheiro.height / 2f) - (coinSize / 2f)
+
+                coinView.x = startX
+                coinView.y = startY
+
+                // Execução da animação de voo
+                coinView.animate()
+                    .translationX(endX)
+                    .translationY(endY)
+                    .alpha(1f)
+                    .scaleX(1.1f)
+                    .scaleY(1.1f)
+                    .setDuration(900)
+                    .withEndAction {
+                        // Toca o som no momento da chegada (Impacto)
+                        val soundToPlay = if (index % 2 == 0) soundIdA else soundIdB
+                        soundPool?.play(soundToPlay, 0.5f, 0.5f, 1, 0, 1f)
+
+                        // Feedback de "depósito" no contador
+                        coinView.animate()
+                            .alpha(0f)
+                            .scaleX(0.5f)
+                            .scaleY(0.5f)
+                            .setDuration(200)
+                            .withEndAction {
+                                container.removeView(coinView)
+                            }
+                    }
+                    .start()
+
+            }, index * 200L) // Intervalo de 200ms entre o surgimento de cada moeda
+        }
     }
 }

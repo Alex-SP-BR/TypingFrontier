@@ -50,15 +50,21 @@ class LojaAdapter(
         } else {
             val precoOriginal = if (item.id == "blessing") item.preco else com.typingfrontier.EconomyManager.precoInflacionado(item.preco)
             
+            // Configuração do ícone da moeda com tamanho controlado (20dp)
+            val coinIcon = androidx.core.content.ContextCompat.getDrawable(context, com.typingfrontier.R.drawable.fron_coin)
+            val size = (20 * context.resources.displayMetrics.density).toInt()
+            coinIcon?.setBounds(0, 0, size, size)
+            txtPreco.setCompoundDrawables(coinIcon, null, null, null)
+
             if (item.id != "blessing" && itemEquipado != null) {
                 val credito = (itemEquipado.preco * 0.4).toInt()
                 val precoFinal = (precoOriginal - credito).coerceAtLeast(0)
                 
                 txtDescricao.text = "${item.descricao}\nBônus: +${item.bonus} em ${item.atributoAlvo}\n(Crédito de ${CurrencyUtils.formatar(credito)} pelo item atual)"
-                txtPreco.text = "💰 ${CurrencyUtils.formatar(precoFinal)}"
+                txtPreco.text = CurrencyUtils.formatar(precoFinal)
             } else {
                 txtDescricao.text = "${item.descricao}\nBônus: +${item.bonus} em ${item.atributoAlvo}"
-                txtPreco.text = "💰 ${CurrencyUtils.formatar(precoOriginal)}"
+                txtPreco.text = CurrencyUtils.formatar(precoOriginal)
             }
 
             txtPreco.setTextColor(android.graphics.Color.parseColor("#2E7D32"))

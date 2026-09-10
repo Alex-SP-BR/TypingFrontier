@@ -82,9 +82,24 @@ class SocialProfileActivity : AppCompatActivity() {
                 carregarInsignias(profile.id)
             } else {
                 if (isOwnProfile) {
-                    binding.btnRegistrarIdentidade.visibility = View.VISIBLE
-                    binding.btnRegistrarIdentidade.setOnClickListener { mostrarDialogRegistroSocial() }
-                    exibirPerfilVazio()
+                    if (SocialProfileRepository.isSessionMismatch) {
+                        binding.btnRegistrarIdentidade.visibility = View.GONE
+                        exibirPerfilVazio()
+                        binding.txtProfileUsername.text = "Identidade Desconectada (Validação Pendente)"
+                        Toast.makeText(this@SocialProfileActivity, "Aviso: Sua sessão social original foi desconectada. Nova identidade bloqueada por segurança.", Toast.LENGTH_LONG).show()
+                    } else if (!PlayerManager.player.socialUserId.isNullOrBlank()) {
+                        // 2. USUÁRIO CONHECIDO OFFLINE (Possui socialUserId local mas Supabase inacessível)
+                        binding.btnRegistrarIdentidade.visibility = View.GONE
+                        exibirPerfilVazio()
+                        binding.txtProfileUsername.text = "@${PlayerManager.player.nome.lowercase()}"
+                        Toast.makeText(this@SocialProfileActivity, "Exibindo dados locais. Sem conexão com o servidor social.", Toast.LENGTH_SHORT).show()
+                        carregarInsignias(PlayerManager.player.socialUserId!!)
+                    } else {
+                        // 1. USUÁRIO REALMENTE NOVO
+                        binding.btnRegistrarIdentidade.visibility = View.VISIBLE
+                        binding.btnRegistrarIdentidade.setOnClickListener { mostrarDialogRegistroSocial() }
+                        exibirPerfilVazio()
+                    }
                 } else {
                     Toast.makeText(this@SocialProfileActivity, "Perfil não encontrado.", Toast.LENGTH_SHORT).show()
                     finish()

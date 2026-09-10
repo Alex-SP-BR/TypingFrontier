@@ -136,7 +136,14 @@ class AvatarAdapter(
             }
             isComercial -> {
                 // Comercial Bloqueado
-                binding.txtPrecoFrons.text = "💰 ${CurrencyUtils.formatar(avatar.precoFrons)}"
+                
+                // Configuração do ícone da moeda com tamanho controlado (20dp)
+                val coinIcon = androidx.core.content.ContextCompat.getDrawable(binding.root.context, com.typingfrontier.R.drawable.fron_coin)
+                val size = (20 * binding.root.context.resources.displayMetrics.density).toInt()
+                coinIcon?.setBounds(0, 0, size, size)
+                binding.txtPrecoFrons.setCompoundDrawables(coinIcon, null, null, null)
+
+                binding.txtPrecoFrons.text = CurrencyUtils.formatar(avatar.precoFrons)
                 binding.txtPrecoFrons.visibility = View.VISIBLE
                 
                 binding.btnAcao.text = "COMPRAR"

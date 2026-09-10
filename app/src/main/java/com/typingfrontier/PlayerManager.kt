@@ -166,6 +166,9 @@ object PlayerManager {
         // 📊 ESTATÍSTICAS PARA CONQUISTAS
         editor.putInt("mentalStreak", player.mentalStreak)
         editor.putStringSet("zonasExploradas", player.zonasExploradas)
+
+        // 🔗 ÂNCORA DA IDENTIDADE SOCIAL
+        editor.putString("socialUserId", player.socialUserId)
         
         // Save avataresProgressoAds Map
         val progressoStr = player.avataresProgressoAds.entries.joinToString(";") { "${it.key}:${it.value}" }
@@ -261,6 +264,7 @@ object PlayerManager {
         // 📊 ESTATÍSTICAS PARA CONQUISTAS
         player.mentalStreak = prefs.getInt("mentalStreak", 0)
         player.zonasExploradas = prefs.getStringSet("zonasExploradas", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
+        player.socialUserId = prefs.getString("socialUserId", null)
 
         val progressoStr = prefs.getString("avataresProgressoAds", "") ?: ""
         player.avataresProgressoAds.clear()

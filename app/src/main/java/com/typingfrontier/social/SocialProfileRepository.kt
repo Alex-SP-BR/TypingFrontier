@@ -41,6 +41,9 @@ object SocialProfileRepository {
     var currentProfile: SocialProfile? = null
         private set
 
+    var isSessionMismatch: Boolean = false
+        private set
+
     private var initializationJob: Job? = null
 
     /**
@@ -100,11 +103,22 @@ object SocialProfileRepository {
 
                             if (profile == null) {
                                 Log.d(TAG, "Perfil não encontrado para $uid. Aguardando definição de identidade social.")
-                                // Não cria o perfil automaticamente se o nome do jogador estiver vazio (Novo Jogador)
-                                // O perfil será criado explicitamente em CreateCharacterActivity via createSocialProfile
+                                val savedSocialId = PlayerManager.player.socialUserId
+                                if (!savedSocialId.isNullOrBlank() && savedSocialId != uid) {
+                                    isSessionMismatch = true
+                                    Log.w(TAG, "Aviso de Segurança: Sessão Supabase alterada. UUID atual ($uid) difere do original ($savedSocialId).")
+                                } else {
+                                    isSessionMismatch = false
+                                }
                             } else {
+                                isSessionMismatch = false
                                 currentProfile = profile
                                 Log.d(TAG, "Perfil social recuperado: ${profile.username} (Role: ${profile.role})")
+                                
+                                if (PlayerManager.player.socialUserId != profile.id) {
+                                    PlayerManager.player.socialUserId = profile.id
+                                    PlayerManager.save(TypingFrontierApp.getAppContext())
+                                }
                                 
                                 // Validação de Avatar Administrativo (Segurança contra perda de Role)
                                 val player = PlayerManager.player
@@ -198,6 +212,12 @@ object SocialProfileRepository {
 
         SupabaseManager.client.postgrest["profiles"].insert(newProfile)
         currentProfile = newProfile
+        isSessionMismatch = false
+        
+        // Âncora a nova identidade social ao save local
+        player.socialUserId = uid
+        PlayerManager.save(TypingFrontierApp.getAppContext())
+        
         true
     }
 
@@ -206,6 +226,10 @@ object SocialProfileRepository {
      * Utiliza a RPC 'sync_social_data' para garantir integridade e segurança.
      */
     fun syncStatistics() {
+        if (isSessionMismatch) {
+            Log.w(TAG, "Sincronização abortada: Conflito de sessão ativa (Identidade Local != Sessão Supabase).")
+            return
+        }
         scope.launch {
             try {
                 val auth = SupabaseManager.client.auth

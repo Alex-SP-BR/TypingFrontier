@@ -8,6 +8,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.typingfrontier.exploration.*
 import com.typingfrontier.utils.CurrencyUtils
+import android.media.AudioAttributes
+import android.media.SoundPool
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ImageSpan
 
 class ExplorationActivity : AppCompatActivity() {
 
@@ -31,6 +36,11 @@ class ExplorationActivity : AppCompatActivity() {
     private var xpAcumulado = 0
     private var dinheiroAcumulado = 0
 
+    // ÁUDIO E ANIMAÇÃO RECOMPENSA
+    private var soundPool: SoundPool? = null
+    private var soundIdA: Int = 0
+    private var soundIdB: Int = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_exploration)
@@ -38,8 +48,24 @@ class ExplorationActivity : AppCompatActivity() {
         vincularViews()
         configurarRecycler()
         atualizarHUD()
+        prepararSons()
 
         findViewById<Button>(R.id.btnVoltarMapa).setOnClickListener { finish() }
+    }
+
+    private fun prepararSons() {
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_GAME)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+        
+        soundPool = SoundPool.Builder()
+            .setMaxStreams(4)
+            .setAudioAttributes(audioAttributes)
+            .build()
+        
+        soundIdA = soundPool?.load(this, R.raw.coin_sound_a, 1) ?: 0
+        soundIdB = soundPool?.load(this, R.raw.coin_sound_b, 1) ?: 0
     }
 
     private fun vincularViews() {
@@ -164,8 +190,23 @@ class ExplorationActivity : AppCompatActivity() {
             val zona = zonaAtual ?: return
             val acaoProfissao = ExplorationManager.gerarDescricaoSucesso(p.profissao, etapaAtual, zona)
 
+            // Configuração do ícone da moeda para o Spannable (20dp)
+            val coinIcon = androidx.core.content.ContextCompat.getDrawable(this, R.drawable.fron_coin)
+            val size = (20 * resources.displayMetrics.density).toInt()
+            coinIcon?.setBounds(0, 0, size, size)
+
+            val baseText = "Acumulado: +$xpAcumulado XP | "
+            val moneyText = CurrencyUtils.formatar(dinheiroAcumulado)
+            val fullText = "$baseText $moneyText"
+            val spannable = SpannableString(fullText)
+            
+            val imageSpan = ImageSpan(coinIcon!!, ImageSpan.ALIGN_BOTTOM)
+            val start = baseText.length
+            spannable.setSpan(imageSpan, start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
             txtDescricao.text = "✅ $acaoProfissao"
-            txtResultado.text = "Acumulado: +$xpAcumulado XP | ${CurrencyUtils.formatar(dinheiroAcumulado)}"
+            txtResultado.text = spannable
+            txtResultado.setCompoundDrawables(null, null, null, null) // Limpa o ícone antigo se houver
             txtResultado.setTextColor(android.graphics.Color.GREEN)
             
             if (etapaAtual == 5) {
@@ -191,11 +232,12 @@ class ExplorationActivity : AppCompatActivity() {
         
         atualizarHUD() 
         
-        txtDinheiro.animate().scaleX(1.4f).scaleY(1.4f).setDuration(200).withEndAction {
-            txtDinheiro.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
-        }.start()
-
         txtDescricao.text = "🏆 VITÓRIA!\nVocê saiu da zona com vida.\n\nColetou $xpAcumulado XP e ${CurrencyUtils.formatar(dinheiroAcumulado)}."
+
+        // Dispara a animação das 4 moedas se o depósito foi um sucesso e houver ganho de Frons
+        if (result is EngineResult.Success && dinheiroAcumulado > 0) {
+            dispararAnimacaoMoeda(dinheiroAcumulado)
+        }
         
         btnIrMaisFundo.visibility = View.GONE
         btnSairLoot.visibility = View.GONE
@@ -221,5 +263,104 @@ class ExplorationActivity : AppCompatActivity() {
         else 
             com.typingfrontier.HudSettingsManager.HudCategory.EXPLORE
         com.typingfrontier.utils.HudHelper.atualizar(this, views, category)
+    }
+
+    /**
+     * Executa a animação visual da sequência de 4 moedas (1 PNG + 3 MP4) voando ao destino.
+     * Adaptado da MentalTrainingActivity para o contexto de Exploração.
+     */
+    private fun dispararAnimacaoMoeda(bonus: Int) {
+        if (bonus <= 0) return
+
+        val container = findViewById<FrameLayout>(android.R.id.content) ?: return
+        val density = resources.displayMetrics.density
+        val coinSize = (22 * density).toInt()
+
+        val moedasConfig = listOf(
+            R.drawable.fron_coin to false,
+            R.raw.fron_coin_animation_1 to true,
+            R.raw.fron_coin_animation_2 to true,
+            R.raw.fron_coin_animation_3 to true
+        )
+
+        // Origem: txtDescricao (onde está o texto de Vitória/Sucesso)
+        val startLoc = IntArray(2)
+        txtDescricao.getLocationInWindow(startLoc)
+
+        // Destino: Resolve o txtVitalDinheiro do HUD ativo (Adventure ou Selection)
+        val isAventura = layoutAventura.visibility == View.VISIBLE
+        val hudRootId = if (isAventura) R.id.includeHudAdventure else R.id.includeHudSelection
+        val hudRoot = findViewById<View>(hudRootId)
+        val targetView = hudRoot?.findViewById<TextView>(R.id.txtVitalDinheiro) ?: txtDinheiro
+
+        val endLoc = IntArray(2)
+        targetView.getLocationInWindow(endLoc)
+
+        val rootLoc = IntArray(2)
+        container.getLocationInWindow(rootLoc)
+
+        moedasConfig.forEachIndexed { index, (resId, isVideo) ->
+            container.postDelayed({
+                val coinView = if (isVideo) {
+                    VideoView(this@ExplorationActivity).apply {
+                        setVideoURI(android.net.Uri.parse("android.resource://$packageName/$resId"))
+                        setOnPreparedListener { mp ->
+                            mp.isLooping = true
+                            try { mp.setVolume(0f, 0f) } catch (e: Exception) {}
+                        }
+                        start()
+                    }
+                } else {
+                    ImageView(this@ExplorationActivity).apply {
+                        setImageResource(resId)
+                    }
+                }
+
+                coinView.layoutParams = FrameLayout.LayoutParams(coinSize, coinSize)
+                coinView.alpha = 0f
+                container.addView(coinView)
+
+                val spreadX = (index - 1.5f) * 20f * density
+                val spreadY = (if (index % 2 == 0) -15f else 15f) * density
+
+                val startX = startLoc[0] - rootLoc[0] + (txtDescricao.width / 2f) - (coinSize / 2f) + spreadX
+                val startY = startLoc[1] - rootLoc[1] + (txtDescricao.height / 2f) - (coinSize / 2f) + spreadY
+
+                val endX = endLoc[0] - rootLoc[0] + (targetView.width / 2f) - (coinSize / 2f)
+                val endY = endLoc[1] - rootLoc[1] + (targetView.height / 2f) - (coinSize / 2f)
+
+                coinView.x = startX
+                coinView.y = startY
+
+                coinView.animate()
+                    .translationX(endX)
+                    .translationY(endY)
+                    .alpha(1f)
+                    .scaleX(1.1f)
+                    .scaleY(1.1f)
+                    .setDuration(900)
+                    .withEndAction {
+                        val soundToPlay = if (index % 2 == 0) soundIdA else soundIdB
+                        soundPool?.play(soundToPlay, 0.5f, 0.5f, 1, 0, 1f)
+
+                        coinView.animate()
+                            .alpha(0f)
+                            .scaleX(0.5f)
+                            .scaleY(0.5f)
+                            .setDuration(200)
+                            .withEndAction {
+                                container.removeView(coinView)
+                            }
+                    }
+                    .start()
+
+            }, index * 200L)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        soundPool?.release()
+        soundPool = null
     }
 }

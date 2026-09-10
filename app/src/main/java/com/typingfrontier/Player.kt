@@ -100,7 +100,10 @@ data class Player(
     
     // 📊 ESTATÍSTICAS PARA CONQUISTAS
     var mentalStreak: Int = 0,
-    var zonasExploradas: MutableSet<String> = mutableSetOf()
+    var zonasExploradas: MutableSet<String> = mutableSetOf(),
+
+    // 🔗 ÂNCORA DA IDENTIDADE SOCIAL
+    var socialUserId: String? = null
 
 ) {
 

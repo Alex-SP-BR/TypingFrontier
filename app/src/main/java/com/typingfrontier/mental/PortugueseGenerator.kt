@@ -189,34 +189,34 @@ object PortugueseGenerator {
     )
 
     private val mapaSinonimos = mapOf(
-        "aluno" to listOf("estudante"),
+        "aluno" to listOf("estudante", "educando"),
         "professor" to listOf("mestre", "docente", "educador"),
         "professora" to listOf("mestra", "docente", "educadora"),
-        "felicidade" to listOf("alegria", "contentamento"),
-        "bonito" to listOf("belo", "lindo"),
+        "felicidade" to listOf("alegria", "contentamento", "satisfação"),
+        "bonito" to listOf("belo", "lindo", "formoso"),
         "carro" to listOf("automóvel", "veículo"),
-        "casa" to listOf("residência", "moradia"),
-        "garoto" to listOf("menino", "rapaz"),
-        "menina" to listOf("garota", "moça"),
+        "casa" to listOf("residência", "moradia", "lar"),
+        "garoto" to listOf("menino", "rapaz", "jovem"),
+        "menina" to listOf("garota", "moça", "jovem"),
         "cachorro" to listOf("cão"),
-        "presente" to listOf("brinde", "mimo"),
-        "problema" to listOf("questão", "adversidade", "dificuldade"),
+        "presente" to listOf("brinde", "mimo", "lembrança"),
+        "problema" to listOf("questão", "adversidade", "dificuldade", "imprevisto"),
         "ajuda" to listOf("auxílio", "socorro", "assistência"),
-        "vencer" to listOf("ganhar", "triunfar"),
+        "vencer" to listOf("ganhar", "triunfar", "superar"),
         "terminar" to listOf("finalizar", "concluir", "encerrar"),
-        "rápido" to listOf("veloz", "ligeiro"),
-        "forte" to listOf("robusto", "vigoroso", "potente"),
+        "rápido" to listOf("rapidamente", "depressa"),
+        "forte" to listOf("robusto", "vigoroso", "potente", "resistente"),
         "mistério" to listOf("enigma", "segredo"),
         "história" to listOf("conto", "narrativa", "relato"),
         "vitória" to listOf("triunfo", "conquista"),
-        "exercício" to listOf("atividade", "tarefa", "treino"),
-        "trabalho" to listOf("serviço", "ofício"),
+        "exercício" to listOf("atividade", "tarefa", "lição", "dever"),
+        "trabalho" to listOf("serviço", "ofício", "ocupação"),
         "pesquisa" to listOf("investigação", "estudo", "exame"),
         "sintoma" to listOf("indício", "sinal"),
-        "pistas" to listOf("indícios"),
-        "iniciou" to listOf("começou"),
-        "encontrou" to listOf("achou"),
-        "verificou" to listOf("conferiu")
+        "pistas" to listOf("indícios", "sinais"),
+        "iniciou" to listOf("começou", "principiou"),
+        "encontrou" to listOf("achou", "localizou"),
+        "verificou" to listOf("conferiu", "examinou", "checou")
     )
 
     private fun obterPlural(palavra: String): String {
@@ -227,22 +227,29 @@ object PortugueseGenerator {
 
         val tipo = PortugueseExerciseSelector.escolher(atributo)
 
-        val frase = if (tipo == PortugueseExerciseType.OBJETO_DIRETO) {
+        var frase = if (tipo == PortugueseExerciseType.OBJETO_DIRETO) {
             PortugueseSentenceRepository.frases.filter { mapaObjetosDiretos.containsKey(it) }.random()
         } else {
             PortugueseSentenceRepository.frases.random()
         }
 
-        val palavras = frase
-            .lowercase()
-            .replace(Regex("[^a-záéíóúâêôãõç ]"), "")
-            .split(" ")
-            .filter { it.isNotBlank() }
+        var palavras = processarFrase(frase)
+
+        // Lógica para garantir que a frase contenha ao menos uma palavra válida para o tipo de exercício
+        if (tipo == PortugueseExerciseType.VOCABULARIO) {
+            var tentativas = 0
+            while (palavras.none { mapaSinonimos.containsKey(it) } && tentativas < 20) {
+                frase = PortugueseSentenceRepository.frases.random()
+                palavras = processarFrase(frase)
+                tentativas++
+            }
+        }
 
         return when (tipo) {
 
             PortugueseExerciseType.SILABAS -> {
-                val palavra = palavras.randomOrNull() ?: "palavra"
+                val palavrasLongas = palavras.filter { it.length >= 3 && it !in listOf("que", "com", "dos", "das", "nas", "nos") }
+                val palavra = palavrasLongas.randomOrNull() ?: palavras.randomOrNull() ?: "palavra"
                 PortugueseQuestion(
                     "Quantas sílabas tem a palavra: $palavra ?",
                     contarSilabas(palavra).toString(),
@@ -253,9 +260,11 @@ object PortugueseGenerator {
             }
 
             PortugueseExerciseType.PLURAL -> {
-                // Filtra apenas palavras que não estão no plural (evita redundância)
-                val palavrasValidas = palavras.filter { obterPlural(it) != it }
-                val palavra = palavrasValidas.randomOrNull() ?: "palavra"
+                val artigos = listOf("o", "a", "os", "as", "um", "uma", "uns", "umas", "no", "na", "nos", "nas", "do", "da", "dos", "das", "com", "para", "em", "de", "e", "que", "à", "ao")
+                val palavrasValidasPlural = palavras.filter { 
+                    it !in artigos && it.length > 2 && obterPlural(it) != it 
+                }
+                val palavra = palavrasValidasPlural.randomOrNull() ?: "casa"
                 val plural = obterPlural(palavra)
                 PortugueseQuestion(
                     "Qual é o plural de: $palavra ?",
@@ -267,12 +276,11 @@ object PortugueseGenerator {
             }
 
             PortugueseExerciseType.GENERO -> {
-                val artigos = listOf("o", "a", "os", "as", "um", "uma", "uns", "umas", "no", "na", "nos", "nas", "do", "da", "dos", "das", "com", "para", "em", "de", "e")
+                val palavrasFuncionais = listOf("o", "a", "os", "as", "um", "uma", "uns", "umas", "no", "na", "nos", "nas", "do", "da", "dos", "das", "com", "para", "em", "de", "e", "que", "à", "ao")
                 
-                // Filtra as palavras para garantir que apenas substantivos/adjetivos com gênero fixo sejam sorteados.
-                // Exclui verbos (ex: analisou, salvou), preposições e substantivos comuns de dois gêneros.
                 val palavrasValidas = palavras.filter { 
-                    it !in artigos && 
+                    it !in palavrasFuncionais && 
+                    it.length > 2 &&
                     mapaGeneros[it] != "comum de dois gêneros" &&
                     mapaClasses[it] != "verbo" &&
                     mapaClasses[it] != "advérbio" &&
@@ -370,18 +378,20 @@ object PortugueseGenerator {
             }
 
             PortugueseExerciseType.ACENTUACAO -> {
-                val palavra = palavras.randomOrNull() ?: "palavra"
-                val temAcento = if (palavra.any { "áéíóúâêôãõ".contains(it) }) "sim" else "não"
+                val palavrasAcentuadas = palavras.filter { it.length >= 4 && it.any { c -> "áéíóúâêôãõ".contains(c) } }
+                val palavra = palavrasAcentuadas.randomOrNull() ?: "médico"
+                val temAcento = "sim"
                 
                 val aCerta = (1..2).random() == 1
                 val palavraLimpa = removerAcentos(palavra)
-                val questao = "Na frase: \"$frase\"\n\nA palavra \"$palavraLimpa\" possui acento gráfico?\n\n" +
-                        (if (aCerta) "1 — Sim\n2 — Não" else "1 — Não\n2 — Sim")
+                val questao = "Qual é a forma correta da palavra abaixo?\n\n" +
+                        "Palavra: $palavraLimpa\n\n" +
+                        (if (aCerta) "1 — $palavra\n2 — $palavraLimpa" else "1 — $palavraLimpa\n2 — $palavra")
                 
                 PortugueseQuestion(
                     questao,
-                    temAcento,
-                    "Observe a acentuação gráfica.",
+                    palavra,
+                    "Observe a acentuação gráfica correta.",
                     70,
                     tipo
                 )
@@ -471,6 +481,15 @@ object PortugueseGenerator {
             .replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u')
             .replace('â', 'a').replace('ê', 'e').replace('ô', 'o')
             .replace('ã', 'a').replace('õ', 'o')
+            .replace('ç', 'c')
+    }
+
+    private fun processarFrase(frase: String): List<String> {
+        return frase
+            .lowercase()
+            .replace(Regex("[^a-záéíóúâêôãõç ]"), "")
+            .split(" ")
+            .filter { it.isNotBlank() }
     }
 
     private val mapaSilabas = mapOf(

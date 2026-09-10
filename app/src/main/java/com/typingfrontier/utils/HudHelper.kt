@@ -89,7 +89,13 @@ object HudHelper {
         views.txtNomePlayer?.text = p.nome
         views.txtTempo?.text = TimeManager.tempoFormatado()
         
-        val dinheiroFormatado = "💰 ${CurrencyUtils.formatar(p.dinheiro)}"
+        // Configuração do ícone da moeda com tamanho controlado (20dp)
+        val coinIcon = androidx.core.content.ContextCompat.getDrawable(activity, R.drawable.fron_coin)
+        val size = (20 * activity.resources.displayMetrics.density).toInt()
+        coinIcon?.setBounds(0, 0, size, size)
+        views.txtDinheiro?.setCompoundDrawables(coinIcon, null, null, null)
+
+        val dinheiroFormatado = CurrencyUtils.formatar(p.dinheiro)
         views.txtDinheiro?.text = dinheiroFormatado
         views.txtDinheiro?.setOnClickListener {
             CurrencyUtils.mostrarSaldoExato(activity, p.dinheiro)
