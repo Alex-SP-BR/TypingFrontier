@@ -24,10 +24,21 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="4dp"
         android:text="Seu Saldo: 0"
         android:textColor="#2E7D32"
         android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/txtCapacidadeLoja"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:text="Mochila: 0/5"
+        android:textColor="#666666"
+        android:textSize="13sp"
         android:textStyle="bold" />
 
     <ListView

@@ -7,10 +7,10 @@ object ExplorationResolver {
     fun resolver(player: Player, opcao: Opcao): String {
 
         val valor = when (opcao.atributo) {
-            "FORCA" -> player.forca
-            "INT" -> player.inteligencia
-            "CARISMA" -> player.carisma
-            "RESISTENCIA" -> player.resistencia
+            "FORCA" -> player.forcaEfetiva
+            "INT" -> player.inteligenciaEfetiva
+            "CARISMA" -> player.carismaEfetiva
+            "RESISTENCIA" -> player.resistenciaEfetiva
             else -> 0
         }
 

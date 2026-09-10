@@ -20,4 +20,8 @@ sealed class GameAction {
     data class CollectRewards(val xp: Int, val money: Int) : GameAction()
     data class BuyItem(val item: Equipment) : GameAction()
     data class CompleteMission(val xp: Int, val money: Int) : GameAction()
+
+    // Novas ações para o sistema de slots
+    data class EquipItem(val itemId: String) : GameAction()
+    data class UnequipItem(val slot: String) : GameAction()
 }

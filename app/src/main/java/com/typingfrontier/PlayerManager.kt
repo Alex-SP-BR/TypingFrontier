@@ -7,7 +7,7 @@ object PlayerManager {
     var player = Player()
 
     private const val PREFS_NAME = "typing_frontier_save"
-    private const val CURRENT_SAVE_VERSION = 7
+    private const val CURRENT_SAVE_VERSION = 9
 
     // Constantes para a fórmula de XP (Opção C: Polinomial Híbrida)
     private const val XP_BASE = 20
@@ -178,6 +178,16 @@ object PlayerManager {
         val historiasStr = player.historiasAtivas.entries.joinToString(";") { "${it.key}:${it.value}" }
         editor.putString("historiasAtivas", historiasStr)
 
+        // Save mochila Map
+        val mochilaStr = player.mochila.entries.joinToString(";") { "${it.key}:${it.value}" }
+        editor.putString("mochila", mochilaStr)
+
+        // Save slotsEquipados Map
+        val slotsStr = player.slotsEquipados.entries.joinToString(";") { "${it.key}:${it.value}" }
+        editor.putString("slotsEquipados", slotsStr)
+
+        editor.putInt("capacidadeMochila", player.capacidadeMochila)
+
         editor.apply()
     }
 
@@ -289,6 +299,40 @@ object PlayerManager {
             }
         }
 
+        // Load mochila Map
+        val mochilaStr = prefs.getString("mochila", "") ?: ""
+        player.mochila.clear()
+        if (mochilaStr.isNotEmpty()) {
+            mochilaStr.split(";").forEach {
+                val parts = it.split(":")
+                if (parts.size == 2) {
+                    player.mochila[parts[0]] = parts[1].toIntOrNull() ?: 0
+                }
+            }
+        }
+
+        // Load slotsEquipados Map
+        val slotsStr = prefs.getString("slotsEquipados", "") ?: ""
+        // Initialize with nulls first to ensure all 6 slots exist
+        val slotsBase = mutableMapOf("CABEÇA" to null, "PESCOÇO" to null, "CORPO" to null, "MÃO" to null, "ACESSÓRIO" to null, "PÉS" to null)
+        player.slotsEquipados.clear()
+        player.slotsEquipados.putAll(slotsBase)
+        
+        if (slotsStr.isNotEmpty()) {
+            slotsStr.split(";").forEach {
+                val parts = it.split(":")
+                if (parts.size == 2) {
+                    val key = parts[0]
+                    val value = if (parts[1] == "null") null else parts[1]
+                    if (player.slotsEquipados.containsKey(key)) {
+                        player.slotsEquipados[key] = value
+                    }
+                }
+            }
+        }
+
+        player.capacidadeMochila = prefs.getInt("capacidadeMochila", 5)
+
         // MIGRATIONS LOGIC
         if (loadedVersion < 3) {
             // Migração para Versão 3: Balanceamento de Atributos Máximos
@@ -328,6 +372,28 @@ object PlayerManager {
         if (loadedVersion < 7) {
             // Migração para Versão 7: Inicializa contador de Horas Extras
             player.horasExtrasFeitasHoje = 0
+        }
+
+        if (loadedVersion < 8) {
+            // Migração para Versão 8: Transição de equipamentoId para Slots
+            // Se os slots estiverem todos vazios e houver um equipamentoId, migra
+            val slotsVazios = player.slotsEquipados.values.all { it == null }
+            val idAntigo = player.equipamentoId
+            
+            if (slotsVazios && idAntigo != null) {
+                val equip = com.typingfrontier.economy.ProfessionManager.getEquipment(idAntigo)
+                val targetSlot = equip?.slot
+                
+                if (targetSlot != null && player.slotsEquipados.containsKey(targetSlot)) {
+                    player.slotsEquipados[targetSlot] = idAntigo
+                    // NÃO anula equipamentoId ainda, conforme solicitado (servirá como ponte)
+                }
+            }
+        }
+
+        if (loadedVersion < 9) {
+            // Migração para Versão 9: Inicializa capacidade da mochila
+            player.capacidadeMochila = 5
         }
     }
 

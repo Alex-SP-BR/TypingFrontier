@@ -136,7 +136,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- EQUIPAMENTO CARD -->
+        <!-- EQUIPAMENTOS CARD -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -150,8 +150,45 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-                <TextView android:text="🛡️ Equipamento Atual" android:textStyle="bold" android:layout_marginBottom="8dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                <TextView android:id="@+id/txtEquipamentosDetalhe" android:textSize="15sp" android:textColor="#444444" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                <TextView android:text="🛡️ Equipamentos Equipados" android:textStyle="bold" android:layout_marginBottom="12dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+                <LinearLayout
+                    android:id="@+id/layoutSlots"
+                    android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <!-- Dinamicamente preenchido ou estático via código -->
+                </LinearLayout>
+
+                <View android:id="@+id/dividerBlessing" android:layout_width="match_parent" android:layout_height="1dp" android:background="#EEEEEE" android:layout_marginTop="12dp" android:layout_marginBottom="12dp" android:visibility="gone"/>
+                <TextView android:id="@+id/txtBlessingStatus" android:textSize="14sp" android:textColor="#1565C0" android:textStyle="bold" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:text="🕊️ Benção de Proteção Ativa" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- MOCHILA CARD -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:padding="16dp"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView android:text="🎒 Mochila" android:textStyle="bold" android:layout_marginBottom="12dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+                <LinearLayout
+                    android:id="@+id/layoutMochila"
+                    android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <!-- Dinamicamente preenchido -->
+                </LinearLayout>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

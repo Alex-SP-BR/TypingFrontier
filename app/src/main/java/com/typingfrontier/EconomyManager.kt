@@ -9,9 +9,9 @@ object EconomyManager {
 
         val fatorNivel = 1.0 + (p.nivel * 0.05)
         
-        // Novo cálculo baseado no equipamento atual
-        val equip = ProfessionManager.getEquipment(p.equipamentoId)
-        val fatorEquipamento = if (equip != null) 0.2 else 0.0
+        // Novo cálculo baseado no equipamento atual (Slots)
+        val temEquipamento = p.slotsEquipados.values.any { it != null }
+        val fatorEquipamento = if (temEquipamento) 0.2 else 0.0
 
         return fatorNivel + fatorEquipamento
     }

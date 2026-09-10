@@ -12,10 +12,22 @@ import com.typingfrontier.R
 import com.typingfrontier.economy.Equipment
 import com.typingfrontier.utils.CurrencyUtils
 
+sealed class LojaItem {
+    data class HeaderProfissao(val nome: String, val isExpanded: Boolean = false) : LojaItem()
+    data class HeaderTipo(val nome: String, val isExpanded: Boolean = false) : LojaItem()
+    data class Equipamento(val equipment: Equipment) : LojaItem()
+}
+
 class LojaAdapter(
     private val context: Context,
-    private val itens: List<Equipment>
+    private val itens: List<LojaItem>
 ) : BaseAdapter() {
+
+    companion object {
+        private const val TYPE_HEADER_PROFISSAO = 0
+        private const val TYPE_HEADER_TIPO = 1
+        private const val TYPE_EQUIPAMENTO = 2
+    }
 
     override fun getCount(): Int = itens.size
 
@@ -23,32 +35,81 @@ class LojaAdapter(
 
     override fun getItemId(position: Int): Long = position.toLong()
 
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+    override fun getItemViewType(position: Int): Int {
+        return when (itens[position]) {
+            is LojaItem.HeaderProfissao -> TYPE_HEADER_PROFISSAO
+            is LojaItem.HeaderTipo -> TYPE_HEADER_TIPO
+            is LojaItem.Equipamento -> TYPE_EQUIPAMENTO
+        }
+    }
 
+    override fun getViewTypeCount(): Int = 3
+
+    override fun isEnabled(position: Int): Boolean = true
+
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        return when (val itemWrapper = itens[position]) {
+            is LojaItem.HeaderProfissao -> getHeaderProfissaoView(itemWrapper, convertView, parent)
+            is LojaItem.HeaderTipo -> getHeaderTipoView(itemWrapper, convertView, parent)
+            is LojaItem.Equipamento -> getEquipamentoView(itemWrapper.equipment, convertView, parent)
+        }
+    }
+
+    private fun getHeaderProfissaoView(item: LojaItem.HeaderProfissao, convertView: View?, parent: ViewGroup): View {
+        val view = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_loja_header_profissao, parent, false)
+        val prefix = if (item.isExpanded) "▾ " else "▸ "
+        (view as TextView).text = prefix + item.nome
+        return view
+    }
+
+    private fun getHeaderTipoView(item: LojaItem.HeaderTipo, convertView: View?, parent: ViewGroup): View {
+        val view = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_loja_header_tipo, parent, false)
+        val prefix = if (item.isExpanded) "▾ " else "▸ "
+        (view as TextView).text = prefix + item.nome
+        return view
+    }
+
+    private fun getEquipamentoView(item: Equipment, convertView: View?, parent: ViewGroup): View {
         val view = convertView ?: LayoutInflater.from(context)
             .inflate(R.layout.item_loja, parent, false)
 
-        val item = itens[position]
         val currentPlayer = com.typingfrontier.PlayerManager.player
-        val itemEquipado = com.typingfrontier.economy.ProfessionManager.getEquipment(currentPlayer.equipamentoId)
 
         val txtNome = view.findViewById<TextView>(R.id.txtItemNome)
+        val txtPosse = view.findViewById<TextView>(R.id.txtItemPosse)
         val txtDescricao = view.findViewById<TextView>(R.id.txtItemDescricao)
         val txtPreco = view.findViewById<TextView>(R.id.txtItemPreco)
         val img = view.findViewById<ImageView>(R.id.imgItem)
 
         txtNome.text = item.nome
+        txtDescricao.text = "${item.descricao}\nBônus: +${item.bonus} em ${item.atributoAlvo}"
         
-        if (currentPlayer.equipamentoId == item.id) {
-            txtDescricao.text = "${item.descricao}\nBônus: +${item.bonus} em ${item.atributoAlvo}"
-            txtPreco.text = "✅ EQUIPADO"
-            txtPreco.setTextColor(android.graphics.Color.parseColor("#2E7D32"))
-        } else if (item.id == "blessing" && currentPlayer.temBlessing) {
-            txtDescricao.text = "${item.descricao}\nBônus: +${item.bonus} em ${item.atributoAlvo}"
+        // 1. Verificar Posse na Mochila e Equipado nos Slots
+        val qtdNaMochila = currentPlayer.mochila[item.id] ?: 0
+        val isEquipado = currentPlayer.slotsEquipados.values.contains(item.id)
+
+        if (item.id != "blessing") {
+            val statusList = mutableListOf<String>()
+            if (qtdNaMochila > 0) statusList.add("Possui: ×$qtdNaMochila")
+            if (isEquipado) statusList.add("✅ EQUIPADO")
+
+            if (statusList.isNotEmpty()) {
+                txtPosse.text = statusList.joinToString(" | ")
+                txtPosse.visibility = View.VISIBLE
+            } else {
+                txtPosse.visibility = View.GONE
+            }
+        } else {
+            txtPosse.visibility = View.GONE
+        }
+
+        // 2. Lógica de Preço e Estado Especial (Blessing)
+        if (item.id == "blessing" && currentPlayer.temBlessing) {
             txtPreco.text = "🛡️ ATIVA"
             txtPreco.setTextColor(android.graphics.Color.parseColor("#1565C0"))
+            txtPreco.setCompoundDrawables(null, null, null, null)
         } else {
-            val precoOriginal = if (item.id == "blessing") item.preco else com.typingfrontier.EconomyManager.precoInflacionado(item.preco)
+            val precoExibido = if (item.id == "blessing") item.preco else com.typingfrontier.EconomyManager.precoInflacionado(item.preco)
             
             // Configuração do ícone da moeda com tamanho controlado (20dp)
             val coinIcon = androidx.core.content.ContextCompat.getDrawable(context, com.typingfrontier.R.drawable.fron_coin)
@@ -56,22 +117,13 @@ class LojaAdapter(
             coinIcon?.setBounds(0, 0, size, size)
             txtPreco.setCompoundDrawables(coinIcon, null, null, null)
 
-            if (item.id != "blessing" && itemEquipado != null) {
-                val credito = (itemEquipado.preco * 0.4).toInt()
-                val precoFinal = (precoOriginal - credito).coerceAtLeast(0)
-                
-                txtDescricao.text = "${item.descricao}\nBônus: +${item.bonus} em ${item.atributoAlvo}\n(Crédito de ${CurrencyUtils.formatar(credito)} pelo item atual)"
-                txtPreco.text = CurrencyUtils.formatar(precoFinal)
-            } else {
-                txtDescricao.text = "${item.descricao}\nBônus: +${item.bonus} em ${item.atributoAlvo}"
-                txtPreco.text = CurrencyUtils.formatar(precoOriginal)
-            }
-
+            txtPreco.text = CurrencyUtils.formatar(precoExibido)
             txtPreco.setTextColor(android.graphics.Color.parseColor("#2E7D32"))
         }
 
-        // Ícone genérico de item
-        img.setImageResource(android.R.drawable.ic_menu_agenda)
+        // Preparado para imagens individuais com fallback para ícone genérico
+        val placeholder = android.R.drawable.ic_menu_agenda
+        img.setImageResource(item.imagemRes ?: placeholder)
 
         return view
     }

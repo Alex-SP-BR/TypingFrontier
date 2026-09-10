@@ -49,11 +49,11 @@ class StatusActivity : AppCompatActivity() {
             "Experiência: ${player.experienciaAtual} / ${player.experienciaParaProximoNivel}"
 
         // ATRIBUTOS E BARRAS
-        setupAtributo(R.id.txtForca, R.id.progressForca, "Força", player.forca, player.progressoForca, player.progressoForcaMax)
-        setupAtributo(R.id.txtVelocidade, R.id.progressVelocidade, "Velocidade", player.velocidade, player.progressoVelocidade, player.progressoVelocidadeMax)
-        setupAtributo(R.id.txtInteligencia, R.id.progressInteligencia, "Inteligência", player.inteligencia, player.progressoInteligencia, player.progressoInteligenciaMax)
-        setupAtributo(R.id.txtResistencia, R.id.progressResistencia, "Resistência", player.resistencia, player.progressoResistencia, player.progressoResistenciaMax)
-        setupAtributo(R.id.txtCarisma, R.id.progressCarisma, "Carisma", player.carisma, player.progressoCarisma, player.progressoCarismaMax)
+        setupAtributo(R.id.txtForca, R.id.progressForca, "Força", player.forca, player.forcaEfetiva, player.progressoForca, player.progressoForcaMax)
+        setupAtributo(R.id.txtVelocidade, R.id.progressVelocidade, "Velocidade", player.velocidade, player.velocidadeEfetiva, player.progressoVelocidade, player.progressoVelocidadeMax)
+        setupAtributo(R.id.txtInteligencia, R.id.progressInteligencia, "Inteligência", player.inteligencia, player.inteligenciaEfetiva, player.progressoInteligencia, player.progressoInteligenciaMax)
+        setupAtributo(R.id.txtResistencia, R.id.progressResistencia, "Resistência", player.resistencia, player.resistenciaEfetiva, player.progressoResistencia, player.progressoResistenciaMax)
+        setupAtributo(R.id.txtCarisma, R.id.progressCarisma, "Carisma", player.carisma, player.carismaEfetiva, player.progressoCarisma, player.progressoCarismaMax)
 
         // HELP BUTTONS
         findViewById<TextView>(R.id.btnHelpNivel).setOnClickListener {
@@ -75,17 +75,191 @@ class StatusActivity : AppCompatActivity() {
             showHelp("🗣️ Carisma", "Liderança e influência social. Melhora preços na loja e a relação com NPCs na cidade.")
         }
 
-        // EQUIPAMENTO
-        val equip = ProfessionManager.getEquipment(player.equipamentoId)
-        findViewById<TextView>(R.id.txtEquipamentosDetalhe).text = if (equip != null) {
-            "${equip.nome}\n${equip.descricao}\nBônus: +${equip.bonus} em ${equip.atributoAlvo}"
-        } else {
-            "Nenhum equipamento equipado."
+        atualizarEquipamentos()
+        atualizarMochila()
+    }
+
+    private fun atualizarMochila() {
+        val player = PlayerManager.player
+        val layout = findViewById<android.widget.LinearLayout>(R.id.layoutMochila)
+        layout.removeAllViews()
+
+        if (player.mochila.isEmpty()) {
+            val txtVazia = TextView(this).apply {
+                text = "Mochila vazia"
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
+                setTextColor(android.graphics.Color.LTGRAY)
+                setPadding(12, 0, 12, 12)
+            }
+            layout.addView(txtVazia)
+            return
         }
+
+        // Ordenar mochila por nome do equipamento
+        val itensOrdenados = player.mochila.keys.sortedBy { id ->
+            ProfessionManager.getEquipment(id)?.nome ?: ""
+        }
+
+        itensOrdenados.forEach { itemId ->
+            val qtd = player.mochila[itemId] ?: 0
+            if (qtd <= 0) return@forEach
+
+            val equip = ProfessionManager.getEquipment(itemId)
+            
+            val itemLayout = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding(12, 8, 12, 8)
+                isClickable = true
+                isFocusable = true
+                val typedValue = android.util.TypedValue()
+                theme.resolveAttribute(android.R.attr.selectableItemBackground, typedValue, true)
+                setBackgroundResource(typedValue.resourceId)
+                setOnClickListener { confirmarEquipar(itemId) }
+            }
+
+            val txtNome = TextView(this).apply {
+                val nome = equip?.nome ?: "Item Desconhecido ($itemId)"
+                text = if (qtd > 1) "$nome ×$qtd" else nome
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
+                setTextColor(android.graphics.Color.parseColor("#444444"))
+            }
+
+            itemLayout.addView(txtNome)
+
+            if (equip != null) {
+                val txtBonus = TextView(this).apply {
+                    text = "+${equip.bonus} ${equip.atributoAlvo}"
+                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
+                    setTextColor(android.graphics.Color.parseColor("#2E7D32"))
+                }
+                itemLayout.addView(txtBonus)
+            }
+
+            layout.addView(itemLayout)
+
+            // Divider
+            val divider = android.view.View(this).apply {
+                layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * resources.displayMetrics.density).toInt())
+                setBackgroundColor(android.graphics.Color.parseColor("#F0F0F0"))
+            }
+            layout.addView(divider)
+        }
+    }
+
+    private fun atualizarEquipamentos() {
+        val player = PlayerManager.player
+        val layout = findViewById<android.widget.LinearLayout>(R.id.layoutSlots)
+        layout.removeAllViews()
+
+        val slots = listOf("CABEÇA", "PESCOÇO", "CORPO", "MÃO", "ACESSÓRIO", "PÉS")
+
+        slots.forEach { slotName ->
+            val itemId = player.slotsEquipados[slotName]
+            val equip = if (itemId != null) ProfessionManager.getEquipment(itemId) else null
+
+            val slotView = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding(12, 12, 12, 12)
+                isClickable = equip != null
+                isFocusable = equip != null
+                if (equip != null) {
+                    val typedValue = android.util.TypedValue()
+                    theme.resolveAttribute(android.R.attr.selectableItemBackground, typedValue, true)
+                    setBackgroundResource(typedValue.resourceId)
+                    setOnClickListener { confirmarDesequipar(slotName, equip.nome) }
+                }
+            }
+
+            val txtSlot = TextView(this).apply {
+                text = slotName
+                textSize = 10f
+                setTextColor(android.graphics.Color.GRAY)
+                setTypeface(null, android.graphics.Typeface.BOLD)
+            }
+
+            val txtItem = TextView(this).apply {
+                text = if (equip != null) equip.nome else "—"
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+                setTextColor(if (equip != null) android.graphics.Color.parseColor("#333333") else android.graphics.Color.LTGRAY)
+            }
+
+            slotView.addView(txtSlot)
+            slotView.addView(txtItem)
+
+            if (equip != null) {
+                val txtBonus = TextView(this).apply {
+                    text = "+${equip.bonus} ${equip.atributoAlvo}"
+                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
+                    setTextColor(android.graphics.Color.parseColor("#2E7D32"))
+                }
+                slotView.addView(txtBonus)
+            }
+
+            layout.addView(slotView)
+
+            // Divider
+            val divider = android.view.View(this).apply {
+                layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * resources.displayMetrics.density).toInt())
+                setBackgroundColor(android.graphics.Color.parseColor("#EEEEEE"))
+            }
+            layout.addView(divider)
+        }
+
+        // Blessing
+        val hasBlessing = player.temBlessing
+        findViewById<android.view.View>(R.id.dividerBlessing).visibility = if (hasBlessing) android.view.View.VISIBLE else android.view.View.GONE
+        findViewById<TextView>(R.id.txtBlessingStatus).visibility = if (hasBlessing) android.view.View.VISIBLE else android.view.View.GONE
+    }
+
+    private fun confirmarDesequipar(slot: String, nomeItem: String) {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Desequipar")
+            .setMessage("Deseja desequipar $nomeItem e enviá-lo para a mochila?")
+            .setPositiveButton("Sim") { _, _ ->
+                val result = GameEngine.dispatch(GameAction.UnequipItem(slot))
+                if (result is EngineResult.Success) {
+                    atualizarEquipamentos()
+                    atualizarMochila()
+                    PlayerManager.save(this)
+                    android.widget.Toast.makeText(this, result.message, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Não", null)
+            .show()
+    }
+
+    private fun confirmarEquipar(itemId: String) {
+        val player = PlayerManager.player
+        val equip = ProfessionManager.getEquipment(itemId) ?: return
+        val targetSlot = equip.slot ?: return
+
+        val currentInSlotId = player.slotsEquipados[targetSlot]
+        val currentEquip = if (currentInSlotId != null) ProfessionManager.getEquipment(currentInSlotId) else null
+
+        val message = StringBuilder()
+        message.append("Deseja equipar ${equip.nome}?\n\n")
+        message.append("Este item ocupará o slot: $targetSlot\n")
         
-        if (player.temBlessing) {
-            findViewById<TextView>(R.id.txtEquipamentosDetalhe).append("\n\n🕊️ Benção de Proteção Ativa")
+        if (currentEquip != null) {
+            message.append("\nO item atual (${currentEquip.nome}) voltará para a mochila.")
         }
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Equipar Equipamento")
+            .setMessage(message.toString())
+            .setPositiveButton("Equipar") { _, _ ->
+                val result = GameEngine.dispatch(GameAction.EquipItem(itemId))
+                if (result is EngineResult.Success) {
+                    atualizarEquipamentos()
+                    atualizarMochila()
+                    PlayerManager.save(this)
+                    android.widget.Toast.makeText(this, result.message, android.widget.Toast.LENGTH_SHORT).show()
+                } else if (result is EngineResult.Failure) {
+                    android.widget.Toast.makeText(this, result.message, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun showHelp(titulo: String, mensagem: String) {
@@ -96,8 +270,11 @@ class StatusActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun setupAtributo(textId: Int, progressId: Int, nome: String, nivel: Int, progresso: Int, maxProg: Int) {
-        findViewById<TextView>(textId).text = "$nome: Lv. $nivel ($progresso/$maxProg)"
+    private fun setupAtributo(textId: Int, progressId: Int, nome: String, valorBase: Int, valorEfetivo: Int, progresso: Int, maxProg: Int) {
+        val bonus = valorEfetivo - valorBase
+        val bonusTexto = if (bonus > 0) " (+$bonus)" else ""
+        
+        findViewById<TextView>(textId).text = "$nome: $valorEfetivo$bonusTexto ($progresso/$maxProg)"
         findViewById<ProgressBar>(progressId).apply {
             max = maxProg
             progress = progresso

@@ -9,7 +9,14 @@ data class Equipment(
     val preco: Int,
     val atributoAlvo: String,
     val bonus: Int,
-    val descricao: String
+    val descricao: String,
+    val imagemRes: Int? = null,
+    val profissao: String? = null,
+    val tipo: String = "GERAL",
+    val raridade: String = "COMUM",
+    val nivelMinimo: Int = 1,
+    val origem: String = "LOJA",
+    val slot: String? = null
 )
 
 data class ProfessionConfig(
@@ -26,20 +33,22 @@ data class ProfessionConfig(
 
 object ProfessionManager {
     
-    val EQUIP_POLICIAL = Equipment("police_vest", "Colete Balístico", 200, "RESISTENCIA", 10, "Aumenta sua defesa em patrulhas.")
-    val EQUIP_MEDICO = Equipment("stetho", "Estetoscópio de Elite", 250, "INTELIGENCIA", 8, "Melhora diagnósticos e ganhos.")
-    val EQUIP_PROFESSOR = Equipment("rare_book", "Livro Raro de Retórica", 150, "CARISMA", 12, "Aumenta o impacto das suas palavras.")
-    val EQUIP_ENGENHEIRO = Equipment("toolkit", "Maleta de Ferramentas", 180, "RESISTENCIA", 8, "Facilita reparos e construção.")
-    val EQUIP_DETETIVE = Equipment("magnifier", "Lupa Profissional", 120, "VELOCIDADE", 15, "Aumenta chance de achar pistas.")
+    val EQUIP_POLICIAL = Equipment("police_vest", "Colete Balístico", 200, "RESISTENCIA", 10, "Aumenta sua defesa em patrulhas.", null, "Policial", "COLETE", slot = "CORPO")
+    val EQUIP_MEDICO = Equipment("stetho", "Estetoscópio de Elite", 250, "INTELIGENCIA", 8, "Melhora diagnósticos e ganhos.", null, "Médico", "ESTETOSCOPIO", slot = "PESCOÇO")
+    val EQUIP_PROFESSOR = Equipment("rare_book", "Livro Raro de Retórica", 150, "CARISMA", 12, "Aumenta o impacto das suas palavras.", null, "Professor", "LIVRO", slot = "MÃO")
+    val EQUIP_ENGENHEIRO = Equipment("toolkit", "Maleta de Ferramentas", 180, "RESISTENCIA", 8, "Facilita reparos e construção.", null, "Engenheiro", "MALETA", slot = "MÃO")
+    val EQUIP_DETETIVE = Equipment("magnifier", "Lupa Profissional", 120, "VELOCIDADE", 15, "Aumenta chance de achar pistas.", null, "Detetive", "LUPA", slot = "MÃO")
 
     private val todosEquipamentos = listOf(
         EQUIP_POLICIAL, EQUIP_MEDICO, EQUIP_PROFESSOR, EQUIP_ENGENHEIRO, EQUIP_DETETIVE,
-        Equipment("police_vest_2", "Colete Tático Avançado", 450, "RESISTENCIA", 25, "Proteção pesada para missões críticas."),
-        Equipment("stetho_2", "Monitor Cardíaco Portátil", 500, "INTELIGENCIA", 20, "Tecnologia médica de ponta."),
-        Equipment("rare_book_2", "Enciclopédia de Filosofia", 400, "CARISMA", 25, "Domine a arte da persuasão."),
-        Equipment("toolkit_2", "Maleta de Ferramentas Pro", 380, "RESISTENCIA", 18, "Tudo o que um engenheiro precisa."),
-        Equipment("drone", "Drone de Vigilância", 600, "VELOCIDADE", 30, "Visão aérea total para o detetive.")
+        Equipment("police_vest_2", "Colete Tático Avançado", 450, "RESISTENCIA", 25, "Proteção pesada para missões críticas.", null, "Policial", "COLETE", slot = "CORPO"),
+        Equipment("stetho_2", "Monitor Cardíaco Portátil", 500, "INTELIGENCIA", 20, "Tecnologia médica de ponta.", null, "Médico", "ESTETOSCOPIO", slot = "PESCOÇO"),
+        Equipment("rare_book_2", "Enciclopédia de Filosofia", 400, "CARISMA", 25, "Domine a arte da persuasão.", null, "Professor", "LIVRO", slot = "MÃO"),
+        Equipment("toolkit_2", "Maleta de Ferramentas Pro", 380, "RESISTENCIA", 18, "Tudo o que um engenheiro precisa.", null, "Engenheiro", "MALETA", slot = "MÃO"),
+        Equipment("drone", "Drone de Vigilância", 600, "VELOCIDADE", 30, "Visão aérea total para o detetive.", null, "Detetive", "DRONE", slot = "ACESSÓRIO")
     )
+
+    fun getAllEquipments(): List<Equipment> = todosEquipamentos
 
     fun getEquipment(id: String?): Equipment? = todosEquipamentos.find { it.id == id }
 
@@ -87,11 +96,11 @@ object ProfessionManager {
     fun calcularSalario(player: Player): Int {
         val config = getConfig(player.profissao) ?: return 5
         val nivelAtributo = when (config.atributoPrincipal) {
-            "FORCA" -> player.forca
-            "INTELIGENCIA" -> player.inteligencia
-            "CARISMA" -> player.carisma
-            "RESISTENCIA" -> player.resistencia
-            "VELOCIDADE" -> player.velocidade
+            "FORCA" -> player.forcaEfetiva
+            "INTELIGENCIA" -> player.inteligenciaEfetiva
+            "CARISMA" -> player.carismaEfetiva
+            "RESISTENCIA" -> player.resistenciaEfetiva
+            "VELOCIDADE" -> player.velocidadeEfetiva
             else -> 1
         }
         // Fórmulas reduzidas para evitar acúmulo infinito de dinheiro no trabalho seguro.

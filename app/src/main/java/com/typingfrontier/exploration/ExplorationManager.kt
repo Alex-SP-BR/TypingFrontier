@@ -41,11 +41,11 @@ object ExplorationManager {
 
     private fun getValorAtributo(player: Player, nome: String?): Int {
         return when (nome) {
-            "FORCA" -> player.forca
-            "INTELIGENCIA" -> player.inteligencia
-            "CARISMA" -> player.carisma
-            "RESISTENCIA" -> player.resistencia
-            "VELOCIDADE" -> player.velocidade
+            "FORCA" -> player.forcaEfetiva
+            "INTELIGENCIA" -> player.inteligenciaEfetiva
+            "CARISMA" -> player.carismaEfetiva
+            "RESISTENCIA" -> player.resistenciaEfetiva
+            "VELOCIDADE" -> player.velocidadeEfetiva
             else -> 0
         }
     }

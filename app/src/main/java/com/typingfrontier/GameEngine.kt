@@ -23,6 +23,8 @@ object GameEngine {
                 is GameAction.CollectRewards -> processCollectRewards(action.xp, action.money)
                 is GameAction.BuyItem -> processBuyItem(action.item)
                 is GameAction.CompleteMission -> processCompleteMission(action.xp, action.money)
+                is GameAction.EquipItem -> processEquipItem(action.itemId)
+                is GameAction.UnequipItem -> processUnequipItem(action.slot)
             }
             verifyIntegrity()
             
@@ -367,44 +369,39 @@ object GameEngine {
 
     private fun processBuyItem(item: Equipment): EngineResult {
         val p = PlayerManager.player
-        val itemAtual = ProfessionManager.getEquipment(p.equipamentoId)
 
-        // 1. Proteção: Impede compra do mesmo item
-        if (p.equipamentoId == item.id) {
-            return EngineResult.Failure("Você já possui o item ${item.nome} equipado!")
+        // 1. Verificação de Nível Mínimo
+        if (p.nivel < item.nivelMinimo) {
+            return EngineResult.Failure("Nível ${item.nivelMinimo} necessário para este equipamento.")
         }
 
-        // 2. Lógica de Crédito de Troca (40% do valor base do item atual)
-        val valorNovo = if (item.id == "blessing") item.preco else EconomyManager.precoInflacionado(item.preco)
-        
-        var creditoTroca = 0
-        if (item.id != "blessing" && itemAtual != null) {
-            creditoTroca = (itemAtual.preco * 0.4).toInt()
-        }
+        // Lógica de Preço (Blessing tem preço fixo por nível, outros usam inflação)
+        val precoFinal = if (item.id == "blessing") item.preco else EconomyManager.precoInflacionado(item.preco)
 
-        val precoFinal = (valorNovo - creditoTroca).coerceAtLeast(0)
-
-        // 3. Verificação de Saldo
+        // 2. Verificação de Saldo
         if (p.dinheiro < precoFinal) {
             val falta = precoFinal - p.dinheiro
             return EngineResult.Failure("Frons insuficientes. Falta ${CurrencyUtils.formatar(falta)}.")
         }
 
-        // 4. Execução da Compra
+        // 3. Execução da Compra
         if (item.id == "blessing") {
             if (p.temBlessing) return EngineResult.Failure("Você já possui uma benção ativa.")
             p.temBlessing = true
             p.dinheiro -= precoFinal
             return EngineResult.Success("Benção adquirida por ${CurrencyUtils.formatar(precoFinal)}!")
         } else {
-            p.dinheiro -= precoFinal
-            p.equipamentoId = item.id
-            val msgSucesso = if (creditoTroca > 0) {
-                "Equipado: ${item.nome}. Crédito de ${CurrencyUtils.formatar(creditoTroca)} recebido pelo item antigo."
-            } else {
-                "Equipado: ${item.nome}!"
+            // VERIFICAÇÃO DE CAPACIDADE DA MOCHILA (Unidade real por item)
+            val ocupacaoAtual = p.mochila.values.sum()
+            if (ocupacaoAtual >= p.capacidadeMochila) {
+                return EngineResult.Failure("Mochila cheia ($ocupacaoAtual/${p.capacidadeMochila}).")
             }
-            return EngineResult.Success(msgSucesso)
+
+            p.dinheiro -= precoFinal
+            // Adiciona à mochila em vez de equipar automaticamente
+            p.mochila[item.id] = (p.mochila[item.id] ?: 0) + 1
+            
+            return EngineResult.Success("Comprado: ${item.nome}. Item enviado para a mochila!")
         }
     }
 
@@ -412,6 +409,53 @@ object GameEngine {
         PlayerManager.ganharXp(xp)
         PlayerManager.player.dinheiro += money
         return EngineResult.Success("Missão concluída com sucesso!")
+    }
+
+    private fun processEquipItem(itemId: String): EngineResult {
+        val p = PlayerManager.player
+        val equip = ProfessionManager.getEquipment(itemId) ?: return EngineResult.Failure("Equipamento não encontrado.")
+
+        // 1. Verificação de Posse
+        val qtdNaMochila = p.mochila[itemId] ?: 0
+        if (qtdNaMochila <= 0) return EngineResult.Failure("Você não possui este item na mochila.")
+
+        // 2. Verificação de Slot
+        val targetSlot = equip.slot ?: return EngineResult.Failure("Este item não pode ser equipado.")
+        if (!p.slotsEquipados.containsKey(targetSlot)) return EngineResult.Failure("Slot de equipamento inválido.")
+
+        // 3. Devolver item atual do slot para a mochila (se houver)
+        val currentInSlotId = p.slotsEquipados[targetSlot]
+        if (currentInSlotId != null) {
+            p.mochila[currentInSlotId] = (p.mochila[currentInSlotId] ?: 0) + 1
+        }
+
+        // 4. Equipar novo item
+        p.mochila[itemId] = qtdNaMochila - 1
+        p.slotsEquipados[targetSlot] = itemId
+        
+        // 5. Ponte de compatibilidade: Atualiza equipamentoId para que a UI antiga reconheça como equipado
+        p.equipamentoId = itemId
+
+        return EngineResult.Success("Equipado: ${equip.nome}!")
+    }
+
+    private fun processUnequipItem(slot: String): EngineResult {
+        val p = PlayerManager.player
+        if (!p.slotsEquipados.containsKey(slot)) return EngineResult.Failure("Slot inválido.")
+
+        val itemId = p.slotsEquipados[slot] ?: return EngineResult.Failure("Slot já está vazio.")
+        val equip = ProfessionManager.getEquipment(itemId) ?: return EngineResult.Failure("Erro ao localizar equipamento.")
+
+        // Devolver para a mochila
+        p.mochila[itemId] = (p.mochila[itemId] ?: 0) + 1
+        p.slotsEquipados[slot] = null
+
+        // Ponte de compatibilidade: se era o item apontado, limpa
+        if (p.equipamentoId == itemId) {
+            p.equipamentoId = null
+        }
+
+        return EngineResult.Success("Desequipado: ${equip.nome}!")
     }
 
     private fun applyAttributeXP(atributo: String, ganho: Int) {

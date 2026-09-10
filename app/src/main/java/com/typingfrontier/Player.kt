@@ -71,6 +71,16 @@ data class Player(
 
     // 🎒 EQUIPAMENTOS (ID do equipamento equipado)
     var equipamentoId: String? = null,
+    var slotsEquipados: MutableMap<String, String?> = mutableMapOf(
+        "CABEÇA" to null,
+        "PESCOÇO" to null,
+        "CORPO" to null,
+        "MÃO" to null,
+        "ACESSÓRIO" to null,
+        "PÉS" to null
+    ),
+    var mochila: MutableMap<String, Int> = mutableMapOf(),
+    var capacidadeMochila: Int = 5,
 
     // 🕊️ TIBIA SYSTEM: BLESSINGS (Proteção contra morte)
     var temBlessing: Boolean = false,
@@ -118,14 +128,30 @@ data class Player(
      * Policial Lvl 50 (~600 HP, 40 Res): Limite 5.
      */
     val limiteTraumas: Int
-        get() = 2 + (vidaMax / 300) + (resistencia / 25)
+        get() = 2 + (vidaMax / 300) + (resistenciaEfetiva / 25)
 
     val defesa: Int
-        get() {
-            val equip = com.typingfrontier.economy.ProfessionManager.getEquipment(equipamentoId)
-            val bonusDefesa = if (equip?.atributoAlvo == "RESISTENCIA") equip.bonus else 0
-            return bonusDefesa + resistencia
+        get() = resistenciaEfetiva
+
+    // 🔹 ATRIBUTOS EFETIVOS (Base + Equipamentos)
+    val forcaEfetiva: Int get() = forca + getBonusEquipamento("FORCA")
+    val resistenciaEfetiva: Int get() = resistencia + getBonusEquipamento("RESISTENCIA")
+    val velocidadeEfetiva: Int get() = velocidade + getBonusEquipamento("VELOCIDADE")
+    val inteligenciaEfetiva: Int get() = inteligencia + getBonusEquipamento("INTELIGENCIA")
+    val carismaEfetiva: Int get() = carisma + getBonusEquipamento("CARISMA")
+
+    private fun getBonusEquipamento(atributo: String): Int {
+        var total = 0
+        slotsEquipados.values.forEach { id ->
+            if (id != null) {
+                val equip = com.typingfrontier.economy.ProfessionManager.getEquipment(id)
+                if (equip?.atributoAlvo == atributo) {
+                    total += equip.bonus
+                }
+            }
         }
+        return total
+    }
 
     var xp: Int
         get() = experienciaAtual
