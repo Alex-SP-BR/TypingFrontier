@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="12dp"
-    android:background="#FFFFFF"
+    android:background="#CC121212"
     android:layout_marginBottom="1dp">
 
     <ImageButton
@@ -15,7 +15,7 @@
         android:layout_alignParentTop="true"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@android:drawable/ic_menu_more"
-        app:tint="#666666" />
+        app:tint="#889099" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -29,8 +29,8 @@
             android:layout_height="wrap_content"
             android:text="username"
             android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="#1976D2"
+            android:textStyle="normal"
+            android:textColor="#74C6E0"
             android:layout_marginBottom="4dp"/>
 
         <TextView
@@ -39,7 +39,7 @@
             android:layout_height="wrap_content"
             android:text="Conteúdo da resposta"
             android:textSize="14sp"
-            android:textColor="#333333"
+            android:textColor="#DDDDDD"
             android:layout_marginBottom="4dp"/>
 
         <TextView
@@ -48,7 +48,7 @@
             android:layout_height="wrap_content"
             android:text="há 10 minutos"
             android:textSize="10sp"
-            android:textColor="#999999"
+            android:textColor="#889099"
             android:gravity="end"/>
     </LinearLayout>
 

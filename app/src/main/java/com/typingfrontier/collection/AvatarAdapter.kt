@@ -36,7 +36,13 @@ class AvatarAdapter(
         val isPadrao = avatar.id == "default"
 
         binding.txtAvatarNome.text = avatar.nome
-        binding.imgAvatar.setImageResource(avatar.imagemRes)
+        
+        // Aplica o SilhouetteDrawable para padronização visual
+        val desbloqueado = isPadrao || 
+                          p.avataresDesbloqueados.contains(avatar.id) ||
+                          (isAdmin && CollectionRepository.isAvatarValidoParaPlayer(avatar.id, p))
+        
+        binding.imgAvatar.setImageDrawable(ViewUtils.getInsigniaWithSilhouette(holder.itemView.context, avatar.imagemRes, desbloqueado))
 
         // Enquadramento especial para avatares administrativos e comerciais (Corpo inteiro -> Foco no torso/cabeça)
         if (isAdmin || isComercial) {
@@ -46,10 +52,6 @@ class AvatarAdapter(
         }
         
         // Regra de Desbloqueio: Padrão, já desbloqueado ou Administrativo com Role válida
-        val desbloqueado = isPadrao || 
-                          p.avataresDesbloqueados.contains(avatar.id) ||
-                          (isAdmin && CollectionRepository.isAvatarValidoParaPlayer(avatar.id, p))
-
         val equipado = (p.avatarEquipadoId == avatar.id) || (isPadrao && p.avatarEquipadoId == null)
         
         // Requisito de nível: Ignorado para Administrativo, Comercial e Padrão
@@ -70,7 +72,8 @@ class AvatarAdapter(
                     holder.itemView.context,
                     avatar.imagemRes,
                     avatar.nome,
-                    subtitulo
+                    subtitulo,
+                    applySilhouette = true
                 )
             } else {
                 Toast.makeText(holder.itemView.context, "Desbloqueie para ampliar", Toast.LENGTH_SHORT).show()
@@ -96,17 +99,18 @@ class AvatarAdapter(
         }
 
         binding.txtRequisito.text = when {
-            isPadrao -> "Sempre disponível"
-            isAdmin -> "ADMINISTRATIVO"
-            isComercial -> "COLEÇÃO"
+            isPadrao -> "Disponível"
+            isAdmin -> "ADMIN"
+            isComercial -> "LOJA"
             else -> "NÍVEL ${avatar.nivelRequisito}"
         }
-        binding.txtRequisito.setTextColor(if (nivelAlcancado) android.graphics.Color.parseColor("#4CAF50") else android.graphics.Color.parseColor("#E53935"))
+        binding.txtRequisito.setTextColor(if (nivelAlcancado) android.graphics.Color.parseColor("#74C6E0") else android.graphics.Color.parseColor("#889099"))
 
         when {
             equipado -> {
                 binding.txtStatus.text = "EQUIPADO"
                 binding.txtStatus.visibility = View.VISIBLE
+                binding.txtStatus.setTextColor(android.graphics.Color.parseColor("#74C6E0"))
                 binding.txtRequisito.visibility = View.GONE
             }
             desbloqueado -> {
@@ -129,9 +133,9 @@ class AvatarAdapter(
             }
             !nivelAlcancado -> {
                 // Bloqueado por nível
-                binding.txtAdsProgresso.text = "Alcance o nível ${avatar.nivelRequisito} para desbloquear"
+                binding.txtAdsProgresso.text = "Bloqueado (Lvl ${avatar.nivelRequisito})"
                 binding.txtAdsProgresso.visibility = View.VISIBLE
-                binding.txtAdsProgresso.setTextColor(android.graphics.Color.GRAY)
+                binding.txtAdsProgresso.setTextColor(android.graphics.Color.parseColor("#889099"))
                 binding.btnAcao.visibility = View.GONE
             }
             isComercial -> {
@@ -150,13 +154,15 @@ class AvatarAdapter(
                 binding.btnAcao.visibility = View.VISIBLE
                 
                 if (avatar.adsNecessarios > 0) {
-                    val textoAds = if (adsAssistidos == 0) {
-                        "Assistir a ${avatar.adsNecessarios} anúncios OU"
+                    val assistidos = p.avataresProgressoAds[avatar.id] ?: 0
+                    val textoAds = if (assistidos == 0) {
+                        "Ou ${avatar.adsNecessarios} anúncios"
                     } else {
-                        "Anúncios assistidos: $adsAssistidos de ${avatar.adsNecessarios}"
+                        "Progresso: $assistidos/${avatar.adsNecessarios}"
                     }
                     binding.txtAdsProgresso.text = textoAds
                     binding.txtAdsProgresso.visibility = View.VISIBLE
+                    binding.txtAdsProgresso.setTextColor(android.graphics.Color.parseColor("#D0D6DD"))
                 }
 
                 binding.btnAcao.setOnClickListener {
@@ -165,11 +171,11 @@ class AvatarAdapter(
             }
             else -> {
                 // Progressão Bloqueado (Anúncios)
-                binding.txtAdsProgresso.text = "Anúncios: $adsAssistidos de ${avatar.adsNecessarios}"
+                binding.txtAdsProgresso.text = "Anúncios: $adsAssistidos/${avatar.adsNecessarios}"
                 binding.txtAdsProgresso.visibility = View.VISIBLE
-                binding.txtAdsProgresso.setTextColor(android.graphics.Color.parseColor("#1976D2"))
+                binding.txtAdsProgresso.setTextColor(android.graphics.Color.parseColor("#74C6E0"))
                 
-                binding.btnAcao.text = "ASSISTIR ANÚNCIO"
+                binding.btnAcao.text = "ASSISTIR AD"
                 binding.btnAcao.visibility = View.VISIBLE
                 binding.btnAcao.isEnabled = true
                 
@@ -192,7 +198,7 @@ class AvatarAdapter(
             options.add("Assistir a anúncios ($assistidos de ${avatar.adsNecessarios})")
         }
 
-        androidx.appcompat.app.AlertDialog.Builder(context)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(context, com.typingfrontier.R.style.Theme_TypingFrontier_MentalDialog)
             .setTitle("Adquirir ${avatar.nome}")
             .setItems(options.toTypedArray()) { _, which ->
                 when (options[which]) {
@@ -214,6 +220,12 @@ class AvatarAdapter(
             }
             .setNegativeButton("Cancelar", null)
             .show()
+
+        // Ajusta opacidade no background do diálogo
+        val color = android.graphics.Color.parseColor("#FB121212")
+        dialog.window?.findViewById<android.view.View>(androidx.appcompat.R.id.parentPanel)?.let { panel ->
+            panel.backgroundTintList = android.content.res.ColorStateList.valueOf(color)
+        }
     }
 
     private fun processarCliqueAnuncio(avatar: Avatar, holder: AvatarViewHolder) {

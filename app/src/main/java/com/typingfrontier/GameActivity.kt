@@ -5,7 +5,10 @@ import com.typingfrontier.economy.ProfessionManager
 import com.typingfrontier.shop.ShopActivity
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.typingfrontier.databinding.ActivityGameBinding
 import com.typingfrontier.utils.CurrencyUtils
@@ -31,6 +34,10 @@ class GameActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Ajuste da Barra de Status para o tema escuro
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
 
         binding = ActivityGameBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -290,18 +297,18 @@ class GameActivity : AppCompatActivity() {
         val fatorEficiencia = Math.max(0.5, 1.0 - (p.horasExtrasFeitasHoje * 0.1))
         val recompensa = ((salarioNormal / 8.0) * duracaoHoras * 2.0 * fatorEficiencia).toInt()
 
-        val msg = "⏱️ Hora Extra #$numeroHE\n\n" +
-                "⏳ Duração: ${formatarDuracao(duracaoMinutos)}\n" +
-                "🏁 Término: ${horarioTermino.first}:${horarioTermino.second.toString().padStart(2, '0')}\n" +
-                "💰 Ganho: ${CurrencyUtils.formatar(recompensa)}\n\n" +
-                "⚡ Energia: -$custoEnergia\n" +
-                "🧠 Cansaço Mental: +$gastoMente\n" +
-                "📺 Requisito: $adsNecessarios ${if (adsNecessarios == 1) "anúncio" else "anúncios"}\n\n" +
-                "⚠️ Esta atividade não concede XP."
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_overtime, null)
+        dialogView.findViewById<TextView>(R.id.txtOvertimeHeader).text = "⏱️ Hora Extra #$numeroHE"
+        dialogView.findViewById<TextView>(R.id.txtOvertimeDuration).text = formatarDuracao(duracaoMinutos)
+        dialogView.findViewById<TextView>(R.id.txtOvertimeEnergy).text = "-$custoEnergia"
+        dialogView.findViewById<TextView>(R.id.txtOvertimeMental).text = "+$gastoMente"
+        dialogView.findViewById<TextView>(R.id.txtOvertimeReward).text = CurrencyUtils.formatar(recompensa)
+        dialogView.findViewById<TextView>(R.id.txtOvertimeEndTime).text = "🏁 Término: ${horarioTermino.first}:${horarioTermino.second.toString().padStart(2, '0')}"
+        dialogView.findViewById<TextView>(R.id.txtOvertimeAdsCount).text = "📺 Requisito: $adsNecessarios ${if (adsNecessarios == 1) "anúncio" else "anúncios"}"
 
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this, R.style.Theme_TypingFrontier_MentalDialog)
             .setTitle("Confirmar Jornada")
-            .setMessage(msg)
+            .setView(dialogView)
             .setPositiveButton("Assistir e Iniciar") { _, _ ->
                 if (p.energia < custoEnergia || (p.cansacoMax - p.cansacoMental) < gastoMente) {
                     Toast.makeText(this, "Recursos insuficientes!", Toast.LENGTH_SHORT).show()
@@ -311,6 +318,32 @@ class GameActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancelar", null)
             .show()
+
+        // Ajuste de opacidade para tornar o diálogo mais sólido
+        dialog.window?.findViewById<android.view.View>(androidx.appcompat.R.id.parentPanel)?.backgroundTintList =
+            android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#1E1E1E"))
+
+        val density = resources.displayMetrics.density
+        
+        // Customização dos botões
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+            setBackgroundResource(R.drawable.bg_game_button_primary)
+            backgroundTintList = null
+            setTextColor(android.graphics.Color.WHITE)
+            setPadding((16 * density).toInt(), 0, (16 * density).toInt(), 0)
+            val params = layoutParams as android.widget.LinearLayout.LayoutParams
+            params.setMargins((8 * density).toInt(), (4 * density).toInt(), (8 * density).toInt(), (4 * density).toInt())
+            layoutParams = params
+        }
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.apply {
+            setBackgroundResource(R.drawable.bg_game_button_secondary)
+            backgroundTintList = null
+            setTextColor(android.graphics.Color.WHITE)
+            setPadding((16 * density).toInt(), 0, (16 * density).toInt(), 0)
+            val params = layoutParams as android.widget.LinearLayout.LayoutParams
+            params.setMargins((8 * density).toInt(), (4 * density).toInt(), (8 * density).toInt(), (4 * density).toInt())
+            layoutParams = params
+        }
     }
 
     private fun formatarDuracao(totalMinutos: Int): String {
@@ -364,13 +397,39 @@ class GameActivity : AppCompatActivity() {
                 "Faltam $faltam ${if (faltam == 1) "anúncio" else "anúncios"} para liberar a Hora Extra.\n" +
                 "Deseja continuar?"
 
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this, R.style.Theme_TypingFrontier_MentalDialog)
             .setTitle("⏱️ Fila de Anúncios")
             .setMessage(msg)
             .setPositiveButton("Ver Próximo") { _, _ -> solicitarProximoAdOvertime() }
             .setNegativeButton("Desistir") { _, _ -> isOvertimeSessionInProgress = false }
             .setCancelable(false)
             .show()
+
+        // Ajuste de opacidade para tornar o diálogo mais sólido
+        dialog.window?.findViewById<android.view.View>(androidx.appcompat.R.id.parentPanel)?.backgroundTintList =
+            android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#1E1E1E"))
+
+        val density = resources.displayMetrics.density
+        
+        // Customização dos botões
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+            setBackgroundResource(R.drawable.bg_game_button_primary)
+            backgroundTintList = null
+            setTextColor(android.graphics.Color.WHITE)
+            setPadding((16 * density).toInt(), 0, (16 * density).toInt(), 0)
+            val params = layoutParams as android.widget.LinearLayout.LayoutParams
+            params.setMargins((8 * density).toInt(), (4 * density).toInt(), (8 * density).toInt(), (4 * density).toInt())
+            layoutParams = params
+        }
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.apply {
+            setBackgroundResource(R.drawable.bg_game_button_secondary)
+            backgroundTintList = null
+            setTextColor(android.graphics.Color.WHITE)
+            setPadding((16 * density).toInt(), 0, (16 * density).toInt(), 0)
+            val params = layoutParams as android.widget.LinearLayout.LayoutParams
+            params.setMargins((8 * density).toInt(), (4 * density).toInt(), (8 * density).toInt(), (4 * density).toInt())
+            layoutParams = params
+        }
     }
 
     private fun concluirHoraExtra() {

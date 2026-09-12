@@ -1,76 +1,158 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
-    <!-- Espaçador de segurança superior -->
-    <View
+    <ImageView
         android:layout_width="match_parent"
-        android:layout_height="32dp" />
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_game_main"
+        android:contentDescription="@null" />
 
-    <TextView
-        android:text="Criar Personagem"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
-
-    <EditText
-        android:id="@+id/edtNome"
-        android:hint="Nome do Personagem (Interno)"
-        android:minHeight="48dp"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"/>
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
-    <EditText
-        android:id="@+id/edtUsername"
-        android:hint="Username Social (Opcional)"
-        android:minHeight="48dp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:maxLength="20"
-        android:digits="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:gravity="center">
 
-    <TextView
-        android:text="O Username será sua identidade no Ranking e Fórum."
-        android:textSize="12sp"
-        android:textColor="#666666"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"/>
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="8dp"
+                app:cardBackgroundColor="#CC121212"
+                app:strokeColor="#33FFFFFF"
+                app:strokeWidth="1dp">
 
-    <TextView
-        android:text="Sexo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
 
-    <RadioGroup
-        android:id="@+id/rgSexo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="👤 Criar Personagem"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="24dp"
+                        android:shadowColor="#000000"
+                        android:shadowDx="2"
+                        android:shadowDy="2"
+                        android:shadowRadius="4"/>
 
-        <RadioButton
-            android:id="@+id/rbMasculino"
-            android:text="Masculino"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Nome do Personagem"
+                        android:textColor="#D0D6DD"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="4dp"/>
 
-        <RadioButton
-            android:id="@+id/rbFeminino"
-            android:text="Feminino"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-    </RadioGroup>
+                    <EditText
+                        android:id="@+id/edtNome"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Ex: Arthur Pendragon"
+                        android:minHeight="48dp"
+                        android:background="@drawable/bg_game_input"
+                        android:padding="12dp"
+                        android:textColor="#E6EDF8"
+                        android:textColorHint="#8EA4C8"
+                        android:layout_marginBottom="16dp"/>
 
-    <Button
-        android:id="@+id/btnContinuar"
-        android:text="Continuar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"/>
-</LinearLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Username Social (Opcional)"
+                        android:textColor="#D0D6DD"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="4dp"/>
+
+                    <EditText
+                        android:id="@+id/edtUsername"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Para Ranking e Fórum"
+                        android:minHeight="48dp"
+                        android:background="@drawable/bg_game_input"
+                        android:padding="12dp"
+                        android:textColor="#E6EDF8"
+                        android:textColorHint="#8EA4C8"
+                        android:maxLength="20"
+                        android:digits="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"/>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="O Username será sua identidade pública no Ranking."
+                        android:textSize="11sp"
+                        android:textColor="#8EA4C8"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Gênero do Personagem"
+                        android:textColor="#D0D6DD"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <RadioGroup
+                        android:id="@+id/rgSexo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_horizontal"
+                        android:layout_marginBottom="24dp">
+
+                        <RadioButton
+                            android:id="@+id/rbMasculino"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Masculino"
+                            android:textColor="#FFFFFF"
+                            android:buttonTint="#74C6E0"
+                            android:layout_marginEnd="16dp"/>
+
+                        <RadioButton
+                            android:id="@+id/rbFeminino"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Feminino"
+                            android:textColor="#FFFFFF"
+                            android:buttonTint="#74C6E0"/>
+                    </RadioGroup>
+
+                    <Button
+                        android:id="@+id/btnContinuar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Começar Jornada"
+                        android:backgroundTint="@null"
+                        android:background="@drawable/bg_game_button_primary"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:padding="12dp"/>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </ScrollView>
+
+</FrameLayout>

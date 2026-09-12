@@ -3,11 +3,14 @@ package com.typingfrontier.social
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.Button
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.typingfrontier.R
 import com.typingfrontier.databinding.ActivityDiscussionBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +46,7 @@ class DiscussionActivity : AppCompatActivity() {
         }
         binding.txtForumTitle.text = "💬 $displayTitle"
 
+        configurarBackground()
         configurarRecycler()
         configurarBotoes()
         carregarDiscussoes()
@@ -51,6 +55,17 @@ class DiscussionActivity : AppCompatActivity() {
     private fun configurarRecycler() {
         binding.recyclerDiscussions.layoutManager = LinearLayoutManager(this)
         binding.swipeRefresh.setOnRefreshListener { carregarDiscussoes() }
+    }
+
+    private fun configurarBackground() {
+        if (category == "general") {
+            binding.imgDiscussionBg.setImageResource(R.drawable.bg_forum)
+            binding.viewDiscussionOverlay.visibility = View.GONE
+        } else {
+            binding.imgDiscussionBg.setImageResource(R.drawable.bg_ranking)
+            binding.viewDiscussionOverlay.visibility = View.VISIBLE
+            binding.viewDiscussionOverlay.setBackgroundColor(android.graphics.Color.parseColor("#4D000000"))
+        }
     }
 
     private fun configurarBotoes() {
@@ -388,56 +403,59 @@ class DiscussionActivity : AppCompatActivity() {
                 return@launch
             }
 
-            val builder = AlertDialog.Builder(this@DiscussionActivity)
             val isForum = category == "general"
-            builder.setTitle(if (isForum) "Novo Tópico" else "Publicar no Mural")
+            val dialogView = layoutInflater.inflate(R.layout.dialog_create_discussion, null)
+            
+            val txtDialogTitle = dialogView.findViewById<TextView>(R.id.txtDialogTitle)
+            val lblTitle = dialogView.findViewById<TextView>(R.id.lblTitle)
+            val edtTitle = dialogView.findViewById<EditText>(R.id.edtTitle)
+            val edtContent = dialogView.findViewById<EditText>(R.id.edtContent)
+            val btnPublish = dialogView.findViewById<Button>(R.id.btnPublish)
+            val btnCancel = dialogView.findViewById<Button>(R.id.btnCancel)
 
-            val layout = android.widget.LinearLayout(this@DiscussionActivity)
-            layout.orientation = android.widget.LinearLayout.VERTICAL
-            layout.setPadding(50, 40, 50, 10)
-
-            val edtTitle = EditText(this@DiscussionActivity)
-            if (isForum) {
-                edtTitle.hint = "Título do Tópico"
-                layout.addView(edtTitle)
+            txtDialogTitle.text = if (isForum) "Novo Tópico" else "Publicar no Mural"
+            
+            if (!isForum) {
+                lblTitle.visibility = View.GONE
+                edtTitle.visibility = View.GONE
             }
 
-            val edtContent = EditText(this@DiscussionActivity)
-            edtContent.hint = if (isForum) "Conteúdo da publicação" else "O que você está pensando? (máx 2000)"
-            edtContent.minLines = 3
-            layout.addView(edtContent)
+            val dialog = AlertDialog.Builder(this@DiscussionActivity, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+                .setView(dialogView)
+                .create()
 
-            builder.setView(layout)
-
-            builder.setPositiveButton("Publicar") { _, _ ->
+            btnPublish.setOnClickListener {
                 val titleInput = edtTitle.text.toString().trim()
                 val content = edtContent.text.toString().trim()
 
                 if (isForum && titleInput.isEmpty()) {
                     Toast.makeText(this@DiscussionActivity, "Digite um título", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                    return@setOnClickListener
                 }
 
                 if (content.isEmpty()) {
                     Toast.makeText(this@DiscussionActivity, "Escreva algo para publicar", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                    return@setOnClickListener
                 }
 
                 if (content.length > 2000) {
                     Toast.makeText(this@DiscussionActivity, "Texto muito longo", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                    return@setOnClickListener
                 }
 
-                // Se for fórum, usa o título digitado. Se for mural, gera automático para compatibilidade.
                 val title = if (isForum) titleInput else {
                     if (content.length > 50) content.take(47) + "..." else content
                 }
 
                 salvarNovoTopico(title, content, profile)
+                dialog.dismiss()
             }
 
-            builder.setNegativeButton("Cancelar", null)
-            builder.show()
+            btnCancel.setOnClickListener {
+                dialog.dismiss()
+            }
+
+            dialog.show()
         }
     }
 

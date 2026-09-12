@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="#1E1E1E">
+
+    <TextView
+        android:id="@+id/txtOvertimeHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Hora Extra #1"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#74C6E0"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- PAINEL INTERNO DE STATUS -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#292929"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="⏳ Duração"
+                android:textColor="#D0D6DD"/>
+            <TextView
+                android:id="@+id/txtOvertimeDuration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0h"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="⚡ Energia"
+                android:textColor="#D0D6DD"/>
+            <TextView
+                android:id="@+id/txtOvertimeEnergy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-0"
+                android:textColor="#FF8A80"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="🧠 Cansaço Mental"
+                android:textColor="#D0D6DD"/>
+            <TextView
+                android:id="@+id/txtOvertimeMental"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+0"
+                android:textColor="#B39DDB"
+                android:textStyle="bold"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="💰 Ganho Estimado"
+                android:textColor="#D0D6DD"/>
+            <TextView
+                android:id="@+id/txtOvertimeReward"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 Frons"
+                android:textColor="#74C6E0"
+                android:textStyle="bold"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"
+        android:layout_marginBottom="12dp"/>
+
+    <TextView
+        android:id="@+id/txtOvertimeEndTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🏁 Término: 00:00"
+        android:textColor="#FFFFFF"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/txtOvertimeAdsCount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📺 Requisito: 0 anúncios"
+        android:textColor="#D0D6DD"
+        android:textSize="12sp"
+        android:gravity="center"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="⚠️ Não concede XP."
+        android:textColor="#FF8A80"
+        android:textSize="11sp"
+        android:gravity="center"
+        android:layout_marginTop="12dp"/>
+
+</LinearLayout>

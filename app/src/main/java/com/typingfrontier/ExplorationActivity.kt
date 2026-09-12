@@ -134,7 +134,7 @@ class ExplorationActivity : AppCompatActivity() {
         
         txtDescricao.text = "Você chegou ao ${zona.nome}.\n\n$temaProfissao\n\nO que deseja fazer?"
         txtResultado.text = "Risco Inicial: ${zona.riscoBase}%"
-        txtResultado.setTextColor(android.graphics.Color.GRAY)
+        txtResultado.setTextColor(android.graphics.Color.parseColor("#889099"))
 
         btnIrMaisFundo.text = "COMEÇAR BUSCA"
         btnIrMaisFundo.visibility = View.VISIBLE
@@ -207,7 +207,7 @@ class ExplorationActivity : AppCompatActivity() {
             txtDescricao.text = "✅ $acaoProfissao"
             txtResultado.text = spannable
             txtResultado.setCompoundDrawables(null, null, null, null) // Limpa o ícone antigo se houver
-            txtResultado.setTextColor(android.graphics.Color.GREEN)
+            txtResultado.setTextColor(android.graphics.Color.parseColor("#81C784"))
             
             if (etapaAtual == 5) {
                 btnIrMaisFundo.text = "FINALIZAR EXPLORAÇÃO"
@@ -217,7 +217,7 @@ class ExplorationActivity : AppCompatActivity() {
             val msgHospital = ExplorationManager.processarFalhaCritica(p)
             txtDescricao.text = "❌ VOCÊ FOI DERROTADO!\n$msgHospital"
             txtResultado.text = "Você perdeu tudo o que coletou nesta zona."
-            txtResultado.setTextColor(android.graphics.Color.RED)
+            txtResultado.setTextColor(android.graphics.Color.parseColor("#FF8A80"))
             
             btnIrMaisFundo.visibility = View.GONE
             btnSairLoot.visibility = View.GONE

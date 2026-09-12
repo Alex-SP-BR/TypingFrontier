@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="0dp">
+    android:padding="0dp"
+    android:background="@drawable/bg_admin_dialog">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -12,7 +13,7 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="16dp"
-        android:background="#F5F5F5">
+        android:background="#33000000">
 
         <TextView
             android:id="@+id/txtDialogTitle"
@@ -22,7 +23,11 @@
             android:text="Análise de Denúncia"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="#333333"/>
+            android:textColor="#FFFFFF"
+            android:shadowColor="#000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2"/>
 
         <ImageButton
             android:id="@+id/btnHelpGeneral"
@@ -30,7 +35,7 @@
             android:layout_height="36dp"
             android:src="@android:drawable/ic_menu_help"
             android:background="?attr/selectableItemBackgroundBorderless"
-            app:tint="#1976D2"
+            app:tint="#74C6E0"
             android:contentDescription="Ajuda"/>
     </LinearLayout>
 
@@ -51,7 +56,7 @@
                 android:text="DENÚNCIA"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:textColor="#757575"/>
+                android:textColor="#74C6E0"/>
 
             <TextView
                 android:id="@+id/txtReportMeta"
@@ -59,7 +64,7 @@
                 android:layout_height="wrap_content"
                 android:text="..."
                 android:textSize="14sp"
-                android:textColor="#333333"
+                android:textColor="#FFFFFF"
                 android:layout_marginBottom="12dp"/>
 
             <TextView
@@ -68,7 +73,7 @@
                 android:text="DENUNCIANTE"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:textColor="#757575"/>
+                android:textColor="#74C6E0"/>
 
             <TextView
                 android:id="@+id/txtReporterInfo"
@@ -76,7 +81,7 @@
                 android:layout_height="wrap_content"
                 android:text="..."
                 android:textSize="14sp"
-                android:textColor="#333333"
+                android:textColor="#FFFFFF"
                 android:layout_marginBottom="12dp"/>
 
             <TextView
@@ -85,7 +90,7 @@
                 android:text="AUTOR DO CONTEÚDO"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:textColor="#757575"/>
+                android:textColor="#74C6E0"/>
 
             <TextView
                 android:id="@+id/txtAuthorDetails"
@@ -93,7 +98,7 @@
                 android:layout_height="wrap_content"
                 android:text="..."
                 android:textSize="14sp"
-                android:textColor="#333333"
+                android:textColor="#FFFFFF"
                 android:layout_marginBottom="12dp"/>
 
             <TextView
@@ -102,7 +107,7 @@
                 android:text="PUBLICAÇÃO"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:textColor="#757575"/>
+                android:textColor="#74C6E0"/>
 
             <TextView
                 android:id="@+id/txtContentDetails"
@@ -110,15 +115,15 @@
                 android:layout_height="wrap_content"
                 android:text="..."
                 android:textSize="14sp"
-                android:textColor="#333333"
+                android:textColor="#FFFFFF"
                 android:layout_marginBottom="16dp"
-                android:background="#F9F9F9"
-                android:padding="8dp"/>
+                android:background="#33000000"
+                android:padding="12dp"/>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#DDDDDD"
+                android:background="#33FFFFFF"
                 android:layout_marginBottom="16dp"/>
 
             <!-- Action Rows -->
@@ -128,7 +133,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="12dp"
                 android:visibility="gone">
                 <Button
                     android:id="@+id/btnExcluirConteudo"
@@ -136,15 +141,16 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="EXCLUIR CONTEÚDO"
-                    android:backgroundTint="#D32F2F"
-                    android:textColor="#FFFFFF"/>
+                    android:backgroundTint="#B71C1C"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"/>
                 <ImageButton
                     android:id="@+id/btnHelpExcluir"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:src="@android:drawable/ic_menu_help"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="#D32F2F"/>
+                    app:tint="#B71C1C"/>
             </LinearLayout>
 
             <LinearLayout
@@ -153,21 +159,24 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="12dp">
                 <Button
                     android:id="@+id/btnResolverSemExcluir"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="RESOLVER SEM EXCLUIR"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                    android:backgroundTint="@null"
+                    android:background="@drawable/bg_game_button_primary"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"/>
                 <ImageButton
                     android:id="@+id/btnHelpResolver"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:src="@android:drawable/ic_menu_help"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="#1976D2"/>
+                    app:tint="#74C6E0"/>
             </LinearLayout>
 
             <LinearLayout
@@ -176,21 +185,24 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="12dp">
                 <Button
                     android:id="@+id/btnDescartarDenuncia"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="DESCARTAR DENÚNCIA"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                    android:backgroundTint="@null"
+                    android:background="@drawable/bg_game_button_primary"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"/>
                 <ImageButton
                     android:id="@+id/btnHelpDescartar"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:src="@android:drawable/ic_menu_help"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="#1976D2"/>
+                    app:tint="#74C6E0"/>
             </LinearLayout>
 
             <LinearLayout
@@ -199,7 +211,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="12dp"
                 android:visibility="gone">
                 <Button
                     android:id="@+id/btnBanirAutor"
@@ -207,15 +219,17 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="BANIR AUTOR"
-                    android:backgroundTint="#212121"
-                    android:textColor="#FFFFFF"/>
+                    android:backgroundTint="@null"
+                    android:background="@drawable/bg_game_button_secondary"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"/>
                 <ImageButton
                     android:id="@+id/btnHelpBanir"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:src="@android:drawable/ic_menu_help"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="#212121"/>
+                    app:tint="#889099"/>
             </LinearLayout>
 
             <TextView

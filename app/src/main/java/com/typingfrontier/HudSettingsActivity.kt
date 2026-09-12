@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.typingfrontier.HudSettingsManager.HudCategory
 
@@ -12,6 +13,11 @@ class HudSettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Ajuste da Barra de Status para o tema escuro
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
+
         setContentView(R.layout.activity_hud_settings)
 
         setupCategory(R.id.settingExploreXp, HudCategory.EXPLORE, "Nível e XP", "xp")

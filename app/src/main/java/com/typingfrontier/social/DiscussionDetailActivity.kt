@@ -56,6 +56,7 @@ class DiscussionDetailActivity : AppCompatActivity() {
             }
         }
 
+        configurarBackground(category)
         binding.txtDetailContent.text = content
 
         val currentDiscussion = Discussion(
@@ -80,6 +81,17 @@ class DiscussionDetailActivity : AppCompatActivity() {
         configurarRecycler()
         configurarBotoes()
         carregarRespostas()
+    }
+
+    private fun configurarBackground(category: String) {
+        if (category == "general") {
+            binding.imgDetailBg.setImageResource(com.typingfrontier.R.drawable.bg_forum)
+            binding.viewDetailOverlay.visibility = View.GONE
+        } else {
+            binding.imgDetailBg.setImageResource(com.typingfrontier.R.drawable.bg_ranking)
+            binding.viewDetailOverlay.visibility = View.VISIBLE
+            binding.viewDetailOverlay.setBackgroundColor(android.graphics.Color.parseColor("#4D000000"))
+        }
     }
 
     private fun configurarRecycler() {

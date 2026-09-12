@@ -233,7 +233,7 @@ class RoleManagementActivity : AppCompatActivity() {
             }
         }
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
             .setTitle("Gerenciar Role: @${user.username}")
             .setItems(options.toTypedArray()) { _, which ->
                 confirmarAlteracao(user, roles[which], options[which])
@@ -243,7 +243,7 @@ class RoleManagementActivity : AppCompatActivity() {
     }
 
     private fun confirmarAlteracao(user: SocialProfile, newRole: String, message: String) {
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
             .setTitle("Confirmar Alteração")
             .setMessage("${message} para @${user.username}?")
             .setPositiveButton("Confirmar") { _, _ ->

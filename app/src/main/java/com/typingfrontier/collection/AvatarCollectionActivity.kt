@@ -51,7 +51,7 @@ class AvatarCollectionActivity : AppCompatActivity() {
     }
 
     private fun mostrarAjudaAvatares() {
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_MentalDialog)
             .setTitle("Como funcionam os Avatares?")
             .setMessage("• Avatar Original: Visual padrão sempre disponível.\n" +
                         "• Desbloqueio: Alcance o nível necessário e complete os anúncios solicitados.\n" +
@@ -62,6 +62,12 @@ class AvatarCollectionActivity : AppCompatActivity() {
                         "IMPORTANTE: Tocar na imagem apenas amplia. Para equipar, use o botão EQUIPAR.")
             .setPositiveButton("Entendi", null)
             .show()
+        
+        // Ajusta opacidade no background do diálogo
+        val color = android.graphics.Color.parseColor("#FB121212")
+        dialog.window?.findViewById<android.view.View>(androidx.appcompat.R.id.parentPanel)?.let { panel ->
+            panel.backgroundTintList = android.content.res.ColorStateList.valueOf(color)
+        }
     }
 
     private fun setupRecyclerView() {

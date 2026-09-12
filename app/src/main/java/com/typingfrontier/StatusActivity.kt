@@ -88,7 +88,7 @@ class StatusActivity : AppCompatActivity() {
             val txtVazia = TextView(this).apply {
                 text = "Mochila vazia"
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f)
-                setTextColor(android.graphics.Color.LTGRAY)
+                setTextColor(android.graphics.Color.parseColor("#889099"))
                 setPadding(12, 0, 12, 12)
             }
             layout.addView(txtVazia)
@@ -121,7 +121,7 @@ class StatusActivity : AppCompatActivity() {
                 val nome = equip?.nome ?: "Item Desconhecido ($itemId)"
                 text = if (qtd > 1) "$nome ×$qtd" else nome
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
-                setTextColor(android.graphics.Color.parseColor("#444444"))
+                setTextColor(android.graphics.Color.parseColor("#FFFFFF"))
             }
 
             itemLayout.addView(txtNome)
@@ -130,7 +130,7 @@ class StatusActivity : AppCompatActivity() {
                 val txtBonus = TextView(this).apply {
                     text = "+${equip.bonus} ${equip.atributoAlvo}"
                     setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
-                    setTextColor(android.graphics.Color.parseColor("#2E7D32"))
+                    setTextColor(android.graphics.Color.parseColor("#74C6E0"))
                 }
                 itemLayout.addView(txtBonus)
             }
@@ -140,7 +140,7 @@ class StatusActivity : AppCompatActivity() {
             // Divider
             val divider = android.view.View(this).apply {
                 layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * resources.displayMetrics.density).toInt())
-                setBackgroundColor(android.graphics.Color.parseColor("#F0F0F0"))
+                setBackgroundColor(android.graphics.Color.parseColor("#33FFFFFF"))
             }
             layout.addView(divider)
         }
@@ -173,14 +173,14 @@ class StatusActivity : AppCompatActivity() {
             val txtSlot = TextView(this).apply {
                 text = slotName
                 textSize = 10f
-                setTextColor(android.graphics.Color.GRAY)
+                setTextColor(android.graphics.Color.parseColor("#889099"))
                 setTypeface(null, android.graphics.Typeface.BOLD)
             }
 
             val txtItem = TextView(this).apply {
                 text = if (equip != null) equip.nome else "—"
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
-                setTextColor(if (equip != null) android.graphics.Color.parseColor("#333333") else android.graphics.Color.LTGRAY)
+                setTextColor(if (equip != null) android.graphics.Color.parseColor("#FFFFFF") else android.graphics.Color.parseColor("#889099"))
             }
 
             slotView.addView(txtSlot)
@@ -190,7 +190,7 @@ class StatusActivity : AppCompatActivity() {
                 val txtBonus = TextView(this).apply {
                     text = "+${equip.bonus} ${equip.atributoAlvo}"
                     setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
-                    setTextColor(android.graphics.Color.parseColor("#2E7D32"))
+                    setTextColor(android.graphics.Color.parseColor("#74C6E0"))
                 }
                 slotView.addView(txtBonus)
             }
@@ -200,7 +200,7 @@ class StatusActivity : AppCompatActivity() {
             // Divider
             val divider = android.view.View(this).apply {
                 layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (1 * resources.displayMetrics.density).toInt())
-                setBackgroundColor(android.graphics.Color.parseColor("#EEEEEE"))
+                setBackgroundColor(android.graphics.Color.parseColor("#33FFFFFF"))
             }
             layout.addView(divider)
         }

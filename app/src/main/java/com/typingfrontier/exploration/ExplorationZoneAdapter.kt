@@ -19,7 +19,7 @@ class ExplorationZoneAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_loja, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_exploration_zone, parent, false)
         return ViewHolder(view)
     }
 
@@ -40,7 +40,7 @@ class ExplorationZoneAdapter(
         } else {
             holder.txtDesc.text = "${zona.descricao}\nFoco: ${zona.atributoFoco} | Risco: ${zona.riscoBase}%"
             holder.txtNivel.text = "Nível Requerido: ${zona.nivelMinimo}"
-            holder.txtNivel.setTextColor(android.graphics.Color.parseColor("#FFD600"))
+            holder.txtNivel.setTextColor(android.graphics.Color.parseColor("#74C6E0"))
             holder.itemView.alpha = 1.0f
             imgItem.setImageResource(android.R.drawable.ic_menu_agenda)
             imgItem.imageTintList = null

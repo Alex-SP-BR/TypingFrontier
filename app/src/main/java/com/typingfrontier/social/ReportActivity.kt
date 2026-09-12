@@ -268,7 +268,7 @@ class ReportActivity : AppCompatActivity() {
                     return
                 }
 
-                AlertDialog.Builder(this)
+                val dialog = AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
                     .setTitle("Nova Denúncia")
                     .setMessage("Deseja assumir a análise desta denúncia?")
                     .setPositiveButton("Analisar") { _, _ -> assumirDenuncia(report.id) }
@@ -360,7 +360,7 @@ class ReportActivity : AppCompatActivity() {
         btnHelpDescartar.setOnClickListener { mostrarAjudaAcao("DESCARTAR DENÚNCIA", "A denúncia é considerada improcedente. O conteúdo permanece e nenhuma ação é tomada contra o autor.") }
         btnHelpBanir.setOnClickListener { mostrarAjudaAcao("BANIR AUTOR", "Aplica uma punição social ao autor (suspensão temporária ou permanente). O conteúdo NÃO é excluído automaticamente; você deve usar 'EXCLUIR CONTEÚDO' se desejar removê-lo.") }
 
-        val builder = AlertDialog.Builder(this)
+        val builder = AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
         builder.setView(dialogView)
 
         if (isReadOnly) {
@@ -383,7 +383,7 @@ class ReportActivity : AppCompatActivity() {
             if (contentExists && canModerate) {
                 layoutActionDelete.visibility = View.VISIBLE
                 btnDelete.setOnClickListener {
-                    AlertDialog.Builder(this)
+                    AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
                         .setTitle("Confirmar Exclusão")
                         .setMessage("Deseja realmente excluir este conteúdo definitivamente?")
                         .setPositiveButton("Excluir") { _, _ -> 
@@ -431,7 +431,7 @@ class ReportActivity : AppCompatActivity() {
     }
 
     private fun mostrarAjudaGeral() {
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
             .setTitle("COMO FUNCIONA A MODERAÇÃO?")
             .setMessage("Uma denúncia é apenas uma solicitação de análise feita por um jogador. Ela NÃO significa automaticamente que o conteúdo é culpado ou que o autor será punido.\n\n" +
                     "ESTADOS:\n" +
@@ -449,7 +449,7 @@ class ReportActivity : AppCompatActivity() {
     }
 
     private fun mostrarAjudaAcao(titulo: String, mensagem: String) {
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
             .setTitle(titulo)
             .setMessage(titulo + ":\n\n" + mensagem)
             .setPositiveButton("OK", null)
@@ -485,7 +485,7 @@ class ReportActivity : AppCompatActivity() {
         layoutUserInfo.visibility = View.VISIBLE
         layoutBanAction.visibility = View.VISIBLE
 
-        val banDialog = AlertDialog.Builder(this)
+        val banDialog = AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
             .setTitle("Banir Autor")
             .setView(dialogView)
             .setNegativeButton("Cancelar", null)
@@ -499,7 +499,7 @@ class ReportActivity : AppCompatActivity() {
             }
             val durationIndex = spinnerDuration.selectedItemPosition
             
-            AlertDialog.Builder(this)
+            AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
                 .setTitle("Confirmar")
                 .setMessage("Banir @$username por ${options[durationIndex]}?")
                 .setPositiveButton("Confirmar") { _, _ ->

@@ -6,8 +6,11 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="8dp"
     android:layout_marginVertical="4dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp">
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="#CC081223"
+    app:strokeColor="#59FFFFFF"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,13 +21,17 @@
 
         <TextView
             android:id="@+id/txtPosicao"
-            android:layout_width="40dp"
+            android:layout_width="45dp"
             android:layout_height="wrap_content"
             android:text="1º"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="#1976D2"
-            android:gravity="center"/>
+            android:textColor="#E0E8F0"
+            android:gravity="center"
+            android:shadowColor="#000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2"/>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -40,7 +47,11 @@
                 android:text="username"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="#333333"/>
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="2"/>
 
             <TextView
                 android:id="@+id/txtCharacterName"
@@ -48,7 +59,11 @@
                 android:layout_height="wrap_content"
                 android:text="Nome do Personagem"
                 android:textSize="12sp"
-                android:textColor="#666666"/>
+                android:textColor="#D0D6DD"
+                android:shadowColor="#000000"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="2"/>
         </LinearLayout>
 
         <TextView
@@ -58,7 +73,11 @@
             android:text="999"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="#333333"/>
+            android:textColor="#E0E8F0"
+            android:shadowColor="#000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2"/>
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

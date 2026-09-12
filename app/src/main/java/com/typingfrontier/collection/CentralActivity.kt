@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import com.typingfrontier.databinding.ActivityCentralBinding
 import com.typingfrontier.social.SocialProfileRepository
 import com.typingfrontier.social.AdminActivity
@@ -15,6 +16,11 @@ class CentralActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Ajuste da Barra de Status para o tema escuro
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
+
         binding = ActivityCentralBinding.inflate(layoutInflater)
         setContentView(binding.root)
 

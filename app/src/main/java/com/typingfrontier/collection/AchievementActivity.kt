@@ -26,7 +26,7 @@ class AchievementActivity : AppCompatActivity() {
     }
 
     private fun mostrarAjudaConquistas() {
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_MentalDialog)
             .setTitle("Como funcionam as Conquistas?")
             .setMessage("• Marcos: Conquistas celebram sua evolução no jogo.\n" +
                         "• Automático: Ao cumprir o objetivo, a conquista é desbloqueada instantaneamente.\n" +
@@ -37,6 +37,12 @@ class AchievementActivity : AppCompatActivity() {
                         "IMPORTANTE: Visualizar uma insígnia não altera seu progresso.")
             .setPositiveButton("Entendi", null)
             .show()
+
+        // Ajusta opacidade no background do diálogo
+        val color = android.graphics.Color.parseColor("#FB121212")
+        dialog.window?.findViewById<android.view.View>(androidx.appcompat.R.id.parentPanel)?.let { panel ->
+            panel.backgroundTintList = android.content.res.ColorStateList.valueOf(color)
+        }
     }
 
     private fun setupRecyclerView() {

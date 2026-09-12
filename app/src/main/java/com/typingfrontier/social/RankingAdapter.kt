@@ -43,19 +43,25 @@ class RankingAdapter(
 
         // Destaque para o jogador atual
         if (profile.id == currentUserId) {
-            binding.cardContainer.setCardBackgroundColor(Color.parseColor("#E3F2FD"))
-            binding.txtUsername.setTextColor(Color.parseColor("#1976D2"))
+            binding.cardContainer.setCardBackgroundColor(Color.parseColor("#CC1E4F66"))
+            binding.cardContainer.strokeColor = Color.parseColor("#74C6E0")
+            binding.txtUsername.setTextColor(Color.parseColor("#74C6E0"))
         } else {
-            binding.cardContainer.setCardBackgroundColor(Color.WHITE)
-            binding.txtUsername.setTextColor(Color.parseColor("#333333"))
+            binding.cardContainer.setCardBackgroundColor(Color.parseColor("#CC081223"))
+            binding.cardContainer.strokeColor = Color.parseColor("#59FFFFFF")
+            binding.txtUsername.setTextColor(Color.WHITE)
         }
 
         // Destaque para o podium
         when (rank) {
-            1 -> binding.txtPosicao.setTextColor(Color.parseColor("#FFD700")) // Ouro
-            2 -> binding.txtPosicao.setTextColor(Color.parseColor("#C0C0C0")) // Prata
-            3 -> binding.txtPosicao.setTextColor(Color.parseColor("#CD7F32")) // Bronze
-            else -> binding.txtPosicao.setTextColor(Color.parseColor("#1976D2"))
+            1 -> {
+                binding.txtPosicao.setTextColor(Color.parseColor("#FFD700")) // Ouro
+                if (profile.id != currentUserId) binding.cardContainer.strokeColor = Color.parseColor("#80FFD700")
+            }
+            2 -> binding.txtPosicao.setTextColor(Color.parseColor("#E8E8E8")) // Prata
+            3 -> binding.txtPosicao.setTextColor(Color.parseColor("#E09850")) // Bronze
+            in 4..10 -> binding.txtPosicao.setTextColor(Color.parseColor("#80E0FF")) // Ciano
+            else -> binding.txtPosicao.setTextColor(Color.parseColor("#E0E8F0"))
         }
 
         holder.itemView.setOnClickListener {

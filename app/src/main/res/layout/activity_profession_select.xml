@@ -1,77 +1,282 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#FFFFFF">
+    android:layout_height="match_parent">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <ImageView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_game_main"
+        android:contentDescription="@null" />
 
-        <TextView
-            android:id="@+id/titulo"
-            android:layout_width="wrap_content"
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="60dp"
-            android:text="Escolha sua Profissão"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:gravity="center_horizontal">
 
-        <Button
-            android:id="@+id/btnPolicial"
-            android:layout_width="120dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="80dp"
-            android:layout_marginTop="32dp"
-            android:text="Policial"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/titulo" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Escolha sua Profissão"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="4"
+                android:layout_marginTop="32dp"
+                android:layout_marginBottom="24dp"/>
 
-        <Button
-            android:id="@+id/btnMedico"
-            android:layout_width="120dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="240dp"
-            android:layout_marginTop="4dp"
-            android:text="Médico"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btnPolicial" />
+            <!-- POLICIAL -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#CC121212"
+                app:strokeColor="#33FFFFFF"
+                app:strokeWidth="1dp">
 
-        <Button
-            android:id="@+id/btnEngenheiro"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="80dp"
-            android:layout_marginTop="24dp"
-            android:text="Engenheiro"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btnMedico" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-        <Button
-            android:id="@+id/btnProfessor"
-            android:layout_width="121dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="240dp"
-            android:layout_marginTop="36dp"
-            android:text="Professor"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btnEngenheiro" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="POLICIAL"
+                        android:textColor="#00BCD4"
+                        android:textStyle="bold"
+                        android:textSize="18sp"/>
 
-        <Button
-            android:id="@+id/btnDetetive"
-            android:layout_width="121dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="80dp"
-            android:layout_marginTop="20dp"
-            android:text="Detetive"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btnProfessor" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ganha mais Vida ao evoluir. Especialista em exploração e combate. Bônus: Força e Resistência."
+                        android:textColor="#D0D6DD"
+                        android:textSize="14sp"
+                        android:layout_marginTop="4dp"/>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+                    <Button
+                        android:id="@+id/btnPolicial"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Selecionar"
+                        android:layout_marginTop="8dp"
+                        android:layout_gravity="end"
+                        android:backgroundTint="@null"
+                        android:background="@drawable/bg_game_button_primary"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-</ScrollView>
+            <!-- MÉDICO -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#CC121212"
+                app:strokeColor="#33FFFFFF"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="MÉDICO"
+                        android:textColor="#4CAF50"
+                        android:textStyle="bold"
+                        android:textSize="18sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ganha 20% mais XP em exploração. Especialista em regeneração. Bônus: Inteligência."
+                        android:textColor="#D0D6DD"
+                        android:textSize="14sp"
+                        android:layout_marginTop="4dp"/>
+
+                    <Button
+                        android:id="@+id/btnMedico"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Selecionar"
+                        android:layout_marginTop="8dp"
+                        android:layout_gravity="end"
+                        android:backgroundTint="@null"
+                        android:background="@drawable/bg_game_button_primary"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ENGENHEIRO -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#CC121212"
+                app:strokeColor="#33FFFFFF"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ENGENHEIRO"
+                        android:textColor="#FF9800"
+                        android:textStyle="bold"
+                        android:textSize="18sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ganha mais Energia ao descansar. Especialista em recursos. Bônus: Inteligência e Resistência."
+                        android:textColor="#D0D6DD"
+                        android:textSize="14sp"
+                        android:layout_marginTop="4dp"/>
+
+                    <Button
+                        android:id="@+id/btnEngenheiro"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Selecionar"
+                        android:layout_marginTop="8dp"
+                        android:layout_gravity="end"
+                        android:backgroundTint="@null"
+                        android:background="@drawable/bg_game_button_primary"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- PROFESSOR -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#CC121212"
+                app:strokeColor="#33FFFFFF"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PROFESSOR"
+                        android:textColor="#9C27B0"
+                        android:textStyle="bold"
+                        android:textSize="18sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ganha 30% mais dinheiro em negociações. Especialista em Carisma. Bônus: Carisma."
+                        android:textColor="#D0D6DD"
+                        android:textSize="14sp"
+                        android:layout_marginTop="4dp"/>
+
+                    <Button
+                        android:id="@+id/btnProfessor"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Selecionar"
+                        android:layout_marginTop="8dp"
+                        android:layout_gravity="end"
+                        android:backgroundTint="@null"
+                        android:background="@drawable/bg_game_button_primary"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- DETETIVE -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#CC121212"
+                app:strokeColor="#33FFFFFF"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="DETETIVE"
+                        android:textColor="#673AB7"
+                        android:textStyle="bold"
+                        android:textSize="18sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Especialista em investigação e pistas. Foco em Velocidade e Inteligência. Bônus: Velocidade."
+                        android:textColor="#D0D6DD"
+                        android:textSize="14sp"
+                        android:layout_marginTop="4dp"/>
+
+                    <Button
+                        android:id="@+id/btnDetetive"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Selecionar"
+                        android:layout_marginTop="8dp"
+                        android:layout_gravity="end"
+                        android:backgroundTint="@null"
+                        android:background="@drawable/bg_game_button_primary"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

@@ -28,18 +28,21 @@ class DiscussionAdapter(
             // Modo Fórum Tradicional
             binding.txtDiscussionTitle.text = discussion.title
             binding.txtDiscussionContent.text = if (discussion.content.length > 120) discussion.content.take(117) + "..." else discussion.content
-            binding.txtDiscussionMeta.text = "@${discussion.authorUsername} · Nível ${discussion.authorLevel} · ${discussion.createdAt?.take(10) ?: ""}"
+            
+            binding.txtAuthorName.text = "@${discussion.authorUsername}"
+            binding.txtDiscussionMeta.text = " · Nível ${discussion.authorLevel} · ${discussion.createdAt?.take(10) ?: ""}"
             
             // Clique no autor
-            binding.txtDiscussionMeta.setOnClickListener { onAuthorClick(discussion.authorId) }
+            binding.txtAuthorName.setOnClickListener { onAuthorClick(discussion.authorId) }
         } else {
             // Modo Mural Social
-            binding.txtDiscussionTitle.text = "@${discussion.authorUsername} · Nível ${discussion.authorLevel}"
+            binding.txtAuthorName.text = "@${discussion.authorUsername}"
+            binding.txtDiscussionTitle.text = " · Nível ${discussion.authorLevel}"
             binding.txtDiscussionContent.text = discussion.content
             binding.txtDiscussionMeta.text = discussion.createdAt?.take(10) ?: ""
             
             // Clique no autor
-            binding.txtDiscussionTitle.setOnClickListener { onAuthorClick(discussion.authorId) }
+            binding.txtAuthorName.setOnClickListener { onAuthorClick(discussion.authorId) }
         }
 
         binding.txtReplyCount.text = "💬 ${discussion.replyCount} respostas"

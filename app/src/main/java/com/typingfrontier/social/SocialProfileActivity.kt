@@ -130,39 +130,45 @@ class SocialProfileActivity : AppCompatActivity() {
     }
 
     private fun mostrarDialogRegistroSocial() {
-        val builder = androidx.appcompat.app.AlertDialog.Builder(this)
-        builder.setTitle("Registrar Nome Social")
+        // Refatoração para garantir acesso ao EditText com tema escuro
+        val input = android.widget.EditText(this).apply {
+            hint = "Escolha seu username social"
+            setTextColor(android.graphics.Color.WHITE)
+            setHintTextColor(android.graphics.Color.parseColor("#D0D6DD"))
+        }
         
-        val input = android.widget.EditText(this)
-        input.hint = "Escolha seu username social"
-        builder.setView(input)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_MentalDialog)
+            .setTitle("Registrar Nome Social")
+            .setView(input)
+            .setPositiveButton("Registrar") { _, _ ->
+                val username = input.text.toString().trim()
+                if (username.isEmpty()) return@setPositiveButton
+                
+                scope.launch {
+                    try {
+                        val disponivel = SocialProfileRepository.isUsernameAvailable(username)
+                        if (!disponivel) {
+                            Toast.makeText(this@SocialProfileActivity, "Username ocupado.", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
 
-        builder.setPositiveButton("Registrar") { _, _ ->
-            val username = input.text.toString().trim()
-            if (username.isEmpty()) return@setPositiveButton
-            
-            scope.launch {
-                try {
-                    val disponivel = SocialProfileRepository.isUsernameAvailable(username)
-                    if (!disponivel) {
-                        Toast.makeText(this@SocialProfileActivity, "Username ocupado.", Toast.LENGTH_SHORT).show()
-                        return@launch
+                        val ok = SocialProfileRepository.createSocialProfile(username, PlayerManager.player.nome)
+                        if (ok) {
+                            Toast.makeText(this@SocialProfileActivity, "Registrado!", Toast.LENGTH_SHORT).show()
+                            carregarDados()
+                        } else {
+                            Toast.makeText(this@SocialProfileActivity, "Erro ao registrar.", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(this@SocialProfileActivity, "Sem internet.", Toast.LENGTH_SHORT).show()
                     }
-
-                    val ok = SocialProfileRepository.createSocialProfile(username, PlayerManager.player.nome)
-                    if (ok) {
-                        Toast.makeText(this@SocialProfileActivity, "Registrado!", Toast.LENGTH_SHORT).show()
-                        carregarDados()
-                    } else {
-                        Toast.makeText(this@SocialProfileActivity, "Erro ao registrar.", Toast.LENGTH_SHORT).show()
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(this@SocialProfileActivity, "Sem internet.", Toast.LENGTH_SHORT).show()
                 }
             }
-        }
-        builder.setNegativeButton("Depois", null)
-        builder.show()
+            .setNegativeButton("Depois", null)
+            .show()
+
+        dialog.window?.findViewById<android.view.View>(androidx.appcompat.R.id.parentPanel)?.backgroundTintList =
+            android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#1E1E1E"))
     }
 
     private fun exibirPerfil(profile: SocialProfile) {
@@ -235,9 +241,13 @@ class ProfileBadgeAdapter(private val list: List<com.typingfrontier.collection.A
 
     override fun onBindViewHolder(holder: BadgeViewHolder, position: Int) {
         val ach = list[position]
-        holder.img.setImageResource(ach.insigniaRes)
+        
+        // Aplica o mecanismo de silhueta com contorno branco de 5dp (Padronizado para Perfil Social)
+        val context = holder.img.context
+        holder.img.setImageDrawable(ViewUtils.getInsigniaWithSilhouette(context, ach.insigniaRes, true, 5f))
+        
         holder.img.setOnClickListener {
-            ViewUtils.showZoomDialog(holder.img.context, ach.insigniaRes, ach.nome, ach.descricao)
+            ViewUtils.showZoomDialog(context, ach.insigniaRes, ach.nome, ach.descricao, applySilhouette = true, silhouetteThicknessDp = 5f)
         }
     }
 

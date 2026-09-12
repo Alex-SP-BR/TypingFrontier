@@ -1,6 +1,6 @@
 package com.typingfrontier
 
-import android.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.os.Bundle
@@ -113,7 +113,7 @@ class MentalTrainingActivity : AppCompatActivity() {
 
     private fun mostrarDialogoTreino() {
         val opcoes = arrayOf("Matemática (Inteligência)", "Português (Carisma)")
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this, R.style.Theme_TypingFrontier_MentalDialog)
             .setTitle("O que vamos treinar agora?")
             .setCancelable(false)
             .setItems(opcoes) { _, which ->
@@ -167,7 +167,7 @@ class MentalTrainingActivity : AppCompatActivity() {
             
             if (respostaDouble == null) {
                 // Entrada inválida (não numérica)
-                txtFeedback.setTextColor(android.graphics.Color.parseColor("#C62828"))
+                txtFeedback.setTextColor(android.graphics.Color.parseColor("#FF8A80"))
                 txtFeedback.text = "⚠️ Resposta inválida. Use apenas números."
                 return
             }
@@ -188,7 +188,7 @@ class MentalTrainingActivity : AppCompatActivity() {
         when (result) {
             is EngineResult.Success -> {
                 if (isCorrect) {
-                    txtFeedback.setTextColor(android.graphics.Color.parseColor("#2E7D32"))
+                    txtFeedback.setTextColor(android.graphics.Color.parseColor("#81C784"))
                     txtFeedback.text = "🏆 Correto! ${result.message}"
 
                     // RECOMPENSA EXTRA POR DIFICULDADE
@@ -209,7 +209,7 @@ class MentalTrainingActivity : AppCompatActivity() {
                         viewAlvo.animate().scaleY(1f).scaleX(1f).setDuration(100).start()
                     }.start()
                 } else {
-                    txtFeedback.setTextColor(android.graphics.Color.parseColor("#C62828"))
+                    txtFeedback.setTextColor(android.graphics.Color.parseColor("#FF8A80"))
                     
                     if (tipoTreinoAtual == TipoTreino.MATEMATICA) {
                         val questao = perguntaMatematicaAtual
@@ -244,7 +244,7 @@ class MentalTrainingActivity : AppCompatActivity() {
                 }
             }
             is EngineResult.Failure -> {
-                txtFeedback.setTextColor(android.graphics.Color.parseColor("#C62828"))
+                txtFeedback.setTextColor(android.graphics.Color.parseColor("#FF8A80"))
                 txtFeedback.text = "⚠️ ${result.message}"
                 btnResponder.isEnabled = false
             }

@@ -1,64 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#FFFFFF"
-    android:padding="24dp">
+    android:layout_height="match_parent">
 
-    <!-- Espaçador de segurança superior -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_gravity="top" />
-
-    <ScrollView
+    <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:scrollbars="none">
+        android:src="@drawable/bg_inicio"
+        android:scaleType="centerCrop"
+        android:contentDescription="@null" />
 
-        <LinearLayout
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#4D000000" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="24dp">
+
+        <!-- Espaçador de segurança superior -->
+        <View
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:layout_height="40dp"
+            android:layout_gravity="top" />
 
-            <ImageView
-                android:id="@+id/imgMainLogo"
-                android:layout_width="match_parent"
-                android:layout_height="250dp"
-                android:layout_marginBottom="32dp"
-                android:src="@drawable/app_icon_base"
-                android:scaleType="fitCenter" />
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:scrollbars="none">
 
-            <Button
-                android:id="@+id/btnStart"
-                android:layout_width="200dp"
-                android:layout_height="56dp"
-                android:text="Iniciar Jornada"
-                android:textAllCaps="false" />
-
-            <Button
-                android:id="@+id/btnSettings"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Configurações"
-                android:textAllCaps="false"
-                android:textColor="#666666" />
-
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
-                android:layout_marginBottom="8dp"
-                android:alpha="0.4"
                 android:gravity="center"
-                android:text="© Alex Cardoso Bento"
-                android:textColor="#333333"
-                android:textSize="11sp" />
-        </LinearLayout>
-    </ScrollView>
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/imgMainLogo"
+                    android:layout_width="match_parent"
+                    android:layout_height="250dp"
+                    android:layout_marginBottom="32dp"
+                    android:src="@drawable/app_icon_base"
+                    android:scaleType="fitCenter" />
+
+                <Button
+                    android:id="@+id/btnStart"
+                    android:layout_width="200dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_game_button_primary"
+                    android:backgroundTint="@null"
+                    android:text="Iniciar Jornada"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnSettings"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Configurações"
+                    android:textAllCaps="false"
+                    android:textColor="#D0D6DD" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:layout_marginBottom="8dp"
+                    android:alpha="0.4"
+                    android:gravity="center"
+                    android:text="© Alex Cardoso Bento"
+                    android:textColor="#D0D6DD"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </ScrollView>
+
+    </FrameLayout>
 
 </FrameLayout>

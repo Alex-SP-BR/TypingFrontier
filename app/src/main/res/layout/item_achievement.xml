@@ -5,6 +5,9 @@
     android:layout_height="wrap_content"
     app:cardCornerRadius="12dp"
     app:cardElevation="2dp"
+    app:cardBackgroundColor="#CC121212"
+    app:strokeColor="#33FFFFFF"
+    app:strokeWidth="1dp"
     android:layout_margin="6dp">
 
     <LinearLayout
@@ -20,7 +23,8 @@
             android:layout_height="64dp"
             android:src="@drawable/homem"
             android:scaleType="fitCenter"
-            android:layout_marginEnd="12dp"/>
+            android:layout_marginEnd="12dp"
+            android:padding="4dp"/>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -35,7 +39,7 @@
                 android:text="Nome da Conquista"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="#333333"/>
+                android:textColor="#FFFFFF"/>
 
             <TextView
                 android:id="@+id/txtDescricao"
@@ -43,7 +47,7 @@
                 android:layout_height="wrap_content"
                 android:text="Descrição curta da conquista aqui."
                 android:textSize="13sp"
-                android:textColor="#666666"
+                android:textColor="#D0D6DD"
                 android:layout_marginTop="2dp"/>
 
             <TextView
@@ -52,9 +56,9 @@
                 android:layout_height="wrap_content"
                 android:text="Requisito: Lvl 100"
                 android:textSize="11sp"
-                android:textColor="#999999"
+                android:textColor="#889099"
                 android:layout_marginTop="4dp"
-                android:textStyle="italic"/>
+                android:textStyle="bold"/>
 
             <LinearLayout
                 android:id="@+id/layoutRecompensa"
@@ -71,7 +75,8 @@
                     android:text="+1000 Frons"
                     android:textSize="12sp"
                     android:textStyle="bold"
-                    android:textColor="#4CAF50"/>
+                    android:textColor="#74C6E0"
+                    android:drawablePadding="4dp"/>
 
                 <TextView
                     android:id="@+id/txtAvatarBonus"
@@ -79,7 +84,7 @@
                     android:layout_height="wrap_content"
                     android:text=" | 👤 Avatar"
                     android:textSize="12sp"
-                    android:textColor="#1976D2"
+                    android:textColor="#0277BD"
                     android:visibility="gone"/>
             </LinearLayout>
         </LinearLayout>

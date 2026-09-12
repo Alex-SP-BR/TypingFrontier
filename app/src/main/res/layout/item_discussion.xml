@@ -6,7 +6,8 @@
     android:layout_marginHorizontal="8dp"
     android:layout_marginVertical="4dp"
     app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="#CC121212">
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -21,7 +22,7 @@
             android:layout_alignParentTop="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_more"
-            app:tint="#666666" />
+            app:tint="#889099" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -34,9 +35,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Título do Tópico"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#1976D2"
+                android:textSize="17sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="#E8EDF2"
                 android:layout_marginBottom="4dp"/>
 
             <TextView
@@ -44,18 +45,32 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Conteúdo da mensagem..."
-                android:textSize="16sp"
-                android:textColor="#333333"
+                android:textSize="15sp"
+                android:textColor="#DDDDDD"
                 android:layout_marginBottom="8dp"/>
 
-            <TextView
-                android:id="@+id/txtDiscussionMeta"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="há 2 horas"
-                android:textSize="11sp"
-                android:textColor="#999999"
-                android:layout_marginBottom="12dp"/>
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:id="@+id/txtAuthorName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="username"
+                    android:textSize="12sp"
+                    android:textColor="#74C6E0"/>
+
+                <TextView
+                    android:id="@+id/txtDiscussionMeta"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" · há 2 horas"
+                    android:textSize="12sp"
+                    android:textColor="#889099"/>
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -68,8 +83,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="💬 12 respostas"
-                    android:textSize="14sp"
-                    android:textColor="#1976D2"
+                    android:textSize="13sp"
+                    android:textColor="#74C6E0"
                     android:textStyle="bold"/>
 
                 <View
@@ -81,8 +96,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Ver mais ▶"
-                    android:textSize="14sp"
-                    android:textColor="#999999"/>
+                    android:textSize="13sp"
+                    android:textColor="#889099"/>
             </LinearLayout>
         </LinearLayout>
     </RelativeLayout>

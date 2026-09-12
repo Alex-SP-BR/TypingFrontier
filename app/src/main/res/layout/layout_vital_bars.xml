@@ -4,10 +4,11 @@
     android:id="@+id/hudCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    app:cardBackgroundColor="#CC121212"
     app:cardCornerRadius="12dp"
-    app:cardElevation="4dp"
-    app:strokeWidth="1dp"
-    app:strokeColor="#DDDDDD">
+    app:cardElevation="0dp"
+    app:strokeColor="#33FFFFFF"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -42,7 +43,7 @@
                     android:text="Jogador"
                     android:textSize="18sp"
                     android:textStyle="bold"
-                    android:textColor="#333333" />
+                    android:textColor="#FFFFFF" />
 
                 <TextView
                     android:id="@+id/hudTempo"
@@ -50,7 +51,7 @@
                     android:layout_height="wrap_content"
                     android:text="Dia 1 - 08:00"
                     android:textSize="14sp"
-                    android:textColor="#666666" />
+                    android:textColor="#889099" />
             </LinearLayout>
 
             <LinearLayout
@@ -66,7 +67,7 @@
                     android:text="100"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:textColor="#2E7D32"
+                    android:textColor="#74C6E0"
                     android:drawablePadding="4dp" />
 
                 <TextView
@@ -85,7 +86,7 @@
             android:id="@+id/hudDivider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#EEEEEE"
+            android:background="#33FFFFFF"
             android:layout_marginVertical="8dp" />
 
         <!-- BARRAS DE STATUS -->
@@ -107,14 +108,15 @@
                     android:layout_weight="1"
                     android:text="⭐ Nível 1"
                     android:textSize="12sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF" />
                 <TextView
                     android:id="@+id/hudHelpNivel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:padding="8dp"
                     android:text="\?"
-                    android:textColor="#999999"
+                    android:textColor="#889099"
                     android:textStyle="bold"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -146,14 +148,15 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="❤️ Vida"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:textColor="#D0D6DD" />
                 <TextView
                     android:id="@+id/hudHelpVida"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:padding="8dp"
                     android:text="\?"
-                    android:textColor="#999999"
+                    android:textColor="#889099"
                     android:textStyle="bold"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -184,14 +187,15 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="⚡ Energia"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:textColor="#D0D6DD" />
                 <TextView
                     android:id="@+id/hudHelpEnergia"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:padding="8dp"
                     android:text="\?"
-                    android:textColor="#999999"
+                    android:textColor="#889099"
                     android:textStyle="bold"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -222,14 +226,15 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="🧠 Energia Mental"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:textColor="#D0D6DD" />
                 <TextView
                     android:id="@+id/hudHelpMente"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:padding="8dp"
                     android:text="\?"
-                    android:textColor="#999999"
+                    android:textColor="#889099"
                     android:textStyle="bold"
                     android:textSize="14sp" />
             </LinearLayout>

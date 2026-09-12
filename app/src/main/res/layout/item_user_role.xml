@@ -5,7 +5,10 @@
     android:layout_height="wrap_content"
     android:layout_marginVertical="4dp"
     app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="#CC081223"
+    app:strokeColor="#4D74C6E0"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -27,7 +30,11 @@
                 android:text="username"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="#333333"/>
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="2"/>
 
             <TextView
                 android:id="@+id/txtCurrentRole"
@@ -35,7 +42,7 @@
                 android:layout_height="wrap_content"
                 android:text="Role: usuario"
                 android:textSize="14sp"
-                android:textColor="#666666"/>
+                android:textColor="#74C6E0"/>
 
             <TextView
                 android:id="@+id/txtPresenceStatus"
@@ -44,7 +51,7 @@
                 android:text="○ OFFLINE"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:textColor="#999999"
+                android:textColor="#889099"
                 android:layout_marginTop="2dp"/>
         </LinearLayout>
 
@@ -54,7 +61,7 @@
             android:layout_height="48dp"
             android:src="@android:drawable/ic_menu_edit"
             android:background="?attr/selectableItemBackgroundBorderless"
-            app:tint="#1976D2"
+            app:tint="#74C6E0"
             android:visibility="gone"/>
 
     </LinearLayout>

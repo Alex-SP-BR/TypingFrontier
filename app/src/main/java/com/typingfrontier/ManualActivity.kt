@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -14,6 +15,11 @@ class ManualActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Ajuste da Barra de Status para o tema escuro
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
+
         setContentView(R.layout.activity_manual)
 
         findViewById<Button>(R.id.btnFecharManual).setOnClickListener { finish() }
@@ -62,7 +68,7 @@ class ManualActivity : AppCompatActivity() {
                 "• Cassino Clandestino: Exige alto Carisma e Força.\n" +
                 "• Esgotos Profundos: O desafio máximo de Inteligência e Velocidade."),
             
-            ManualTopic("🎒 Equipamentos", "Itens que aumentam seus atributos permanentemente. Se quiser algo melhor, pode trocar seu item atual na loja e ganhar um crédito de 40% do valor do antigo para abater no preço do novo."),
+            ManualTopic("🎒 Equipamentos e Mochila", "Melhore seu personagem com itens profissionais!\n\n• Mochila: Tudo o que você compra vai para sua mochila, que possui um limite de 5 itens.\n• Slots: Para ganhar os bônus, você deve equipar os itens em seus respectivos slots (Corpo, Cabeça, Mão, Acessório, etc).\n• Troca: Ao equipar um novo item em um slot ocupado, o antigo retornará automaticamente para sua mochila.\n• Loja: Você pode comprar equipamentos de qualquer profissão, desde que tenha o Nível Mínimo e Frons suficientes."),
             
             ManualTopic("🕊️ Benções (Blessings)", "Uma proteção especial que impede a perda de Nível e Atributos em caso de Colapso Corporal. A benção é consumida ao te salvar. Sempre compre uma antes de enfrentar grandes perigos!"),
             

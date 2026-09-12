@@ -41,10 +41,10 @@ class ReportAdapter(
 
         // Cores por status
         val statusColor = when (report.status.lowercase()) {
-            "pending" -> android.graphics.Color.parseColor("#E53935") // Vermelho
-            "reviewing" -> android.graphics.Color.parseColor("#FBC02D") // Amarelo/Ouro
-            "resolved" -> android.graphics.Color.parseColor("#4CAF50") // Verde
-            else -> android.graphics.Color.GRAY
+            "pending" -> android.graphics.Color.parseColor("#FF8A80") // Vermelho claro
+            "reviewing" -> android.graphics.Color.parseColor("#FFD700") // Dourado
+            "resolved" -> android.graphics.Color.parseColor("#81C784") // Verde claro
+            else -> android.graphics.Color.parseColor("#889099")
         }
         binding.txtReportStatus.setTextColor(statusColor)
 

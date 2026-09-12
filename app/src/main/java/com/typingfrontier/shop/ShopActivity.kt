@@ -33,20 +33,35 @@ class ShopActivity : AppCompatActivity() {
         val txtSaldo = findViewById<TextView>(R.id.txtSaldoLoja)
         val txtCapacidade = findViewById<TextView>(R.id.txtCapacidadeLoja)
 
-        txtSaldo.text = "Saldo: ${CurrencyUtils.formatar(player.dinheiro)}"
+        fun updateUIStatus() {
+            txtSaldo.text = "Saldo: ${CurrencyUtils.formatar(player.dinheiro)}"
+            val ocupacao = player.mochila.values.sum()
+            txtCapacidade.text = "Mochila: $ocupacao / ${player.capacidadeMochila}"
+            if (ocupacao >= player.capacidadeMochila) {
+                txtCapacidade.setTextColor(android.graphics.Color.RED)
+            } else {
+                txtCapacidade.setTextColor(android.graphics.Color.parseColor("#666666"))
+            }
+        }
+
         txtSaldo.setOnClickListener {
             CurrencyUtils.mostrarSaldoExato(this, PlayerManager.player.dinheiro)
         }
 
-        val ocupacao = player.mochila.values.sum()
-        txtCapacidade.text = "Mochila: $ocupacao / ${player.capacidadeMochila}"
-        if (ocupacao >= player.capacidadeMochila) {
-            txtCapacidade.setTextColor(android.graphics.Color.RED)
-        } else {
-            txtCapacidade.setTextColor(android.graphics.Color.parseColor("#666666"))
-        }
+        updateUIStatus()
 
-        adapter = LojaAdapter(this, itensVisuais)
+        adapter = LojaAdapter(this, itensVisuais,
+            onBuyClick = { item ->
+                mostrarConfirmacaoCompra(item) {
+                    updateUIStatus()
+                }
+            },
+            onSellClick = { item ->
+                mostrarConfirmacaoVenda(item) {
+                    updateUIStatus()
+                }
+            }
+        )
         listView.adapter = adapter
 
         updateShopList()
@@ -84,35 +99,77 @@ class ShopActivity : AppCompatActivity() {
                     updateShopList()
                 }
                 is LojaItem.Equipamento -> {
-                    val item = itemWrapper.equipment
-                    val result = GameEngine.dispatch(GameAction.BuyItem(item))
-                    
-                    when (result) {
-                        is EngineResult.Success -> {
-                            Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
-                            adapter.notifyDataSetChanged()
-
-                            // Atualizar Saldo e Capacidade após compra
-                            txtSaldo.text = "Saldo: ${CurrencyUtils.formatar(player.dinheiro)}"
-                            val novaOcupacao = player.mochila.values.sum()
-                            txtCapacidade.text = "Mochila: $novaOcupacao / ${player.capacidadeMochila}"
-                            if (novaOcupacao >= player.capacidadeMochila) {
-                                txtCapacidade.setTextColor(android.graphics.Color.RED)
-                            } else {
-                                txtCapacidade.setTextColor(android.graphics.Color.parseColor("#666666"))
-                            }
-                        }
-                        is EngineResult.Failure -> {
-                            Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    
-                    PlayerManager.save(this)
+                    // Clique no card não faz mais compra automática para evitar bug de venda/compra dupla
                 }
             }
         }
 
         btnVoltar.setOnClickListener { finish() }
+    }
+
+    private fun executarCompra(item: Equipment, onSucesso: () -> Unit) {
+        val result = GameEngine.dispatch(GameAction.BuyItem(item))
+        when (result) {
+            is EngineResult.Success -> {
+                Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+                adapter.notifyDataSetChanged()
+                onSucesso()
+                PlayerManager.save(this)
+            }
+            is EngineResult.Failure -> {
+                Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun mostrarConfirmacaoCompra(item: Equipment, onSucesso: () -> Unit) {
+        val precoAtual = com.typingfrontier.EconomyManager.precoInflacionado(item.preco)
+        
+        androidx.appcompat.app.AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
+            .setTitle("Confirmar Compra")
+            .setMessage("Deseja comprar ${item.nome}?\n\nPreço: ${CurrencyUtils.formatar(precoAtual)}\n\nVocê tem certeza que deseja adquirir este item?")
+            .setPositiveButton("COMPRAR") { _, _ ->
+                executarCompra(item, onSucesso)
+            }
+            .setNegativeButton("CANCELAR", null)
+            .show()
+            .also { dialog ->
+                val color = android.graphics.Color.parseColor("#FB121212")
+                dialog.window?.findViewById<android.view.View>(androidx.appcompat.R.id.parentPanel)?.let { panel ->
+                    panel.backgroundTintList = android.content.res.ColorStateList.valueOf(color)
+                }
+            }
+    }
+
+    private fun mostrarConfirmacaoVenda(item: Equipment, onSucesso: () -> Unit) {
+        val precoAtual = com.typingfrontier.EconomyManager.precoInflacionado(item.preco)
+        val valorVenda = Math.round(precoAtual * 0.40).toInt()
+
+        androidx.appcompat.app.AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
+            .setTitle("Confirmar Venda")
+            .setMessage("Deseja vender ${item.nome} por ${CurrencyUtils.formatar(valorVenda)}?\n(40% do valor de mercado)")
+            .setPositiveButton("VENDER") { _, _ ->
+                val result = GameEngine.dispatch(GameAction.SellItem(item))
+                when (result) {
+                    is EngineResult.Success -> {
+                        Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+                        adapter.notifyDataSetChanged()
+                        onSucesso()
+                        PlayerManager.save(this)
+                    }
+                    is EngineResult.Failure -> {
+                        Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("CANCELAR", null)
+            .show()
+            .also { dialog ->
+                val color = android.graphics.Color.parseColor("#FB121212")
+                dialog.window?.findViewById<android.view.View>(androidx.appcompat.R.id.parentPanel)?.let { panel ->
+                    panel.backgroundTintList = android.content.res.ColorStateList.valueOf(color)
+                }
+            }
     }
 
     private fun updateShopList() {

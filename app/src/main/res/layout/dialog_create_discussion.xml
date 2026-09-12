@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/bg_forum"
+        android:scaleType="centerCrop"
+        android:contentDescription="@null" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:id="@+id/txtDialogTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Novo Tópico"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#000000"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="2"
+                android:layout_marginBottom="24dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Título"
+                android:textSize="12sp"
+                android:textColor="#889099"
+                android:layout_marginBottom="4dp"
+                android:id="@+id/lblTitle" />
+
+            <EditText
+                android:id="@+id/edtTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Dê um nome ao seu tópico"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#66FFFFFF"
+                android:background="@drawable/bg_forum_input"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:layout_marginBottom="16dp"
+                android:inputType="textCapSentences" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mensagem"
+                android:textSize="12sp"
+                android:textColor="#889099"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/edtContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Escreva o conteúdo da publicação..."
+                android:textColor="#FFFFFF"
+                android:textColorHint="#66FFFFFF"
+                android:background="@drawable/bg_forum_input"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:gravity="top"
+                android:minLines="5"
+                android:layout_marginBottom="24dp"
+                android:inputType="textMultiLine|textCapSentences" />
+
+            <Button
+                android:id="@+id/btnPublish"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="PUBLICAR"
+                android:backgroundTint="@null"
+                android:background="@drawable/btn_forum_bg"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <Button
+                android:id="@+id/btnCancel"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="CANCELAR"
+                android:textColor="#889099" />
+
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

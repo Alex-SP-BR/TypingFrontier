@@ -3,24 +3,33 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardCornerRadius="8dp"
+    app:cardCornerRadius="12dp"
     app:cardElevation="2dp"
+    app:cardBackgroundColor="#CC121212"
+    app:strokeColor="#33FFFFFF"
+    app:strokeWidth="1dp"
     android:layout_margin="8dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="8dp"
+        android:padding="12dp"
         android:gravity="center">
 
-        <ImageView
-            android:id="@+id/imgAvatar"
+        <FrameLayout
             android:layout_width="120dp"
             android:layout_height="120dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/homem"
-            android:layout_marginBottom="8dp"/>
+            android:layout_marginBottom="8dp"
+            android:background="#1A000000">
+
+            <ImageView
+                android:id="@+id/imgAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:src="@drawable/homem" />
+        </FrameLayout>
 
         <TextView
             android:id="@+id/txtAvatarNome"
@@ -29,7 +38,8 @@
             android:text="Avatar Nome"
             android:textStyle="bold"
             android:textSize="14sp"
-            android:textColor="#333333"
+            android:textColor="#FFFFFF"
+            android:gravity="center"
             android:layout_marginBottom="4dp"/>
 
         <TextView
@@ -38,7 +48,8 @@
             android:layout_height="wrap_content"
             android:text="Requisito: Lvl 10"
             android:textSize="12sp"
-            android:textColor="#E53935"
+            android:textStyle="bold"
+            android:textColor="#74C6E0"
             android:layout_marginBottom="4dp"
             android:visibility="gone"/>
 
@@ -47,8 +58,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Ads: 0/1"
-            android:textSize="12sp"
-            android:textColor="#1976D2"
+            android:textSize="11sp"
+            android:textColor="#889099"
+            android:gravity="center"
             android:layout_marginBottom="4dp"
             android:visibility="gone"/>
 
@@ -59,7 +71,7 @@
             android:text="10.000 Frons"
             android:textSize="12sp"
             android:textStyle="bold"
-            android:textColor="#FF9800"
+            android:textColor="#74C6E0"
             android:layout_marginBottom="4dp"
             android:visibility="gone"
             android:drawablePadding="4dp" />
@@ -69,8 +81,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Desbloquear"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:padding="0dp"
+            android:minHeight="36dp"
+            android:backgroundTint="@null"
+            android:background="@drawable/bg_game_button_primary"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textAllCaps="true"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
         <TextView
@@ -79,7 +97,7 @@
             android:layout_height="wrap_content"
             android:text="EQUIPADO"
             android:textStyle="bold"
-            android:textColor="#4CAF50"
+            android:textColor="#74C6E0"
             android:textSize="12sp"
             android:visibility="gone"/>
 

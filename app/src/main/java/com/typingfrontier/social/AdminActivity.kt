@@ -111,7 +111,7 @@ class AdminActivity : AppCompatActivity() {
 
         var selectedProfile: SocialProfile? = null
 
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
             .setTitle("Gerenciar Banimento")
             .setView(dialogView)
             .setNegativeButton("Fechar", null)
@@ -130,7 +130,6 @@ class AdminActivity : AppCompatActivity() {
 
             scope.launch {
                 try {
-                    // Busca limitada a autores que possuem denúncias (Ponto Crítico da Etapa)
                     val reportedProfiles = ModerationRepository.getReportedAuthors(username)
                     
                     if (reportedProfiles.isEmpty()) {
@@ -142,7 +141,6 @@ class AdminActivity : AppCompatActivity() {
                         return@launch
                     }
 
-                    // Se houver múltiplos (ex: busca parcial), pegamos o primeiro exato ou o primeiro da lista
                     val profile = reportedProfiles.firstOrNull { it.username.equals(username.removePrefix("@"), ignoreCase = true) } 
                                   ?: reportedProfiles.first()
 
@@ -167,7 +165,6 @@ class AdminActivity : AppCompatActivity() {
                             txtBanReason.visibility = View.GONE
                             btnExecuteUnban.visibility = View.GONE
                             
-                            // Só permite banir se não for o próprio e seguir hierarquia
                             val myRole = SocialProfileRepository.currentProfile?.role ?: "usuario"
                             if (profile.id != SocialProfileRepository.currentProfile?.id && 
                                 getRoleWeight(myRole) > getRoleWeight(profile.role)) {
@@ -201,7 +198,7 @@ class AdminActivity : AppCompatActivity() {
             val durationIndex = spinnerDuration.selectedItemPosition
             val durationText = options[durationIndex]
 
-            androidx.appcompat.app.AlertDialog.Builder(this)
+            val confirmDialog = androidx.appcompat.app.AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
                 .setTitle("Confirmar Banimento")
                 .setMessage("Banir @${profile.username} por $durationText?")
                 .setPositiveButton("Confirmar") { _, _ ->
@@ -214,7 +211,7 @@ class AdminActivity : AppCompatActivity() {
         btnExecuteUnban.setOnClickListener {
             if (isProcessing) return@setOnClickListener
             val profile = selectedProfile ?: return@setOnClickListener
-            androidx.appcompat.app.AlertDialog.Builder(this)
+            val confirmDialog = androidx.appcompat.app.AlertDialog.Builder(this, com.typingfrontier.R.style.Theme_TypingFrontier_AdminDialog)
                 .setTitle("Confirmar Desbanimento")
                 .setMessage("Deseja desbanir @${profile.username}?")
                 .setPositiveButton("Confirmar") { _, _ ->

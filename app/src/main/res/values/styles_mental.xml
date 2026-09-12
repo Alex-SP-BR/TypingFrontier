@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Estilo localizado para o seletor de matéria do Treino Mental -->
+    <!-- Usamos ThemeOverlay para forçar o visual escuro no diálogo mesmo em Activity com tema claro -->
+    <style name="Theme.TypingFrontier.MentalDialog" parent="Theme.Material3.Dark.Dialog.Alert">
+        <!-- Forçamos o modo escuro no nível do tema -->
+        <item name="isLightTheme">false</item>
+
+        <!-- Fundo preto sólido para máxima legibilidade (#FB121212) -->
+        <item name="colorSurface">#FB121212</item>
+        <item name="backgroundTint">#FB121212</item>
+
+        <!-- Texto Principal e Título (Branco Máximo) -->
+        <item name="colorOnSurface">#FFFFFF</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+
+        <!-- Opções e Texto Secundário (E0E0FF para melhor legibilidade) -->
+        <item name="colorOnSurfaceVariant">#E0E0FF</item>
+        <item name="android:textColorSecondary">#E0E0FF</item>
+
+        <!-- Destaque para seleção (Ciano 74C6E0) -->
+        <item name="colorPrimary">#74C6E0</item>
+
+        <!-- Garante que o texto dos itens da lista seja branco -->
+        <item name="android:textColor">#FFFFFF</item>
+
+        <!-- Borda sutil para definir a caixa do diálogo (33FFFFFF) -->
+        <item name="colorOutline">#33FFFFFF</item>
+
+        <!-- Removido windowBackground transparente para garantir opacidade da superfície Material -->
+    </style>
+
+    <!-- Estilo para diálogos do Painel Administrativo -->
+    <style name="Theme.TypingFrontier.AdminDialog" parent="Theme.Material3.Dark.Dialog.Alert">
+        <item name="isLightTheme">false</item>
+
+        <!-- Fundo Azul Admin Opaco (#FB121212) -->
+        <item name="colorSurface">#FB121212</item>
+        <item name="backgroundTint">#FB121212</item>
+
+        <item name="colorOnSurface">#FFFFFF</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+
+        <item name="colorOnSurfaceVariant">#D0D6DD</item>
+        <item name="android:textColorSecondary">#D0D6DD</item>
+
+        <!-- Destaque Ciano -->
+        <item name="colorPrimary">#74C6E0</item>
+        <item name="colorSecondary">#74C6E0</item>
+
+        <item name="android:textColor">#FFFFFF</item>
+
+        <!-- Borda Ciano discreta -->
+        <item name="colorOutline">#4D74C6E0</item>
+
+        <!-- Removido windowBackground transparente para garantir opacidade da superfície Material -->
+    </style>
+
+    <!-- Estilo para o diálogo de confirmação da Loja (Opaco) -->
+    <style name="Theme.TypingFrontier.ShopDialog" parent="Theme.Material3.Dark.Dialog.Alert">
+        <item name="isLightTheme">false</item>
+        <item name="colorSurface">#FB121212</item>
+        <item name="backgroundTint">#FB121212</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#D0D6DD</item>
+        <item name="colorPrimary">#74C6E0</item>
+        <item name="colorOutline">#4D74C6E0</item>
+    </style>
+</resources>

@@ -37,13 +37,13 @@ class RoleManagementAdapter(
         // Atualiza status de presença
         if (!isPresenceActive) {
             binding.txtPresenceStatus.text = "○ STATUS INDISPONÍVEL"
-            binding.txtPresenceStatus.setTextColor(android.graphics.Color.parseColor("#999999"))
+            binding.txtPresenceStatus.setTextColor(android.graphics.Color.parseColor("#889099"))
         } else if (onlineUserIds.contains(user.id)) {
             binding.txtPresenceStatus.text = "● ONLINE"
-            binding.txtPresenceStatus.setTextColor(android.graphics.Color.parseColor("#388E3C"))
+            binding.txtPresenceStatus.setTextColor(android.graphics.Color.parseColor("#81C784"))
         } else {
             binding.txtPresenceStatus.text = "○ OFFLINE"
-            binding.txtPresenceStatus.setTextColor(android.graphics.Color.parseColor("#999999"))
+            binding.txtPresenceStatus.setTextColor(android.graphics.Color.parseColor("#889099"))
         }
 
         // O administrador não pode alterar a própria role nem a de outros administradores

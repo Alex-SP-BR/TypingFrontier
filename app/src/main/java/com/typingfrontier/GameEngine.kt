@@ -22,19 +22,58 @@ object GameEngine {
                 is GameAction.StudyError -> processStudyError(action.attribute)
                 is GameAction.CollectRewards -> processCollectRewards(action.xp, action.money)
                 is GameAction.BuyItem -> processBuyItem(action.item)
+                is GameAction.SellItem -> processSellItem(action.item)
                 is GameAction.CompleteMission -> processCompleteMission(action.xp, action.money)
                 is GameAction.EquipItem -> processEquipItem(action.itemId)
                 is GameAction.UnequipItem -> processUnequipItem(action.slot)
             }
-            verifyIntegrity()
             
-            // 🏆 GATILHO DE CONQUISTA: ECONOMIA
-            com.typingfrontier.collection.AchievementManager.checkEconomy(TypingFrontierApp.getAppContext())
+            if (result is EngineResult.Success) {
+                verifyIntegrity()
+                // 🏆 GATILHO DE CONQUISTA: ECONOMIA
+                com.typingfrontier.collection.AchievementManager.checkEconomy(TypingFrontierApp.getAppContext())
+            }
             
             return result
         } catch (e: Exception) {
             EngineResult.Failure("Erro na Engine: ${e.message}")
         }
+    }
+
+    private fun processSellItem(item: Equipment): EngineResult {
+        val p = PlayerManager.player
+
+        // 1. Verificação de Disponibilidade para Venda
+        // Regra: Equipamento equipado não pode ser vendido. Apenas o que está na mochila.
+        val qtdNaMochila = p.mochila[item.id] ?: 0
+        val isEquipado = p.slotsEquipados.values.contains(item.id) || p.equipamentoId == item.id
+
+        // Bloqueio se não houver unidade disponível na mochila
+        if (qtdNaMochila <= 0) {
+            val msg = if (isEquipado) {
+                "Este item está equipado! Desequipe-o primeiro para poder vender."
+            } else {
+                "Você não possui este item na mochila para vender."
+            }
+            return EngineResult.Failure(msg)
+        }
+
+        // 2. Cálculo do Valor de Venda (40% do preço inflacionado atual)
+        val precoAtual = EconomyManager.precoInflacionado(item.preco)
+        val valorVenda = Math.round(precoAtual * 0.40).toInt()
+
+        // 3. Execução da Venda (Transação Atômica)
+        // Remove uma unidade da mochila
+        if (qtdNaMochila > 1) {
+            p.mochila[item.id] = qtdNaMochila - 1
+        } else {
+            p.mochila.remove(item.id)
+        }
+
+        // Só altera o saldo após garantir a remoção do item da mochila
+        p.dinheiro += valorVenda
+
+        return EngineResult.Success("Vendido: ${item.nome} por ${CurrencyUtils.formatar(valorVenda)}!")
     }
 
     private fun processWork(): EngineResult {
@@ -519,5 +558,9 @@ object GameEngine {
         p.energia = p.energia.coerceIn(0, p.energiaMax)
         p.cansacoMental = p.cansacoMental.coerceIn(0, p.cansacoMax)
         p.vida = p.vida.coerceIn(0, p.vidaMax)
+        
+        // Proteção extra para mochila
+        val chavesInvalidas = p.mochila.filter { it.value < 0 }.keys
+        chavesInvalidas.forEach { p.mochila.remove(it) }
     }
 }

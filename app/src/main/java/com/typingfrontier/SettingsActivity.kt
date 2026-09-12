@@ -3,8 +3,9 @@ package com.typingfrontier
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.google.android.material.switchmaterial.SwitchMaterial
 
@@ -12,6 +13,11 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Ajuste da Barra de Status para o tema escuro
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
+
         setContentView(R.layout.activity_settings)
 
         findViewById<Button>(R.id.btnWatchIntro).setOnClickListener {
@@ -57,7 +63,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun showAboutDialog() {
         val version = BuildConfig.VERSION_NAME
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this, R.style.Theme_TypingFrontier_MentalDialog)
             .setTitle("TypingFrontier")
             .setMessage("Desenvolvido por\n© Alex Cardoso Bento\n\nVersão $version")
             .setPositiveButton("OK", null)
