@@ -16,6 +16,7 @@ sealed class GameAction {
     data class Explore(val zoneId: String) : GameAction()
     
     // Novas ações para centralização total
+    object UseMedicine : GameAction()
     data class StudyError(val attribute: String) : GameAction()
     data class CollectRewards(val xp: Int, val money: Int) : GameAction()
     data class BuyItem(val item: Equipment) : GameAction()

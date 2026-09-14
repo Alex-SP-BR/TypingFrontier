@@ -82,8 +82,9 @@ data class Player(
     var mochila: MutableMap<String, Int> = mutableMapOf(),
     var capacidadeMochila: Int = 5,
 
-    // 🕊️ TIBIA SYSTEM: BLESSINGS (Proteção contra morte)
-    var temBlessing: Boolean = false,
+    // 🕊️ SEGURO DE EQUIPAMENTOS (Bênçãos Acumuláveis)
+    var estoqueBencao: Int = 0,
+    var estoqueMedicamento: Int = 0,
 
     // 🎬 CINEMATIC INTRO
     var introConcluida: Boolean = false,
@@ -101,6 +102,16 @@ data class Player(
     // 🩹 SISTEMA DE TRAUMAS
     var traumasAcumulados: Int = 0,
     var diasParaRecuperarTrauma: Int = 0,
+
+    // 🩹 RECUPERAÇÃO DE COLAPSO (Novo Sistema)
+    var perdaXpRecuperavel: Int = 0,
+    var perdaAtribRecuperavel: MutableMap<String, Int> = mutableMapOf(
+        "FORCA" to 0,
+        "VELOCIDADE" to 0,
+        "RESISTENCIA" to 0,
+        "CARISMA" to 0,
+        "INTELIGENCIA" to 0
+    ),
 
     // 🏆 COLEÇÃO E CONQUISTAS
     var avatarEquipadoId: String? = null,

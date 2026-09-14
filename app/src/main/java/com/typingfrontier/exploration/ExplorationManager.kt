@@ -132,7 +132,7 @@ object ExplorationManager {
             return "🏃 $causaMorte\n\nMas seu treinamento policial permitiu que você fugisse antes do pior! Perdeu muita energia."
         }
         
-        // Punição estilo Tibia
+        // Punição por colapso
         val msgHospital = ProfessionManager.hospitalizar(player)
         return "💀 $causaMorte\n\n$msgHospital"
     }

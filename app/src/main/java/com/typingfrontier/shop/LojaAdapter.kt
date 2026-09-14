@@ -125,7 +125,7 @@ class LojaAdapter(
 
         btnComprar.setOnClickListener { onBuyClick(item) }
 
-        if (item.id != "blessing") {
+        if (item.id != "blessing" && item.id != "medicine") {
             val statusList = mutableListOf<String>()
             if (qtdNaMochila > 0) statusList.add("Possui: ×$qtdNaMochila")
             if (isEquipado) statusList.add("✅ EQUIPADO")
@@ -149,27 +149,24 @@ class LojaAdapter(
             txtPosse.visibility = View.GONE
             btnVender.visibility = View.GONE
             
-            // Lógica especial para Blessing
-            btnComprar.visibility = if (currentPlayer.temBlessing) View.GONE else View.VISIBLE
-        }
-
-        // 2. Lógica de Preço e Estado Especial (Blessing)
-        if (item.id == "blessing" && currentPlayer.temBlessing) {
-            txtPreco.text = "🛡️ ATIVA"
-            txtPreco.setTextColor(android.graphics.Color.parseColor("#1565C0"))
-            txtPreco.setCompoundDrawables(null, null, null, null)
-        } else {
-            val precoExibido = if (item.id == "blessing") item.preco else com.typingfrontier.EconomyManager.precoInflacionado(item.preco)
+            // Lógica especial para Itens Especiais (Bênção e Medicamento)
+            val limite = currentPlayer.limiteTraumas
+            val count = if (item.id == "blessing") currentPlayer.estoqueBencao else if (item.id == "medicine") currentPlayer.estoqueMedicamento else 0
             
-            // Configuração do ícone da moeda com tamanho controlado (20dp)
-            val coinIcon = androidx.core.content.ContextCompat.getDrawable(context, com.typingfrontier.R.drawable.fron_coin)
-            val size = (20 * context.resources.displayMetrics.density).toInt()
-            coinIcon?.setBounds(0, 0, size, size)
-            txtPreco.setCompoundDrawables(coinIcon, null, null, null)
-
-            txtPreco.text = CurrencyUtils.formatar(precoExibido)
-            txtPreco.setTextColor(android.graphics.Color.parseColor("#2E7D32"))
+            btnComprar.visibility = if (count >= limite) View.GONE else View.VISIBLE
         }
+
+        // 2. Lógica de Preço
+        val precoExibido = if (item.id == "blessing" || item.id == "medicine") item.preco else com.typingfrontier.EconomyManager.precoInflacionado(item.preco)
+        
+        // Configuração do ícone da moeda com tamanho controlado (20dp)
+        val coinIcon = androidx.core.content.ContextCompat.getDrawable(context, com.typingfrontier.R.drawable.fron_coin)
+        val size = (20 * context.resources.displayMetrics.density).toInt()
+        coinIcon?.setBounds(0, 0, size, size)
+        txtPreco.setCompoundDrawables(coinIcon, null, null, null)
+
+        txtPreco.text = CurrencyUtils.formatar(precoExibido)
+        txtPreco.setTextColor(android.graphics.Color.parseColor("#2E7D32"))
 
         // Preparado para imagens individuais com fallback para ícone genérico
         val placeholder = android.R.drawable.ic_menu_agenda

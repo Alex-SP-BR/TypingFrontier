@@ -70,8 +70,12 @@ class ManualActivity : AppCompatActivity() {
             
             ManualTopic("🎒 Equipamentos e Mochila", "Melhore seu personagem com itens profissionais!\n\n• Mochila: Tudo o que você compra vai para sua mochila, que possui um limite de 5 itens.\n• Slots: Para ganhar os bônus, você deve equipar os itens em seus respectivos slots (Corpo, Cabeça, Mão, Acessório, etc).\n• Troca: Ao equipar um novo item em um slot ocupado, o antigo retornará automaticamente para sua mochila.\n• Loja: Você pode comprar equipamentos de qualquer profissão, desde que tenha o Nível Mínimo e Frons suficientes."),
             
-            ManualTopic("🕊️ Benções (Blessings)", "Uma proteção especial que impede a perda de Nível e Atributos em caso de Colapso Corporal. A benção é consumida ao te salvar. Sempre compre uma antes de enfrentar grandes perigos!"),
+            ManualTopic("💰 Venda de Equipamentos", "Não precisa mais de um item? Você pode vendê-lo na Loja para recuperar parte do investimento.\n\n• Valor: Você recebe 40% do valor atual de mercado do item.\n• Condição: O equipamento deve estar na sua mochila. Itens atualmente equipados não aparecem para venda direta; você precisa desequipá-los primeiro."),
+
+            ManualTopic("🕊️ Seguro de Equipamentos", "Uma proteção essencial para seus bens. O Seguro de Equipamentos protege seus itens equipados durante um Colapso Corporal.\n\n• Funcionamento: Se você sofrer um Colapso (atingir o limite de traumas), existe uma chance de perder um equipamento. O Seguro impede essa perda, sendo consumido no processo.\n• Recomendação: Sempre mantenha um Seguro ativo antes de expedições perigosas!"),
             
+            ManualTopic("💊 Medicamento", "O aliado perfeito para a recuperação pós-combate ou incidentes graves.\n\n• Efeito: Remove 1 Trauma acumulado e recupera sua Vida (HP).\n• Reabilitação: Além da saúde física, o uso do Medicamento restaura 50% de toda a Experiência e Atributos perdidos no último Colapso.\n• Limite: Você pode carregar um estoque de Medicamentos igual ao seu limite máximo de traumas."),
+
             ManualTopic("💰 Economia", "A moeda oficial é o Fron. Guarde suas moedas para financiar sua evolução! Para facilitar a leitura, valores altos podem aparecer como 1K (mil) ou 1KK (milhão). Toque no saldo no topo da tela para ver o valor exato."),
             
             ManualTopic("👥 Profissões", 

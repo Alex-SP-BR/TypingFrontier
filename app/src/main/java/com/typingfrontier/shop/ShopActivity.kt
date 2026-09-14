@@ -13,6 +13,7 @@ import com.typingfrontier.GameAction
 import com.typingfrontier.EngineResult
 import com.typingfrontier.utils.CurrencyUtils
 import com.typingfrontier.economy.ProfessionManager
+import com.typingfrontier.EconomyManager
 import com.typingfrontier.economy.Equipment
 
 class ShopActivity : AppCompatActivity() {
@@ -112,7 +113,7 @@ class ShopActivity : AppCompatActivity() {
         when (result) {
             is EngineResult.Success -> {
                 Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
-                adapter.notifyDataSetChanged()
+                updateShopList() // Reconstrói as descrições com estoque atualizado
                 onSucesso()
                 PlayerManager.save(this)
             }
@@ -123,7 +124,7 @@ class ShopActivity : AppCompatActivity() {
     }
 
     private fun mostrarConfirmacaoCompra(item: Equipment, onSucesso: () -> Unit) {
-        val precoAtual = com.typingfrontier.EconomyManager.precoInflacionado(item.preco)
+        val precoAtual = EconomyManager.precoInflacionado(item.preco)
         
         androidx.appcompat.app.AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
             .setTitle("Confirmar Compra")
@@ -179,14 +180,25 @@ class ShopActivity : AppCompatActivity() {
         // 1. ITENS ESPECIAIS
         itensVisuais.add(LojaItem.HeaderProfissao("ITENS ESPECIAIS", specialExpanded))
         if (specialExpanded) {
-            val precoBlessing = 100 + (player.nivel * 100)
+            val precoMed = EconomyManager.getMedicinePrice(player.nivel)
+            val medicineItem = Equipment(
+                id = "medicine",
+                nome = "💊 Medicamento",
+                preco = precoMed,
+                atributoAlvo = "CLÍNICO",
+                bonus = 1,
+                descricao = "Remove 1 Trauma, recupera HP e restaura parte do XP perdido. (Estoque: ${player.estoqueMedicamento}/${player.limiteTraumas})"
+            )
+            itensVisuais.add(LojaItem.Equipamento(medicineItem))
+
+            val precoBen = EconomyManager.getBlessingPrice(player.nivel)
             val blessingItem = Equipment(
                 id = "blessing",
-                nome = "🕊️ Benção de Proteção",
-                preco = precoBlessing,
-                atributoAlvo = "PROGRESSO",
+                nome = "🛡️ Seguro de Equipamentos",
+                preco = precoBen,
+                atributoAlvo = "SEGURO",
                 bonus = 100,
-                descricao = "Protege contra perda de LVL e Atributos. Imprescindível para zonas perigosas."
+                descricao = "Protege seus itens equipados durante um Colapso. (Estoque: ${player.estoqueBencao}/${player.limiteTraumas})"
             )
             itensVisuais.add(LojaItem.Equipamento(blessingItem))
         }

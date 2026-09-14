@@ -23,4 +23,16 @@ object EconomyManager {
     fun recompensaInflacionada(valorBase: Int): Int {
         return (valorBase * (fatorInflacao() * 0.8)).toInt()
     }
+
+    fun getMedicinePrice(nivel: Int): Int {
+        val baseSono = 60 + (nivel * 10)
+        val precoBase = (baseSono * 1.5).toInt()
+        return precoInflacionado(precoBase)
+    }
+
+    fun getBlessingPrice(nivel: Int): Int {
+        val baseSono = 60 + (nivel * 10)
+        val precoBase = baseSono * 3
+        return precoInflacionado(precoBase)
+    }
 }

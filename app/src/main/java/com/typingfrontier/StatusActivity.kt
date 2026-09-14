@@ -55,6 +55,61 @@ class StatusActivity : AppCompatActivity() {
         setupAtributo(R.id.txtResistencia, R.id.progressResistencia, "Resistência", player.resistencia, player.resistenciaEfetiva, player.progressoResistencia, player.progressoResistenciaMax)
         setupAtributo(R.id.txtCarisma, R.id.progressCarisma, "Carisma", player.carisma, player.carismaEfetiva, player.progressoCarisma, player.progressoCarismaMax)
 
+        // EXPANSÃO: MOCHILA
+        val prefs = getSharedPreferences("ui_status_settings", MODE_PRIVATE)
+        val mochilaExpandida = prefs.getBoolean("status_mochila_expanded", true)
+
+        val mochilaHeader = findViewById<TextView>(R.id.txtMochilaHeader)
+        val mochilaContainer = findViewById<android.widget.LinearLayout>(R.id.layoutMochila)
+        
+        if (mochilaExpandida) {
+            mochilaContainer.visibility = android.view.View.VISIBLE
+            mochilaHeader.text = "▾ 🎒 Mochila"
+        } else {
+            mochilaContainer.visibility = android.view.View.GONE
+            mochilaHeader.text = "▸ 🎒 Mochila"
+        }
+
+        mochilaHeader.setOnClickListener {
+            val expandir = mochilaContainer.visibility != android.view.View.VISIBLE
+            if (expandir) {
+                mochilaContainer.visibility = android.view.View.VISIBLE
+                (it as TextView).text = "▾ 🎒 Mochila"
+            } else {
+                mochilaContainer.visibility = android.view.View.GONE
+                (it as TextView).text = "▸ 🎒 Mochila"
+            }
+            prefs.edit().putBoolean("status_mochila_expanded", expandir).apply()
+        }
+
+        // EXPANSÃO: EQUIPAMENTOS
+        val equipExpandido = prefs.getBoolean("status_equipamentos_expanded", true)
+        val equipHeader = findViewById<TextView>(R.id.txtEquipamentosHeader)
+        val equipContent = findViewById<android.widget.LinearLayout>(R.id.layoutEquipamentosContent)
+
+        if (equipExpandido) {
+            equipContent.visibility = android.view.View.VISIBLE
+            equipHeader.text = "▾ 🛡️ Equipamentos"
+        } else {
+            equipContent.visibility = android.view.View.GONE
+            equipHeader.text = "▸ 🛡️ Equipamentos"
+        }
+
+        equipHeader.setOnClickListener {
+            val expandir = equipContent.visibility != android.view.View.VISIBLE
+            if (expandir) {
+                equipContent.visibility = android.view.View.VISIBLE
+                (it as TextView).text = "▾ 🛡️ Equipamentos"
+            } else {
+                equipContent.visibility = android.view.View.GONE
+                (it as TextView).text = "▸ 🛡️ Equipamentos"
+            }
+            prefs.edit().putBoolean("status_equipamentos_expanded", expandir).apply()
+        }
+
+        // MEDICAMENTO
+        findViewById<TextView>(R.id.txtMedicamentoEstoque).text = player.estoqueMedicamento.toString()
+
         // HELP BUTTONS
         findViewById<TextView>(R.id.btnHelpNivel).setOnClickListener {
             showHelp("⭐ Nível", "Representa seu desenvolvimento geral. Subir de nível aumenta seus limites de atributos e desbloqueia novos conteúdos.")
@@ -206,9 +261,12 @@ class StatusActivity : AppCompatActivity() {
         }
 
         // Blessing
-        val hasBlessing = player.temBlessing
-        findViewById<android.view.View>(R.id.dividerBlessing).visibility = if (hasBlessing) android.view.View.VISIBLE else android.view.View.GONE
-        findViewById<TextView>(R.id.txtBlessingStatus).visibility = if (hasBlessing) android.view.View.VISIBLE else android.view.View.GONE
+        val countBlessing = player.estoqueBencao
+        findViewById<android.view.View>(R.id.dividerBlessing).visibility = if (countBlessing > 0) android.view.View.VISIBLE else android.view.View.GONE
+        findViewById<TextView>(R.id.txtBlessingStatus).apply {
+            visibility = if (countBlessing > 0) android.view.View.VISIBLE else android.view.View.GONE
+            text = "Estoque: $countBlessing"
+        }
     }
 
     private fun confirmarDesequipar(slot: String, nomeItem: String) {

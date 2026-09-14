@@ -7,7 +7,7 @@ object PlayerManager {
     var player = Player()
 
     private const val PREFS_NAME = "typing_frontier_save"
-    private const val CURRENT_SAVE_VERSION = 9
+    private const val CURRENT_SAVE_VERSION = 10
 
     // Constantes para a fórmula de XP (Opção C: Polinomial Híbrida)
     private const val XP_BASE = 20
@@ -40,15 +40,142 @@ object PlayerManager {
     }
 
     /**
-     * Reduz o nível do jogador (Punição Tibiana).
+     * Reduz o nível do jogador.
      */
     fun reduzirNivel() {
         if (player.nivel > 1) {
+            reverterAtributosMaximos()
             player.nivel--
             player.experienciaAtual = 0
             
             // Recalcula o limite para o nível menor
             player.experienciaParaProximoNivel = calcularXpParaProximoNivel(player.nivel)
+        }
+    }
+
+    /**
+     * Calcula o progresso global de XP acumulado desde o nível 1.
+     */
+    fun calcularProgressoGlobalXp(nivel: Int, xp: Int): Long {
+        var total = 0L
+        for (i in 1 until nivel) {
+            total += calcularXpParaProximoNivel(i)
+        }
+        total += xp
+        return total
+    }
+
+    /**
+     * Calcula o progresso global de um atributo acumulado desde o valor base (1).
+     */
+    fun calcularProgressoGlobalAtributo(valor: Int, prog: Int): Long {
+        var total = 0L
+        for (i in 1 until valor) {
+            total += (100 * (1 + i * 0.05)).toInt()
+        }
+        total += prog
+        return total
+    }
+
+    /**
+     * Aplica a nova penalidade de 25% de progresso no Colapso usando o conceito de Progresso Global.
+     * Retorna o valor absoluto de XP perdido.
+     */
+    fun aplicarPenalidadeXpColapso(): Int {
+        val nivelAntes = player.nivel
+        val xpAntes = player.experienciaAtual
+        val limiteAntes = player.experienciaParaProximoNivel
+        
+        val progGlobalAntes = calcularProgressoGlobalXp(nivelAntes, xpAntes)
+        val percentual = xpAntes.toDouble() / limiteAntes
+        
+        if (percentual >= 0.25) {
+            // Caso A: Permanece no mesmo nível. Perde 25% do esforço do nível atual.
+            val penalidade = (limiteAntes * 0.25).toInt()
+            player.experienciaAtual = Math.max(0, xpAntes - penalidade)
+        } else {
+            // Caso B: Perde 1 nível e mantém o percentual relativo.
+            if (player.nivel > 1) {
+                reverterAtributosMaximos()
+                player.nivel--
+                player.experienciaParaProximoNivel = calcularXpParaProximoNivel(player.nivel)
+                // Mantém a barra na mesma posição visual (evita o salto de progresso)
+                player.experienciaAtual = (percentual * player.experienciaParaProximoNivel).toInt()
+            } else {
+                player.experienciaAtual = 0
+            }
+        }
+        
+        val progGlobalDepois = calcularProgressoGlobalXp(player.nivel, player.experienciaAtual)
+        val perdaReal = (progGlobalAntes - progGlobalDepois).toInt()
+        
+        val perdaFinal = Math.max(0, perdaReal)
+        player.perdaXpRecuperavel = perdaFinal
+        return perdaFinal
+    }
+
+    /**
+     * Aplica a penalidade de 25% em um atributo específico usando o conceito de Progresso Global.
+     */
+    fun aplicarPenalidadeAtributoColapso(nomeAtrib: String): Int {
+        var valorAtribAntes = 0
+        var progressoAntes = 0
+        
+        when(nomeAtrib) {
+            "FORCA" -> { valorAtribAntes = player.forca; progressoAntes = player.progressoForca }
+            "VELOCIDADE" -> { valorAtribAntes = player.velocidade; progressoAntes = player.progressoVelocidade }
+            "RESISTENCIA" -> { valorAtribAntes = player.resistencia; progressoAntes = player.progressoResistencia }
+            "CARISMA" -> { valorAtribAntes = player.carisma; progressoAntes = player.progressoCarisma }
+            "INTELIGENCIA" -> { valorAtribAntes = player.inteligencia; progressoAntes = player.progressoInteligencia }
+        }
+        
+        val limiteAntes = (100 * (1 + valorAtribAntes * 0.05)).toInt()
+        val progGlobalAntes = calcularProgressoGlobalAtributo(valorAtribAntes, progressoAntes)
+        val percentual = progressoAntes.toDouble() / limiteAntes
+        
+        if (percentual >= 0.25) {
+            // Caso A: Permanece no mesmo ponto. Perde 25% do limite.
+            val penalidade = (limiteAntes * 0.25).toInt()
+            val novoProg = Math.max(0, progressoAntes - penalidade)
+            setProgressoAtrib(nomeAtrib, valorAtribAntes, novoProg)
+        } else {
+            // Caso B: Perde 1 ponto e mantém o percentual relativo.
+            if (valorAtribAntes > 1) { 
+                val novoValor = valorAtribAntes - 1
+                val limiteNovo = (100 * (1 + novoValor * 0.05)).toInt()
+                val novoProg = (percentual * limiteNovo).toInt()
+                setProgressoAtrib(nomeAtrib, novoValor, novoProg)
+            } else {
+                setProgressoAtrib(nomeAtrib, valorAtribAntes, 0)
+            }
+        }
+        
+        // Lê os valores após a alteração para calcular a perda real absoluta
+        var valorAtribDepois = 0
+        var progressoDepois = 0
+        when(nomeAtrib) {
+            "FORCA" -> { valorAtribDepois = player.forca; progressoDepois = player.progressoForca }
+            "VELOCIDADE" -> { valorAtribDepois = player.velocidade; progressoDepois = player.progressoVelocidade }
+            "RESISTENCIA" -> { valorAtribDepois = player.resistencia; progressoDepois = player.progressoResistencia }
+            "CARISMA" -> { valorAtribDepois = player.carisma; progressoDepois = player.progressoCarisma }
+            "INTELIGENCIA" -> { valorAtribDepois = player.inteligencia; progressoDepois = player.progressoInteligencia }
+        }
+        
+        val progGlobalDepois = calcularProgressoGlobalAtributo(valorAtribDepois, progressoDepois)
+        val perdaReal = (progGlobalAntes - progGlobalDepois).toInt()
+        val perdaFinal = Math.max(0, perdaReal)
+        
+        player.perdaAtribRecuperavel[nomeAtrib] = perdaFinal
+        return perdaFinal
+    }
+
+    private fun setProgressoAtrib(nome: String, valor: Int, prog: Int) {
+        when(nome) {
+            "FORCA" -> { player.forca = valor; player.progressoForca = prog; player.progressoForcaMax = (100 * (1 + valor * 0.05)).toInt() }
+            "VELOCIDADE" -> { player.velocidade = valor; player.progressoVelocidade = prog; player.progressoVelocidadeMax = (100 * (1 + valor * 0.05)).toInt() }
+            "RESISTENCIA" -> { player.resistencia = valor; player.progressoResistencia = prog; player.progressoResistenciaMax = (100 * (1 + valor * 0.05)).toInt() }
+            "CARISMA" -> { player.carisma = valor; player.progressoCarisma = prog; player.progressoCarismaMax = (100 * (1 + valor * 0.05)).toInt() }
+            "INTELIGENCIA" -> { player.inteligencia = valor; player.progressoInteligencia = prog; player.progressoInteligenciaMax = (100 * (1 + valor * 0.05)).toInt() }
         }
     }
 
@@ -81,10 +208,27 @@ object PlayerManager {
         val ganhoEnergia = if (player.profissao == "Policial" || player.profissao == "Engenheiro") 10 else 6
         player.energiaMax += ganhoEnergia
 
-        // A Mente agora cresce sempre na proporção de ~50% da Energia
-        // Médico/Professor ganham 5, as demais profissões ganham a metade do ganho de energia (3 ou 5)
         val ganhoMente = if (player.profissao == "Médico" || player.profissao == "Professor") 5 else (ganhoEnergia / 2)
         player.cansacoMax += ganhoMente
+    }
+
+    /**
+     * Reverte os ganhos de atributos máximos concedidos pelo nível perdido.
+     */
+    private fun reverterAtributosMaximos() {
+        val ganhoVida = if (player.profissao == "Policial") 15 else 10
+        player.vidaMax -= ganhoVida
+
+        val ganhoEnergia = if (player.profissao == "Policial" || player.profissao == "Engenheiro") 10 else 6
+        player.energiaMax -= ganhoEnergia
+
+        val ganhoMente = if (player.profissao == "Médico" || player.profissao == "Professor") 5 else (ganhoEnergia / 2)
+        player.cansacoMax -= ganhoMente
+
+        // Valores atuais devem ser limitados ao novo máximo
+        player.vida = player.vida.coerceAtMost(player.vidaMax)
+        player.energia = player.energia.coerceAtMost(player.energiaMax)
+        player.cansacoMental = player.cansacoMental.coerceAtMost(player.cansacoMax)
     }
 
     fun save(context: Context) {
@@ -144,7 +288,13 @@ object PlayerManager {
         editor.putInt("progressoVelocidadeMax", player.progressoVelocidadeMax)
 
         editor.putString("equipamentoId", player.equipamentoId)
-        editor.putBoolean("temBlessing", player.temBlessing)
+        editor.putInt("estoqueBencao", player.estoqueBencao)
+        editor.putInt("estoqueMedicamento", player.estoqueMedicamento)
+        
+        editor.putInt("perdaXpRecuperavel", player.perdaXpRecuperavel)
+        val perdaAtribStr = player.perdaAtribRecuperavel.entries.joinToString(";") { "${it.key}:${it.value}" }
+        editor.putString("perdaAtribRecuperavel", perdaAtribStr)
+
         editor.putBoolean("introConcluida", player.introConcluida)
 
         editor.putBoolean("trabalhouHoje", player.trabalhouHoje)
@@ -252,7 +402,20 @@ object PlayerManager {
         player.progressoVelocidadeMax = prefs.getInt("progressoVelocidadeMax", 100)
 
         player.equipamentoId = prefs.getString("equipamentoId", null)
-        player.temBlessing = prefs.getBoolean("temBlessing", false)
+        player.estoqueBencao = prefs.getInt("estoqueBencao", 0)
+        player.estoqueMedicamento = prefs.getInt("estoqueMedicamento", 0)
+        
+        player.perdaXpRecuperavel = prefs.getInt("perdaXpRecuperavel", 0)
+        val perdaAtribStr = prefs.getString("perdaAtribRecuperavel", "") ?: ""
+        if (perdaAtribStr.isNotEmpty()) {
+            perdaAtribStr.split(";").forEach {
+                val parts = it.split(":")
+                if (parts.size == 2) {
+                    player.perdaAtribRecuperavel[parts[0]] = parts[1].toIntOrNull() ?: 0
+                }
+            }
+        }
+
         player.introConcluida = prefs.getBoolean("introConcluida", false)
 
         player.trabalhouHoje = prefs.getBoolean("trabalhouHoje", false)
@@ -394,6 +557,16 @@ object PlayerManager {
         if (loadedVersion < 9) {
             // Migração para Versão 9: Inicializa capacidade da mochila
             player.capacidadeMochila = 5
+        }
+
+        if (loadedVersion < 10) {
+            // Migração para Versão 10: Novo Sistema de Bênção e Medicamento
+            // Só migra o Seguro se o estoque atual (carregado acima) for 0 e o booleano antigo for true
+            if (player.estoqueBencao == 0 && prefs.getBoolean("temBlessing", false)) {
+                player.estoqueBencao = 1
+            }
+            // Não zeramos estoqueMedicamento aqui porque ele já foi carregado do prefs anteriormente.
+            // Se ele era 0 no prefs, continuará 0. Se era > 0 (comprado na v9 bugada), será preservado.
         }
     }
 

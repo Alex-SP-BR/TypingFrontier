@@ -19,6 +19,7 @@ object GameEngine {
                 is GameAction.Rest -> processRest()
                 is GameAction.Train -> processTrain(action.attribute, action.intensity)
                 is GameAction.Explore -> processExplore(action.zoneId)
+                is GameAction.UseMedicine -> processUseMedicine()
                 is GameAction.StudyError -> processStudyError(action.attribute)
                 is GameAction.CollectRewards -> processCollectRewards(action.xp, action.money)
                 is GameAction.BuyItem -> processBuyItem(action.item)
@@ -83,11 +84,13 @@ object GameEngine {
         
         val custoEnergia = 35 // Invariante: Custo > Recuperação Comida
         
-        if (p.energia < custoEnergia) {
-            val msg = if (TimeManager.podeAgir()) "Energia insuficiente ($custoEnergia necessária). Que tal fazer um lanche?" else "Energia insuficiente ($custoEnergia necessária)."
-            return EngineResult.Failure(msg)
+        // CORREÇÃO PREVENTIVA: Valida se o custo final causará desmaio
+        if (p.energia - custoEnergia <= 0) {
+            return EngineResult.Failure("Energia física insuficiente para trabalhar ($custoEnergia necessária).")
         }
-        if (p.cansacoMental >= p.cansacoMax * 0.95) return EngineResult.Failure("Energia Mental esgotada! Faça uma pausa ou vá dormir.")
+        if (p.cansacoMental + 11 >= p.cansacoMax) {
+            return EngineResult.Failure("Energia Mental insuficiente para trabalhar.")
+        }
 
         p.trabalhouHoje = true
         p.energia -= custoEnergia
@@ -97,6 +100,7 @@ object GameEngine {
         p.dinheiro += ganho
 
         var extraMsg: String? = null
+        // Segurança extra: embora a validação acima deva impedir, mantemos o gatilho de hospitalização
         if (p.cansacoMental >= p.cansacoMax || p.energia <= 0) {
             extraMsg = ProfessionManager.hospitalizar(p)
         }
@@ -196,15 +200,14 @@ object GameEngine {
 
         p.dinheiro -= config.custoComida
 
-        p.energia = (p.energia + 20).coerceAtMost(p.energiaMax)
-        return EngineResult.Success("🍴 Você comeu uma refeição de ${config.nome}.", "Energia +20")
+        p.energia = (p.energia + config.ganhoEnergiaComida).coerceAtMost(p.energiaMax)
+        return EngineResult.Success("🍴 Você comeu uma refeição de ${config.nome}.", "Energia +${config.ganhoEnergiaComida}")
     }
 
     private fun processSleep(): EngineResult {
         val p = PlayerManager.player
         val custoVida = 60 + (p.nivel * 10)
         
-        // NOVA REGRA: Bloqueio de sono estratégico
         val mentalEnergiaRestante = p.cansacoMax - p.cansacoMental
         val custoMenteEstudo = if (TimeManager.podeAgir()) 4 else (p.cansacoMax * 0.11).toInt().coerceAtLeast(1)
         val custoEnergiaEstudo = if (TimeManager.podeAgir()) 1 else (p.energiaMax * 0.1).toInt().coerceAtLeast(1)
@@ -212,34 +215,51 @@ object GameEngine {
         val temEnergiaParaQueimar = p.energia >= custoEnergiaEstudo && 
                                     mentalEnergiaRestante >= custoMenteEstudo && 
                                     p.dinheiro > custoVida
+
+        // Identificação de ações possíveis para mensagem dinâmica
+        val podeTrabalhar = p.energia - 35 > 0 && !p.trabalhouHoje && p.cansacoMental + 11 < p.cansacoMax && TimeManager.podeAgir()
+        val podeEstudar = p.energia >= custoEnergiaEstudo && p.dinheiro >= 1 && mentalEnergiaRestante >= custoMenteEstudo
+        val podeTreinar = TimeManager.podeAgir() && p.energia >= 10 && p.dinheiro >= 2 && mentalEnergiaRestante >= 8
+        val podeExplorar = TimeManager.podeAgir() && p.energia >= 5 && mentalEnergiaRestante >= 7
+        
+        val listAcoes = mutableListOf<String>()
+        if (podeTrabalhar) listAcoes.add("trabalhar")
+        if (podeTreinar) listAcoes.add("treinar")
+        if (podeEstudar) listAcoes.add("estudar")
+        if (podeExplorar) listAcoes.add("explorar")
+        
+        val acoesSugeridas = when {
+            listAcoes.isEmpty() -> null
+            listAcoes.size == 1 -> listAcoes.first()
+            else -> listAcoes.dropLast(1).joinToString(", ") + " ou " + listAcoes.last()
+        }
         
         if (temEnergiaParaQueimar) {
-            val msg = if (TimeManager.podeAgir()) {
-                "Você ainda tem disposição! Estude ou treine mais um pouco antes de dormir."
-            } else {
-                "Você ainda tem disposição! Estude mais um pouco antes de dormir."
-            }
-            return EngineResult.Failure(msg)
+            val sugestao = if (acoesSugeridas != null) " Que tal $acoesSugeridas mais um pouco antes de dormir?" else ""
+            return EngineResult.Failure("Você ainda tem disposição!$sugestao")
         }
 
-        // REDE DE SEGURANÇA: Permite dormir se for tarde (22h) OU se estiver exausto 
-        // OU se não houver recursos para NENHUMA ação produtiva (Trabalho ou Estudo).
-        val podeTrabalhar = p.energia >= 35 && !p.trabalhouHoje && p.cansacoMental < p.cansacoMax * 0.95
-        val podeEstudar = p.energia >= custoEnergiaEstudo && p.dinheiro >= 1 && mentalEnergiaRestante >= custoMenteEstudo
         val estaTravado = !podeTrabalhar && !podeEstudar && p.pausouHoje
-        
         val podeDormir = !TimeManager.podeAgir() || p.energia < 5 || estaTravado
         
         if (!podeDormir) {
-            return EngineResult.Failure("Você ainda tem fôlego! O dia só acaba às 22:00 (ou quando você não tiver mais como agir).")
+            val prefixo = "Você ainda tem fôlego!"
+            val aviso = if (TimeManager.podeAgir()) {
+                if (acoesSugeridas != null) " O dia só acaba às 22:00. Aproveite para $acoesSugeridas!" 
+                else " O dia só acaba às 22:00. Aproveite o tempo restante!"
+            } else {
+                if (acoesSugeridas != null) " Tente $acoesSugeridas."
+                else " Aproveite para descansar ou revisar seu status."
+            }
+            return EngineResult.Failure("$prefixo$aviso")
         }
         
         // REDE DE SEGURANÇA 2: Sono na rua (Penalidade Real)
         if (p.dinheiro < custoVida) {
             p.trabalhouHoje = false
             p.pausouHoje = false
-            p.energia = (p.energiaMax * 0.3).toInt() // Apenas 30% de energia
-            p.vida = (p.vida - 20).coerceAtLeast(10) // Perda de HP pelo frio/desconforto
+            p.energia = (p.energiaMax * 0.3).toInt() 
+            p.vida = (p.vida - 20).coerceAtLeast(10)
             p.cansacoMental = 0
             p.ajustarVida()
             TimeManager.resetarDia()
@@ -255,10 +275,12 @@ object GameEngine {
         p.ajustarVida()
         
         // 🩹 RECUPERAÇÃO DE TRAUMAS (2 dias por trauma)
+        var traumaRecuperado = false
         if (p.traumasAcumulados > 0) {
             p.diasParaRecuperarTrauma--
             if (p.diasParaRecuperarTrauma <= 0) {
                 p.traumasAcumulados--
+                traumaRecuperado = true
                 if (p.traumasAcumulados > 0) {
                     p.diasParaRecuperarTrauma = 2
                 }
@@ -266,7 +288,20 @@ object GameEngine {
         }
         
         TimeManager.resetarDia() 
-        return EngineResult.Success("😴 Você dormiu bem.", "Status Restaurados! Dia ${p.dia}")
+
+        val extra = StringBuilder("Energia e Energia Mental restauradas.")
+        if (traumaRecuperado) {
+            extra.append("\n")
+            if (p.traumasAcumulados == 0) {
+                extra.append("Seu corpo se recuperou completamente dos traumas.")
+            } else {
+                extra.append("Seu corpo se recuperou de um trauma. Ainda há ${p.traumasAcumulados} em recuperação.")
+            }
+        } else if (p.traumasAcumulados > 0) {
+            extra.append("\nSeu corpo continua se recuperando (Faltam ${p.diasParaRecuperarTrauma} dias para o próximo).")
+        }
+
+        return EngineResult.Success("😴 Você dormiu bem. Pago ${CurrencyUtils.formatar(custoVida)} pela hospedagem.", extra.toString())
     }
 
     private fun processRest(): EngineResult {
@@ -390,6 +425,51 @@ object GameEngine {
         return EngineResult.Success("Avanço na exploração.")
     }
 
+    private fun processUseMedicine(): EngineResult {
+        val p = PlayerManager.player
+        
+        if (p.estoqueMedicamento <= 0) return EngineResult.Failure("Você não possui Medicamento no estoque.")
+        if (p.traumasAcumulados <= 0) return EngineResult.Failure("Você não possui traumas para tratar.")
+
+        p.estoqueMedicamento--
+        p.traumasAcumulados--
+        
+        var msgResumo = "💊 Você usou um Medicamento.\nUm Trauma foi tratado."
+        
+        // 1. REGRA DE HP
+        if (p.traumasAcumulados > 0) {
+            val alvoHP = (p.vidaMax * 0.2).toInt()
+            p.vida = Math.max(p.vida, alvoHP)
+            msgResumo += "\nSua Vida foi recuperada parcialmente porque ainda existem traumas em recuperação."
+        } else {
+            p.vida = p.vidaMax
+            msgResumo += "\n💊 Você se recuperou completamente dos traumas.\nSua Vida foi totalmente restaurada."
+        }
+
+        // 2. RECUPERAÇÃO DE XP (50% da perda real)
+        val xpRecuperado = (p.perdaXpRecuperavel * 0.5).toInt()
+        if (xpRecuperado > 0) {
+            PlayerManager.ganharXp(xpRecuperado)
+            p.perdaXpRecuperavel -= xpRecuperado
+            msgResumo += "\nVocê recuperou ${CurrencyUtils.formatar(xpRecuperado)} de Experiência."
+        }
+
+        // 3. RECUPERAÇÃO DE ATRIBUTOS (50% da perda real individual)
+        val atributosParaRecuperar = p.perdaAtribRecuperavel.filter { it.value > 0 }
+        if (atributosParaRecuperar.isNotEmpty()) {
+            msgResumo += "\nSeu corpo recuperou parte do vigor dos atributos."
+            atributosParaRecuperar.forEach { (nome, perda) ->
+                val rec = (perda * 0.5).toInt()
+                if (rec > 0) {
+                    applyAttributeXP(nome, rec)
+                    p.perdaAtribRecuperavel[nome] = perda - rec
+                }
+            }
+        }
+        
+        return EngineResult.Success(msgResumo)
+    }
+
     private fun processStudyError(atributo: String): EngineResult {
         val p = PlayerManager.player
         p.energia -= 1
@@ -399,11 +479,24 @@ object GameEngine {
 
     private fun processCollectRewards(xp: Int, money: Int): EngineResult {
         val p = PlayerManager.player
+        val vidaAntiga = p.vida
+        val energiaAntiga = p.energia
+        val nivelAntigo = p.nivel
+        
         val niveisGanhos = PlayerManager.ganharXp(xp)
         p.dinheiro += money
         
-        val msg = if (niveisGanhos > 0) "Recompensas coletadas! +$niveisGanhos níveis!" else "Recompensas coletadas com sucesso!"
-        return EngineResult.Success(msg)
+        if (niveisGanhos > 0) {
+            val extra = "Você subiu de nível ($nivelAntigo → ${p.nivel})!\n" +
+                        "❤️ Vida recuperada: $vidaAntiga → ${p.vida}\n" +
+                        "⚡ Energia Física recuperada: $energiaAntiga → ${p.energia}\n" +
+                        "🧠 Energia Mental recuperada parcialmente." +
+                        (if (p.traumasAcumulados > 0) "\n🩹 Os traumas ainda exigem descanso." else "")
+            
+            return EngineResult.Success("🏆 Nível Up! +$niveisGanhos nível(is) e recompensa coletada.", extra)
+        }
+        
+        return EngineResult.Success("Recompensas coletadas com sucesso!")
     }
 
     private fun processBuyItem(item: Equipment): EngineResult {
@@ -414,8 +507,8 @@ object GameEngine {
             return EngineResult.Failure("Nível ${item.nivelMinimo} necessário para este equipamento.")
         }
 
-        // Lógica de Preço (Blessing tem preço fixo por nível, outros usam inflação)
-        val precoFinal = if (item.id == "blessing") item.preco else EconomyManager.precoInflacionado(item.preco)
+        // Lógica de Preço (Itens especiais têm preço já calculado por nível, outros usam inflação)
+        val precoFinal = if (item.id == "blessing" || item.id == "medicine") item.preco else EconomyManager.precoInflacionado(item.preco)
 
         // 2. Verificação de Saldo
         if (p.dinheiro < precoFinal) {
@@ -425,10 +518,15 @@ object GameEngine {
 
         // 3. Execução da Compra
         if (item.id == "blessing") {
-            if (p.temBlessing) return EngineResult.Failure("Você já possui uma benção ativa.")
-            p.temBlessing = true
+            if (p.estoqueBencao >= p.limiteTraumas) return EngineResult.Failure("Limite de Seguros atingido (${p.limiteTraumas}).")
+            p.estoqueBencao++
             p.dinheiro -= precoFinal
-            return EngineResult.Success("Benção adquirida por ${CurrencyUtils.formatar(precoFinal)}!")
+            return EngineResult.Success("Seguro de Equipamentos adquirido por ${CurrencyUtils.formatar(precoFinal)}!")
+        } else if (item.id == "medicine") {
+            if (p.estoqueMedicamento >= p.limiteTraumas) return EngineResult.Failure("Limite de Medicamentos atingido (${p.limiteTraumas}).")
+            p.estoqueMedicamento++
+            p.dinheiro -= precoFinal
+            return EngineResult.Success("Medicamento adquirido por ${CurrencyUtils.formatar(precoFinal)}!")
         } else {
             // VERIFICAÇÃO DE CAPACIDADE DA MOCHILA (Unidade real por item)
             val ocupacaoAtual = p.mochila.values.sum()
@@ -445,8 +543,20 @@ object GameEngine {
     }
 
     private fun processCompleteMission(xp: Int, money: Int): EngineResult {
-        PlayerManager.ganharXp(xp)
-        PlayerManager.player.dinheiro += money
+        val p = PlayerManager.player
+        val vidaAntiga = p.vida
+        val nivelAntigo = p.nivel
+        
+        val niveisGanhos = PlayerManager.ganharXp(xp)
+        p.dinheiro += money
+        
+        if (niveisGanhos > 0) {
+            val extra = "🏆 Nível Up! ($nivelAntigo → ${p.nivel})\n" +
+                        "❤️ Vida: $vidaAntiga → ${p.vida}\n" +
+                        (if (p.traumasAcumulados > 0) "🩹 Traumas permanecem em recuperação." else "")
+            return EngineResult.Success("Missão concluída com sucesso!", extra)
+        }
+
         return EngineResult.Success("Missão concluída com sucesso!")
     }
 

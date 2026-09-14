@@ -155,6 +155,34 @@ class GameActivity : AppCompatActivity() {
                 .show()
         }
 
+        binding.lblVida.setOnClickListener {
+            val p = PlayerManager.player
+            if (p.traumasAcumulados > 0) {
+                if (p.estoqueMedicamento > 0) {
+                    androidx.appcompat.app.AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
+                        .setTitle("💊 Medicamento")
+                        .setMessage("Deseja usar 1 Medicamento?\n\nEle removerá 1 Trauma e recuperará sua Vida.\n\nEstoque: ${p.estoqueMedicamento}")
+                        .setPositiveButton("USAR") { _, _ ->
+                            val result = GameEngine.dispatch(GameAction.UseMedicine)
+                            when (result) {
+                                is EngineResult.Success -> {
+                                    exibirMensagem(result.message, result.extra, prioridade = 4)
+                                }
+                                is EngineResult.Failure -> {
+                                    Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            atualizarHUD()
+                            PlayerManager.save(this)
+                        }
+                        .setNegativeButton("CANCELAR", null)
+                        .show()
+                } else {
+                    Toast.makeText(this, "Você não possui Medicamento. Compre na Loja!", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
         binding.btnComer.setOnClickListener {
             val result = GameEngine.dispatch(GameAction.Eat)
             
@@ -514,8 +542,8 @@ class GameActivity : AppCompatActivity() {
             binding.btnTrabalhar.text = "💼 Trabalhar"
         }
 
-        // 🩹 AVISO DE TRAUMAS (Apenas informativo no load da tela ou repouso)
-        if (p.traumasAcumulados > 0) {
+        // 🩹 AVISO DE TRAUMAS (Apenas informativo se a lousa estiver livre)
+        if (p.traumasAcumulados > 0 && prioridadeAtual >= 5) {
             val totalDias = (p.traumasAcumulados - 1) * 2 + p.diasParaRecuperarTrauma
             val msgTrauma = "🩹 Seu corpo está se recuperando. Recomendado descansar mais $totalDias ${if (totalDias == 1) "dia" else "dias"}."
             exibirMensagem(msgTrauma, prioridade = 2)
@@ -526,7 +554,19 @@ class GameActivity : AppCompatActivity() {
         binding.progressXP.max = p.experienciaParaProximoNivel
         binding.progressXP.progress = p.experienciaAtual
 
-        binding.lblVida.text = "❤️ Vida: ${p.vida}/${p.vidaMax}"
+        // HUD - VIDA, TRAUMA E BÊNÇÃO (Barra mantida exclusivamente vida/vidaMax)
+        val vidaTextBuilder = StringBuilder("❤️ Vida: ${p.vida}/${p.vidaMax}")
+        if (p.traumasAcumulados > 0) {
+            vidaTextBuilder.append(" 🩹 ${p.traumasAcumulados}")
+        }
+        if (p.estoqueMedicamento > 0) {
+            vidaTextBuilder.append(" 💊 ${p.estoqueMedicamento}")
+        }
+        if (p.estoqueBencao > 0) {
+            vidaTextBuilder.append(" 🛡️ ${p.estoqueBencao}")
+        }
+        binding.lblVida.text = vidaTextBuilder.toString()
+
         binding.progressVida.max = p.vidaMax
         binding.progressVida.progress = p.vida
 

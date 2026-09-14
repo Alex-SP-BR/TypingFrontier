@@ -140,26 +140,48 @@ object ProfessionManager {
             player.traumasAcumulados = 0 // Reseta o ciclo após o colapso
             player.diasParaRecuperarTrauma = 0
 
-            if (player.temBlessing) {
-                player.temBlessing = false
-                player.vida = (player.vidaMax * 0.2).toInt()
-                player.energia = 10
-                return "🛡️ ESTADO CRÍTICO: A BENÇÃO TE SALVOU!\nSeu corpo entrou em colapso por traumas sucessivos, mas a proteção divina impediu a perda de níveis e atributos. A benção foi consumida."
-            }
-
             var msgPenalidade = ""
-            if (player.nivel > 1) {
-                PlayerManager.reduzirNivel()
-                msgPenalidade = "\n📉 NÍVEL REDUZIDO: Você voltou para o Nível ${player.nivel}!"
+            val nivelOriginal = player.nivel
+            
+            val xpPerdido = PlayerManager.aplicarPenalidadeXpColapso()
+            
+            if (player.nivel < nivelOriginal) {
+                msgPenalidade = "\n📉 NÍVEL REDUZIDO: Você voltou para o Nível ${player.nivel}!\nSeus limites de Vida, Energia e Mente foram reduzidos."
+            } else {
+                msgPenalidade = "\n📉 PROGRESSO PERDIDO: Você perdeu parte da Experiência acumulada."
             }
 
-            if (player.forca > 3) player.forca--
-            if (player.inteligencia > 3) player.inteligencia--
-            if (player.velocidade > 3) player.velocidade--
-            if (player.carisma > 3) player.carisma--
-            if (player.resistencia > 3) player.resistencia--
+            // Atributos base sofrem sequelas (Novo sistema de perda de progresso)
+            PlayerManager.aplicarPenalidadeAtributoColapso("FORCA")
+            PlayerManager.aplicarPenalidadeAtributoColapso("INTELIGENCIA")
+            PlayerManager.aplicarPenalidadeAtributoColapso("VELOCIDADE")
+            PlayerManager.aplicarPenalidadeAtributoColapso("CARISMA")
+            PlayerManager.aplicarPenalidadeAtributoColapso("RESISTENCIA")
 
-            return "🚨 COLAPSO CORPORAL! 🚨\nSeus traumas sucessivos levaram a um estado crítico (coma).\n$msgPenalidade\nSeus atributos físicos e mentais diminuíram permanentemente pelas sequelas."
+            // SEGURO DE EQUIPAMENTOS
+            val itensEquipados = player.slotsEquipados.filter { it.value != null }
+            var msgEquipamento = ""
+
+            if (itensEquipados.isNotEmpty()) {
+                val sorteioPerda = (1..100).random()
+                if (sorteioPerda <= 25) { // 25% de chance
+                    if (player.estoqueBencao > 0) {
+                        player.estoqueBencao--
+                        msgEquipamento = "\n\n🛡️ Seu Seguro de Equipamentos protegeu seus itens!\nVocê escapou do Colapso sem perder nenhum equipamento."
+                    } else {
+                        val slotAleatorio = itensEquipados.keys.random()
+                        val itemID = player.slotsEquipados[slotAleatorio]
+                        val itemNome = ProfessionManager.getEquipment(itemID)?.nome ?: "Item"
+                        
+                        player.slotsEquipados[slotAleatorio] = null
+                        if (player.equipamentoId == itemID) player.equipamentoId = null
+                        
+                        msgEquipamento = "\n\n⚠️ Você perdeu um equipamento devido ao Colapso.\nEquipamento perdido: $itemNome"
+                    }
+                }
+            }
+
+            return "🚨 COLAPSO CORPORAL! 🚨\nSeus traumas sucessivos levaram a um estado crítico (coma).$msgPenalidade\nAlguns atributos sofreram sequelas permanentes.$msgEquipamento"
         }
     }
 }
