@@ -113,28 +113,38 @@ object ProfessionManager {
     }
 
     fun hospitalizar(player: Player): String {
-        // 1. O trauma físico ocorre sempre, a menos que o jogador consiga fugir (passiva policial processada antes)
+        // 1. Verificar se o jogador já possuía Medicamento antes do trauma para uso automático
+        val hadMedicine = player.estoqueMedicamento > 0
+        var medicineMsg = ""
+
+        // O trauma físico ocorre sempre, a menos que o jogador consiga fugir (passiva policial processada antes)
         player.traumasAcumulados++
         
+        // Se possuía Medicamento, aplica o tratamento automático imediatamente
+        if (hadMedicine) {
+            medicineMsg = "\n\n" + com.typingfrontier.GameEngine.applyMedicineTreatment(isAutomatic = true)
+        }
+
         // Se for o primeiro trauma ou estava recuperado, inicia o ciclo de 2 dias
         if (player.diasParaRecuperarTrauma <= 0) {
             player.diasParaRecuperarTrauma = 2
         }
 
         val limite = player.limiteTraumas
+        // Verifica se atingiu o limite considerando o tratamento automático já aplicado
         val atingiuLimite = player.traumasAcumulados >= limite
 
         // 2. Recuperação de Status Base (Ocorre em todos os desmaios)
         player.vida = (player.vidaMax * 0.4).toInt()
         player.energia = (player.energiaMax * 0.2).toInt()
-        player.cansacoMental = 0
+        player.cansacoMental = (player.cansacoMax * 0.6).toInt() // Energia Mental fica em 40%
 
         if (!atingiuLimite) {
             // PUNIÇÃO LEVE (Ainda tem resistência física)
             val perdaXP = (player.experienciaAtual * 0.15).toInt() // Perde 15% do XP atual do nível
             player.experienciaAtual -= perdaXP
             
-            return "🚑 VOCÊ DESMAIOU!\nAcordou no hospital fraco. Seu corpo resistiu ao trauma, mas você perdeu $perdaXP de Experiência e todo o lucro da exploração.\n\n⚠️ Desgaste: ${player.traumasAcumulados}/$limite traumas."
+            return "🚑 VOCÊ DESMAIOU!\nAcordou no hospital fraco. Seu corpo resistiu ao trauma, mas você perdeu $perdaXP de Experiência e todo o lucro da exploração.\n\n⚠️ Desgaste: ${player.traumasAcumulados}/$limite traumas.$medicineMsg"
         } else {
             // PUNIÇÃO GRAVE: ESTADO CRÍTICO (COLAPSO)
             player.traumasAcumulados = 0 // Reseta o ciclo após o colapso
@@ -181,7 +191,7 @@ object ProfessionManager {
                 }
             }
 
-            return "🚨 COLAPSO CORPORAL! 🚨\nSeus traumas sucessivos levaram a um estado crítico (coma).$msgPenalidade\nAlguns atributos sofreram sequelas permanentes.$msgEquipamento"
+            return "🚨 COLAPSO CORPORAL! 🚨\nSeus traumas sucessivos levaram a um estado crítico (coma).$msgPenalidade\nAlguns atributos sofreram sequelas permanentes.$msgEquipamento$medicineMsg\n\n💊 Dica: Use Medicamentos para recuperar parte do progresso perdido."
         }
     }
 }

@@ -123,13 +123,71 @@ class ExplorationActivity : AppCompatActivity() {
         SoundManager.play(this, "suspense")
 
         val p = PlayerManager.player
-        val temaProfissao = when(p.profissao) {
-            "Policial" -> "Você observa o local com cautela tática, procurando por ameaças."
-            "Médico" -> "Você analisa o ambiente procurando por suprimentos ou pessoas feridas."
-            "Professor" -> "Você tenta ler os sinais sociais e a história do lugar."
-            "Detetive" -> "Seus olhos buscam por pistas e inconsistências no cenário."
-            "Engenheiro" -> "Você avalia a estrutura e as máquinas ao redor."
-            else -> "Você entra silenciosamente no local..."
+        val temaProfissao = when (zona.id) {
+            "parque" -> when(p.profissao) {
+                "Policial" -> "Você entra no parque atento ao movimento das famílias e à segurança das trilhas."
+                "Médico" -> "O sol forte preocupa você; seus olhos buscam por sinais de exaustão entre os frequentadores."
+                "Professor" -> "O burburinho das pessoas chama sua atenção para uma agitação perto do parquinho."
+                "Detetive" -> "Em meio ao lazer dos outros, você foca em um detalhe que parece fora do lugar."
+                "Engenheiro" -> "O som irregular da fonte central atrai seu olhar técnico imediatamente."
+                else -> "Você inicia sua caminhada pelo Parque da Cidade..."
+            }
+            "centro" -> when(p.profissao) {
+                "Policial" -> "Você caminha pelos corredores movimentados, atento a batedores de carteira e tumultos."
+                "Médico" -> "A aglomeração e o ar condicionado fraco parecem o cenário ideal para mal-estares súbitos."
+                "Professor" -> "Você observa o comportamento dos consumidores e a dinâmica social frenética do comércio."
+                "Detetive" -> "Vitrines brilhantes não distraem você; seu foco está em quem parece estar ali sem comprar nada."
+                "Engenheiro" -> "A fiação exposta de um quiosque e o barulho de um elevador próximo incomodam seus sentidos."
+                else -> "Você entra no Centro Comercial e encara a multidão..."
+            }
+            "suburbio" -> when(p.profissao) {
+                "Policial" -> "Fábricas abandonadas e ruas desertas exigem atenção total a cada sombra."
+                "Médico" -> "O cheiro de ferrugem e poeira industrial indica que qualquer ferimento aqui pode ser sério."
+                "Professor" -> "Você reflete sobre o declínio econômico da região enquanto observa as ruínas industriais."
+                "Detetive" -> "Este é o lugar perfeito para esconder o que não deve ser encontrado. Você começa a busca."
+                "Engenheiro" -> "Máquinas pesadas e estruturas de metal corroído são um convite ao seu intelecto."
+                else -> "Você caminha pelas ruas silenciosas do Subúrbio Industrial..."
+            }
+            "beco" -> when(p.profissao) {
+                "Policial" -> "Sua mão repousa perto do coldre enquanto você entra na zona onde a lei raramente chega."
+                "Médico" -> "Você prepara seu kit de emergência; as condições de higiene aqui são inexistentes."
+                "Professor" -> "O silêncio do beco é interrompido por sussurros. Você tenta entender a linguagem das ruas."
+                "Detetive" -> "A escuridão é sua aliada. Você procura por rastros que o asfalto tenta esconder."
+                "Engenheiro" -> "Você nota a gambiarra nos postes e a precariedade das escadas de incêndio."
+                else -> "Você mergulha nas sombras do Beco Escuro..."
+            }
+            "laboratorio" -> when(p.profissao) {
+                "Policial" -> "Sinais de invasão e recipientes quebrados indicam que algo deu muito errado aqui."
+                "Médico" -> "Vapores químicos e bio-riscos. Você ajusta sua máscara e entra com cautela médica."
+                "Professor" -> "Quadros negros cheios de fórmulas e arquivos espalhados contam uma história de obsessão."
+                "Detetive" -> "Segredos corporativos e experimentos proibidos. Você busca a verdade entre os frascos."
+                "Engenheiro" -> "Computadores antigos e reatores instáveis. Você quer entender como tudo isso funcionava."
+                else -> "Você abre a porta pesada do Laboratório Abandonado..."
+            }
+            "cassino" -> when(p.profissao) {
+                "Policial" -> "Você entra disfarçado, mapeando as saídas e identificando os seguranças armados."
+                "Médico" -> "O excesso de fumaça e adrenalina é uma bomba relógio para os apostadores veteranos."
+                "Professor" -> "Você observa como o vício e a esperança manipulam o comportamento humano nas mesas."
+                "Detetive" -> "Cada blefe e cada olhar nervoso é uma pista. Você procura por quem está trapaceando."
+                "Engenheiro" -> "Os mecanismos das roletas e das máquinas de slot parecem ter um padrão para você."
+                else -> "Você entra no brilho ofuscante do Cassino Clandestino..."
+            }
+            "esgotos" -> when(p.profissao) {
+                "Policial" -> "A ecoar de passos na água avisa que você não está sozinho nestes túneis."
+                "Médico" -> "O risco de infecção é altíssimo. Você se move tentando não tocar nas paredes úmidas."
+                "Professor" -> "Você pensa no que a sociedade descarta enquanto caminha pela infraestrutura esquecida."
+                "Detetive" -> "O que é jogado fora revela muito sobre a superfície. Você segue o fluxo."
+                "Engenheiro" -> "A pressão da água e o estado das vigas de sustentação são sua maior preocupação."
+                else -> "Você desce para a escuridão úmida dos Esgotos Profundos..."
+            }
+            else -> when(p.profissao) {
+                "Policial" -> "Você observa o local com cautela tática, procurando por ameaças."
+                "Médico" -> "Você analisa o ambiente procurando por suprimentos ou pessoas feridas."
+                "Professor" -> "Você tenta ler os sinais sociais e a história do lugar."
+                "Detetive" -> "Seus olhos buscam por pistas e inconsistências no cenário."
+                "Engenheiro" -> "Você avalia a estrutura e as máquinas ao redor."
+                else -> "Você entra silenciosamente no local..."
+            }
         }
         
         txtDescricao.text = "Você chegou ao ${zona.nome}.\n\n$temaProfissao\n\nO que deseja fazer?"
@@ -214,14 +272,15 @@ class ExplorationActivity : AppCompatActivity() {
             }
             etapaAtual++
         } else {
-            val msgHospital = ExplorationManager.processarFalhaCritica(p)
-            txtDescricao.text = "❌ VOCÊ FOI DERROTADO!\n$msgHospital"
-            txtResultado.text = "Você perdeu tudo o que coletou nesta zona."
+            val msgHospital = ExplorationManager.processarFalhaCritica(p, zonaAtual)
+            txtDescricao.text = "❌ BUSCA ENCERRADA!\n$msgHospital"
+            txtResultado.text = "Você perdeu todo o loot acumulado nesta zona."
             txtResultado.setTextColor(android.graphics.Color.parseColor("#FF8A80"))
             
             btnIrMaisFundo.visibility = View.GONE
             btnSairLoot.visibility = View.GONE
             btnFinalizar.visibility = View.VISIBLE
+            btnFinalizar.text = "VOLTAR AO MAPA"
             
             PlayerManager.save(this)
         }

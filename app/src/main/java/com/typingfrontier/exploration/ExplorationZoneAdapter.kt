@@ -38,7 +38,19 @@ class ExplorationZoneAdapter(
             // Destaque sutil: Ícone em tom dourado/obra
             imgItem.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FFD600"))
         } else {
-            holder.txtDesc.text = "${zona.descricao}\nFoco: ${zona.atributoFoco} | Risco: ${zona.riscoBase}%"
+            val sb = StringBuilder(zona.descricao)
+            sb.append("\nFoco: ").append(formatAttr(zona.atributoPrincipal))
+            sb.append(" | Risco: ").append(zona.riscoBase).append("%")
+
+            val apoios = mutableListOf<String>()
+            zona.atributoSecundario?.let { apoios.add(formatAttr(it)) }
+            zona.atributoTerciario?.let { apoios.add(formatAttr(it)) }
+
+            if (apoios.isNotEmpty()) {
+                sb.append("\nApoio: ").append(apoios.joinToString(" • "))
+            }
+
+            holder.txtDesc.text = sb.toString()
             holder.txtNivel.text = "Nível Requerido: ${zona.nivelMinimo}"
             holder.txtNivel.setTextColor(android.graphics.Color.parseColor("#74C6E0"))
             holder.itemView.alpha = 1.0f
@@ -47,6 +59,17 @@ class ExplorationZoneAdapter(
         }
 
         holder.itemView.setOnClickListener { onItemClick(zona) }
+    }
+
+    private fun formatAttr(attr: String?): String {
+        return when (attr) {
+            "FORCA" -> "💪 Força"
+            "VELOCIDADE" -> "⚡ Velocidade"
+            "RESISTENCIA" -> "🛡️ Resistência"
+            "CARISMA" -> "🗣️ Carisma"
+            "INTELIGENCIA" -> "🧠 Inteligência"
+            else -> attr ?: ""
+        }
     }
 
     override fun getItemCount(): Int = zonas.size

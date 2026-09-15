@@ -187,7 +187,7 @@ class ShopActivity : AppCompatActivity() {
                 preco = precoMed,
                 atributoAlvo = "CLÍNICO",
                 bonus = 1,
-                descricao = "Remove 1 Trauma, recupera HP e restaura parte do XP perdido. (Estoque: ${player.estoqueMedicamento}/${player.limiteTraumas})"
+                descricao = "Trata Traumas, recupera HP e restaura 50% de XP e Atributos perdidos. (Estoque: ${player.estoqueMedicamento}/${player.limiteTraumas})"
             )
             itensVisuais.add(LojaItem.Equipamento(medicineItem))
 

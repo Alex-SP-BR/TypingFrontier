@@ -161,7 +161,11 @@ class GameActivity : AppCompatActivity() {
                 if (p.estoqueMedicamento > 0) {
                     androidx.appcompat.app.AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
                         .setTitle("💊 Medicamento")
-                        .setMessage("Deseja usar 1 Medicamento?\n\nEle removerá 1 Trauma e recuperará sua Vida.\n\nEstoque: ${p.estoqueMedicamento}")
+                        .setMessage("Deseja usar 1 Medicamento?\n\n" +
+                                "✅ Trata 1 Trauma\n" +
+                                "❤️ Recupera HP\n" +
+                                "✨ Restaura 50% do progresso perdido (XP e Atributos)\n\n" +
+                                "Estoque: ${p.estoqueMedicamento}")
                         .setPositiveButton("USAR") { _, _ ->
                             val result = GameEngine.dispatch(GameAction.UseMedicine)
                             when (result) {

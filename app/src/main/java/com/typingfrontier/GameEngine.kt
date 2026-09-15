@@ -427,47 +427,116 @@ object GameEngine {
 
     private fun processUseMedicine(): EngineResult {
         val p = PlayerManager.player
-        
         if (p.estoqueMedicamento <= 0) return EngineResult.Failure("Você não possui Medicamento no estoque.")
-        if (p.traumasAcumulados <= 0) return EngineResult.Failure("Você não possui traumas para tratar.")
+        if (p.traumasAcumulados <= 0) return EngineResult.Failure("Seu corpo não possui traumas para tratar com Medicamento.")
 
+        val msg = applyMedicineTreatment(isAutomatic = false)
+        return EngineResult.Success(msg)
+    }
+
+    /**
+     * Aplica o tratamento de um Medicamento.
+     * Consome 1 unidade, remove 1 trauma e recupera HP/XP/Atributos conforme regras atuais.
+     */
+    fun applyMedicineTreatment(isAutomatic: Boolean): String {
+        val p = PlayerManager.player
+        
         p.estoqueMedicamento--
         p.traumasAcumulados--
         
-        var msgResumo = "💊 Você usou um Medicamento.\nUm Trauma foi tratado."
+        val prefix = if (isAutomatic) "🛡️ Medicamento utilizado automaticamente!\n" else ""
+        val sb = StringBuilder("${prefix}💊 1 Trauma foi tratado.")
+        if (p.traumasAcumulados > 0) {
+            sb.append(" (Restam ${p.traumasAcumulados})")
+        } else {
+            sb.append("\n✅ Todos os traumas foram curados!")
+        }
         
         // 1. REGRA DE HP
+        val vidaAntes = p.vida
         if (p.traumasAcumulados > 0) {
             val alvoHP = (p.vidaMax * 0.2).toInt()
             p.vida = Math.max(p.vida, alvoHP)
-            msgResumo += "\nSua Vida foi recuperada parcialmente porque ainda existem traumas em recuperação."
+            if (p.vida > vidaAntes) {
+                sb.append("\n❤️ Vida recuperada: +${p.vida - vidaAntes} HP.")
+            }
+            sb.append("\n⚠️ A recuperação total da Vida exige tratar os traumas restantes.")
         } else {
             p.vida = p.vidaMax
-            msgResumo += "\n💊 Você se recuperou completamente dos traumas.\nSua Vida foi totalmente restaurada."
+            sb.append("\n❤️ Vida totalmente restaurada! (+${p.vida - vidaAntes} HP)")
         }
 
         // 2. RECUPERAÇÃO DE XP (50% da perda real)
         val xpRecuperado = (p.perdaXpRecuperavel * 0.5).toInt()
         if (xpRecuperado > 0) {
-            PlayerManager.ganharXp(xpRecuperado)
+            val niveisGanhos = PlayerManager.ganharXp(xpRecuperado)
             p.perdaXpRecuperavel -= xpRecuperado
-            msgResumo += "\nVocê recuperou ${CurrencyUtils.formatar(xpRecuperado)} de Experiência."
+            sb.append("\n✨ +${CurrencyUtils.formatar(xpRecuperado)} de Experiência recuperada.")
+            if (niveisGanhos > 0) {
+                sb.append("\n🎉 LEVEL UP! Você subiu para o Nível ${p.nivel}!")
+            }
         }
 
         // 3. RECUPERAÇÃO DE ATRIBUTOS (50% da perda real individual)
         val atributosParaRecuperar = p.perdaAtribRecuperavel.filter { it.value > 0 }
         if (atributosParaRecuperar.isNotEmpty()) {
-            msgResumo += "\nSeu corpo recuperou parte do vigor dos atributos."
+            sb.append("\n\n💪 Vigor dos Atributos:")
             atributosParaRecuperar.forEach { (nome, perda) ->
                 val rec = (perda * 0.5).toInt()
                 if (rec > 0) {
+                    val valorAntes = when(nome) {
+                        "FORCA" -> p.forca
+                        "VELOCIDADE" -> p.velocidade
+                        "RESISTENCIA" -> p.resistencia
+                        "CARISMA" -> p.carisma
+                        "INTELIGENCIA" -> p.inteligencia
+                        else -> 0
+                    }
+                    
                     applyAttributeXP(nome, rec)
+                    
+                    val valorDepois = when(nome) {
+                        "FORCA" -> p.forca
+                        "VELOCIDADE" -> p.velocidade
+                        "RESISTENCIA" -> p.resistencia
+                        "CARISMA" -> p.carisma
+                        "INTELIGENCIA" -> p.inteligencia
+                        else -> 0
+                    }
+                    
+                    val nomeExibicao = when(nome) {
+                        "FORCA" -> "Força"
+                        "VELOCIDADE" -> "Velocidade"
+                        "RESISTENCIA" -> "Resistência"
+                        "CARISMA" -> "Carisma"
+                        "INTELIGENCIA" -> "Inteligência"
+                        else -> nome
+                    }
+                    
+                    if (valorDepois > valorAntes) {
+                        sb.append("\n• $nomeExibicao: +${valorDepois - valorAntes} (Total: $valorDepois)")
+                    } else {
+                        sb.append("\n• $nomeExibicao: Reabilitado")
+                    }
+                    
                     p.perdaAtribRecuperavel[nome] = perda - rec
                 }
             }
         }
         
-        return EngineResult.Success(msgResumo)
+        // Verificação final de dívida
+        val xpRestante = p.perdaXpRecuperavel
+        val atribRestante = p.perdaAtribRecuperavel.values.sum()
+        
+        if (xpRestante <= 0 && atribRestante <= 0) {
+            if (xpRecuperado > 0 || atributosParaRecuperar.isNotEmpty()) {
+                sb.append("\n\n✨ Todo o progresso perdido foi restaurado!")
+            }
+        } else {
+            sb.append("\n\n💊 Mais doses podem ser usadas para recuperar o restante do progresso.")
+        }
+        
+        return sb.toString()
     }
 
     private fun processStudyError(atributo: String): EngineResult {

@@ -89,7 +89,7 @@ object ExplorationZoneRepository {
         ExplorationZone(
             id = "cassino",
             nome = "🎭 Cassino Clandestino",
-            descricao = "Onde a lábia vale mais que o ouro. Um erro pode ser fatal.",
+            descricao = "Onde a lábia vale mais que o ouro. Um erro pode ser desastroso.",
             nivelMinimo = 30,
             riscoBase = 100,
             atributoPrincipal = "CARISMA",
