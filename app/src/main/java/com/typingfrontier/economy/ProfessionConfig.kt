@@ -2,6 +2,7 @@ package com.typingfrontier.economy
 
 import com.typingfrontier.Player
 import com.typingfrontier.PlayerManager
+import com.typingfrontier.R
 
 data class Equipment(
     val id: String,
@@ -33,19 +34,63 @@ data class ProfessionConfig(
 
 object ProfessionManager {
     
-    val EQUIP_POLICIAL = Equipment("police_vest", "Colete Balístico", 200, "RESISTENCIA", 10, "Aumenta sua defesa em patrulhas.", null, "Policial", "COLETE", slot = "CORPO")
-    val EQUIP_MEDICO = Equipment("stetho", "Estetoscópio de Elite", 250, "INTELIGENCIA", 8, "Melhora diagnósticos e ganhos.", null, "Médico", "ESTETOSCOPIO", slot = "PESCOÇO")
-    val EQUIP_PROFESSOR = Equipment("rare_book", "Livro Raro de Retórica", 150, "CARISMA", 12, "Aumenta o impacto das suas palavras.", null, "Professor", "LIVRO", slot = "MÃO")
-    val EQUIP_ENGENHEIRO = Equipment("toolkit", "Maleta de Ferramentas", 180, "RESISTENCIA", 8, "Facilita reparos e construção.", null, "Engenheiro", "MALETA", slot = "MÃO")
-    val EQUIP_DETETIVE = Equipment("magnifier", "Lupa Profissional", 120, "VELOCIDADE", 15, "Aumenta chance de achar pistas.", null, "Detetive", "LUPA", slot = "MÃO")
+    val EQUIP_POLICIAL = Equipment("police_vest", "Colete Balístico", 200, "RESISTENCIA", 10, "Aumenta sua defesa em patrulhas.", R.drawable.equipment_colete_balistico, "Policial", "COLETE", slot = "CORPO")
+    val EQUIP_MEDICO = Equipment("stetho", "Estetoscópio de Elite", 250, "INTELIGENCIA", 8, "Melhora diagnósticos e ganhos.", R.drawable.equipment_estetoscopio_elite, "Médico", "ESTETOSCOPIO", slot = "PESCOÇO")
+    val EQUIP_PROFESSOR = Equipment("rare_book", "Livro Raro de Retórica", 150, "CARISMA", 12, "Aumenta o impacto das suas palavras.", R.drawable.equipment_livro_retorica, "Professor", "LIVRO", slot = "MÃO")
+    val EQUIP_ENGENHEIRO = Equipment("toolkit", "Maleta de Ferramentas", 180, "RESISTENCIA", 8, "Facilita reparos e construção.", R.drawable.equipment_maleta_ferramentas, "Engenheiro", "MALETA", slot = "MÃO")
+    val EQUIP_DETETIVE = Equipment("magnifier", "Lupa Profissional", 120, "VELOCIDADE", 15, "Aumenta chance de achar pistas.", R.drawable.equipment_lupa_profissional, "Detetive", "LUPA", slot = "MÃO")
+
+    // Novos Equipamentos Policial
+    val POLICE_HELMET = Equipment("police_helmet", "Capacete", 100, "RESISTENCIA", 5, "Proteção básica para a cabeça.", R.drawable.policial_capacete, "Policial", "CAPACETE", slot = "CABEÇA")
+    val POLICE_MIC = Equipment("police_lapel_microphone", "Microfone de Lapela", 90, "CARISMA", 4, "Melhora a comunicação via rádio.", R.drawable.policial_microfone_lapela, "Policial", "MICROFONE", slot = "PESCOÇO")
+    val POLICE_TONFA = Equipment("police_tonfa", "Tonfa", 110, "FORCA", 5, "Bastão tático para combate próximo.", R.drawable.policial_tonfa, "Policial", "TONFA", slot = "MÃO")
+    val POLICE_CUFFS = Equipment("police_handcuffs", "Algemas", 80, "FORCA", 4, "Essencial para realizar prisões.", R.drawable.policial_algemas, "Policial", "ALGEMAS", slot = "ACESSÓRIO")
+    val POLICE_BOOTS = Equipment("police_boots", "Bota", 100, "RESISTENCIA", 5, "Calçado resistente para longas patrulhas.", R.drawable.policial_bota, "Policial", "BOTA", slot = "PÉS")
+
+    // Novos Equipamentos Médico
+    val MED_HELMET = Equipment("medico_helmet", "Capacete Médico", 100, "INTELIGENCIA", 5, "Proteção leve e higiênica.", R.drawable.medico_capacete, "Médico", "CAPACETE", slot = "CABEÇA")
+    val MED_ID = Equipment("medico_cracha", "Crachá Médico", 80, "INTELIGENCIA", 4, "Identificação profissional indispensável.", R.drawable.medico_cracha, "Médico", "CRACHA", slot = "PESCOÇO")
+    val MED_COAT = Equipment("medico_jaleco", "Jaleco Médico", 100, "INTELIGENCIA", 5, "Uniforme padrão de alta qualidade.", R.drawable.medico_jaleco, "Médico", "JALECO", slot = "CORPO")
+    val MED_STETHO = Equipment("medico_estetoscopio", "Estetoscópio", 110, "INTELIGENCIA", 5, "Instrumento básico para diagnósticos.", R.drawable.medico_estetoscopio, "Médico", "ESTETOSCOPIO", slot = "MÃO")
+    val MED_BAG = Equipment("medico_bolsa", "Bolsa Médica", 100, "INTELIGENCIA", 5, "Espaço para kits de primeiros socorros.", R.drawable.medico_bolsa_medica, "Médico", "BOLSA", slot = "ACESSÓRIO")
+    val MED_SHOES = Equipment("medico_sapato", "Sapato Médico", 80, "INTELIGENCIA", 4, "Conforto para longos plantões.", R.drawable.medico_sapato, "Médico", "SAPATO", slot = "PÉS")
+
+    // Novos Equipamentos Engenheiro
+    val ENG_HELMET = Equipment("engenheiro_helmet", "Capacete de Engenheiro", 100, "RESISTENCIA", 5, "Segurança essencial no canteiro.", R.drawable.engenheiro_capacete, "Engenheiro", "CAPACETE", slot = "CABEÇA")
+    val ENG_RADIO = Equipment("engenheiro_radio", "Rádio", 80, "INTELIGENCIA", 4, "Comunicação clara com a equipe.", R.drawable.engenheiro_radio, "Engenheiro", "RADIO", slot = "PESCOÇO")
+    val ENG_VEST = Equipment("engenheiro_colete", "Colete de Engenheiro", 100, "RESISTENCIA", 5, "Alta visibilidade e proteção.", R.drawable.engenheiro_colete, "Engenheiro", "COLETE", slot = "CORPO")
+    val ENG_NOTEBOOK = Equipment("engenheiro_notebook", "Notebook de Engenharia", 110, "INTELIGENCIA", 5, "Poder de processamento para cálculos.", R.drawable.engenheiro_notebook, "Engenheiro", "NOTEBOOK", slot = "MÃO")
+    val ENG_METER = Equipment("engenheiro_medidor", "Medidor Digital", 100, "INTELIGENCIA", 5, "Precisão milimétrica em medições.", R.drawable.engenheiro_medidor_digital, "Engenheiro", "MEDIDOR", slot = "ACESSÓRIO")
+    val ENG_BOOTS = Equipment("engenheiro_boots", "Bota de Segurança", 100, "RESISTENCIA", 5, "Proteção contra impactos e detritos.", R.drawable.engenheiro_bota, "Engenheiro", "BOTA", slot = "PÉS")
+
+    // Novos Equipamentos Professor
+    val PROF_GLASSES = Equipment("professor_glasses", "Óculos", 100, "INTELIGENCIA", 5, "Melhora o foco na leitura.", R.drawable.professor_oculos, "Professor", "OCULOS", slot = "CABEÇA")
+    val PROF_ID = Equipment("professor_cracha", "Crachá", 80, "CARISMA", 4, "Identificação formal na instituição.", R.drawable.professor_cracha, "Professor", "CRACHA", slot = "PESCOÇO")
+    val PROF_SUIT = Equipment("professor_terno", "Terno", 100, "CARISMA", 5, "Aparência profissional e respeitável.", R.drawable.professor_terno, "Professor", "TERNO", slot = "CORPO")
+    val PROF_RULER = Equipment("professor_regua", "Régua", 80, "INTELIGENCIA", 4, "Ferramenta básica para geometria.", R.drawable.professor_regua, "Professor", "REGUA", slot = "MÃO")
+    val PROF_PHONE = Equipment("professor_phone", "Celular", 100, "CARISMA", 5, "Conectividade e pesquisa rápida.", R.drawable.professor_celular, "Professor", "CELULAR", slot = "ACESSÓRIO")
+    val PROF_SHOES = Equipment("professor_shoes", "Sapato", 100, "CARISMA", 5, "Elegância e conforto em sala.", R.drawable.professor_sapato, "Professor", "SAPATO", slot = "PÉS")
+
+    // Novos Equipamentos Detetive
+    val DET_HAT = Equipment("detetive_hat", "Chapéu de Detetive", 100, "INTELIGENCIA", 5, "Estilo clássico de investigação.", R.drawable.detetive_chapeu, "Detetive", "CHAPEU", slot = "CABEÇA")
+    val DET_TIE = Equipment("detetive_tie", "Gravata", 80, "INTELIGENCIA", 4, "Disfarce formal para infiltração.", R.drawable.detetive_gravata, "Detetive", "GRAVATA", slot = "PESCOÇO")
+    val DET_COAT = Equipment("detetive_coat", "Sobretudo", 110, "VELOCIDADE", 5, "Oculta equipamentos e protege.", R.drawable.detetive_sobretudo, "Detetive", "SOBRETUDO", slot = "CORPO")
+    val DET_NOTEBOOK = Equipment("detetive_notebook", "Caderno de Investigação", 80, "VELOCIDADE", 4, "Anotações cruciais sobre o caso.", R.drawable.detetive_caderno_investigacao, "Detetive", "CADERNO", slot = "MÃO")
+    val DET_FLASHLIGHT = Equipment("detetive_flashlight", "Lanterna", 100, "INTELIGENCIA", 5, "Ilumina pistas em locais escuros.", R.drawable.detetive_lanterna, "Detetive", "LANTERNA", slot = "ACESSÓRIO")
+    val DET_SHOES = Equipment("detetive_shoes", "Sapato Social", 100, "VELOCIDADE", 5, "Agilidade com discrição.", R.drawable.detetive_sapato, "Detetive", "SAPATO", slot = "PÉS")
 
     private val todosEquipamentos = listOf(
         EQUIP_POLICIAL, EQUIP_MEDICO, EQUIP_PROFESSOR, EQUIP_ENGENHEIRO, EQUIP_DETETIVE,
-        Equipment("police_vest_2", "Colete Tático Avançado", 450, "RESISTENCIA", 25, "Proteção pesada para missões críticas.", null, "Policial", "COLETE", slot = "CORPO"),
-        Equipment("stetho_2", "Monitor Cardíaco Portátil", 500, "INTELIGENCIA", 20, "Tecnologia médica de ponta.", null, "Médico", "ESTETOSCOPIO", slot = "PESCOÇO"),
-        Equipment("rare_book_2", "Enciclopédia de Filosofia", 400, "CARISMA", 25, "Domine a arte da persuasão.", null, "Professor", "LIVRO", slot = "MÃO"),
-        Equipment("toolkit_2", "Maleta de Ferramentas Pro", 380, "RESISTENCIA", 18, "Tudo o que um engenheiro precisa.", null, "Engenheiro", "MALETA", slot = "MÃO"),
-        Equipment("drone", "Drone de Vigilância", 600, "VELOCIDADE", 30, "Visão aérea total para o detetive.", null, "Detetive", "DRONE", slot = "ACESSÓRIO")
+        POLICE_HELMET, POLICE_MIC, POLICE_TONFA, POLICE_CUFFS, POLICE_BOOTS,
+        MED_HELMET, MED_ID, MED_COAT, MED_STETHO, MED_BAG, MED_SHOES,
+        ENG_HELMET, ENG_RADIO, ENG_VEST, ENG_NOTEBOOK, ENG_METER, ENG_BOOTS,
+        PROF_GLASSES, PROF_ID, PROF_SUIT, PROF_RULER, PROF_PHONE, PROF_SHOES,
+        DET_HAT, DET_TIE, DET_COAT, DET_NOTEBOOK, DET_FLASHLIGHT, DET_SHOES,
+        Equipment("police_vest_2", "Colete Tático Avançado", 450, "RESISTENCIA", 25, "Proteção pesada para missões críticas.", R.drawable.equipment_colete_tatico_avancado, "Policial", "COLETE", slot = "CORPO"),
+        Equipment("stetho_2", "Monitor Cardíaco Portátil", 500, "INTELIGENCIA", 20, "Tecnologia médica de ponta.", R.drawable.equipment_monitor_cardiaco, "Médico", "ESTETOSCOPIO", slot = "PESCOÇO"),
+        Equipment("rare_book_2", "Enciclopédia de Filosofia", 400, "CARISMA", 25, "Domine a arte da persuasão.", R.drawable.equipment_enciclopedia_filosofia, "Professor", "LIVRO", slot = "MÃO"),
+        Equipment("toolkit_2", "Maleta de Ferramentas Pro", 380, "RESISTENCIA", 18, "Tudo o que um engenheiro precisa.", R.drawable.equipment_maleta_ferramentas_pro, "Engenheiro", "MALETA", slot = "MÃO"),
+        Equipment("drone", "Drone de Vigilância", 600, "VELOCIDADE", 30, "Visão aérea total para o detetive.", R.drawable.equipment_drone_vigilancia, "Detetive", "DRONE", slot = "ACESSÓRIO")
     )
 
     fun getAllEquipments(): List<Equipment> = todosEquipamentos

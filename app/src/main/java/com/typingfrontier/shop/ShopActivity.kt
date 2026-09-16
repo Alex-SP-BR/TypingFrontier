@@ -1,26 +1,22 @@
 package com.typingfrontier.shop
 
 import android.os.Bundle
-import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
-import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.typingfrontier.EconomyManager
 import com.typingfrontier.PlayerManager
 import com.typingfrontier.R
-import com.typingfrontier.GameEngine
-import com.typingfrontier.GameAction
-import com.typingfrontier.EngineResult
-import com.typingfrontier.utils.CurrencyUtils
-import com.typingfrontier.economy.ProfessionManager
-import com.typingfrontier.EconomyManager
 import com.typingfrontier.economy.Equipment
+import com.typingfrontier.economy.ProfessionManager
+import com.typingfrontier.utils.CurrencyUtils
 
 class ShopActivity : AppCompatActivity() {
 
     private var professionExpanded: String? = null
     private var typeExpanded: String? = null
-    private var specialExpanded: Boolean = false
+    private var specialExpanded: Boolean = true
     private val itensVisuais = mutableListOf<LojaItem>()
     private lateinit var adapter: LojaAdapter
 
@@ -29,148 +25,102 @@ class ShopActivity : AppCompatActivity() {
         setContentView(R.layout.activity_shop)
 
         val player = PlayerManager.player
-        val listView = findViewById<ListView>(R.id.listViewLoja)
-        val btnVoltar = findViewById<Button>(R.id.btnVoltar)
-        val txtSaldo = findViewById<TextView>(R.id.txtSaldoLoja)
+
+        val txtDinheiro = findViewById<TextView>(R.id.txtSaldoLoja)
+        val listLoja = findViewById<ListView>(R.id.listViewLoja)
         val txtCapacidade = findViewById<TextView>(R.id.txtCapacidadeLoja)
 
         fun updateUIStatus() {
-            txtSaldo.text = "Saldo: ${CurrencyUtils.formatar(player.dinheiro)}"
-            val ocupacao = player.mochila.values.sum()
-            txtCapacidade.text = "Mochila: $ocupacao / ${player.capacidadeMochila}"
-            if (ocupacao >= player.capacidadeMochila) {
-                txtCapacidade.setTextColor(android.graphics.Color.RED)
-            } else {
-                txtCapacidade.setTextColor(android.graphics.Color.parseColor("#666666"))
-            }
-        }
-
-        txtSaldo.setOnClickListener {
-            CurrencyUtils.mostrarSaldoExato(this, PlayerManager.player.dinheiro)
+            txtDinheiro.text = "Seu Saldo: ${CurrencyUtils.formatar(player.dinheiro)}"
+            
+            val ocupacaoAtual = player.mochila.values.sum()
+            txtCapacidade.text = "Mochila: $ocupacaoAtual/${player.capacidadeMochila}"
         }
 
         updateUIStatus()
-
-        adapter = LojaAdapter(this, itensVisuais,
-            onBuyClick = { item ->
-                mostrarConfirmacaoCompra(item) {
-                    updateUIStatus()
-                }
-            },
-            onSellClick = { item ->
-                mostrarConfirmacaoVenda(item) {
-                    updateUIStatus()
-                }
-            }
-        )
-        listView.adapter = adapter
-
         updateShopList()
 
-        listView.setOnItemClickListener { _, _, position, _ ->
-            val itemWrapper = itensVisuais[position]
-            when (itemWrapper) {
+        adapter = LojaAdapter(
+            this,
+            itensVisuais,
+            onBuyClick = { item -> mostrarConfirmacaoCompra(item) { updateUIStatus(); updateShopList() } },
+            onSellClick = { item -> mostrarConfirmacaoVenda(item) { updateUIStatus(); updateShopList() } }
+        )
+        listLoja.adapter = adapter
+
+        listLoja.setOnItemClickListener { _, _, position, _ ->
+            val item = itensVisuais[position]
+            when (item) {
                 is LojaItem.HeaderProfissao -> {
-                    if (itemWrapper.nome == "ITENS ESPECIAIS") {
+                    if (item.nome == "ITENS ESPECIAIS") {
                         specialExpanded = !specialExpanded
-                        if (specialExpanded) {
-                            professionExpanded = null
-                            typeExpanded = null
-                        }
                     } else {
-                        val profNome = itemWrapper.nome
-                        if (professionExpanded == profNome) {
-                            professionExpanded = null
-                            typeExpanded = null
-                        } else {
-                            professionExpanded = profNome
-                            typeExpanded = null
-                            specialExpanded = false
-                        }
+                        professionExpanded = if (professionExpanded == item.nome) null else item.nome
                     }
                     updateShopList()
                 }
                 is LojaItem.HeaderTipo -> {
-                    val tipoNome = itemWrapper.nome
-                    if (typeExpanded == tipoNome) {
-                        typeExpanded = null
-                    } else {
-                        typeExpanded = tipoNome
-                    }
+                    typeExpanded = if (typeExpanded == item.nome) null else item.nome
                     updateShopList()
                 }
                 is LojaItem.Equipamento -> {
-                    // Clique no card não faz mais compra automática para evitar bug de venda/compra dupla
+                    // Ação no clique do item se necessário
                 }
             }
         }
 
-        btnVoltar.setOnClickListener { finish() }
+        findViewById<android.widget.Button>(R.id.btnVoltar).setOnClickListener { finish() }
     }
 
-    private fun executarCompra(item: Equipment, onSucesso: () -> Unit) {
-        val result = GameEngine.dispatch(GameAction.BuyItem(item))
-        when (result) {
-            is EngineResult.Success -> {
-                Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
-                updateShopList() // Reconstrói as descrições com estoque atualizado
-                onSucesso()
-                PlayerManager.save(this)
-            }
-            is EngineResult.Failure -> {
-                Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
-            }
+    private fun executarCompra(item: Equipment, onComplete: () -> Unit) {
+        val result = com.typingfrontier.GameEngine.dispatch(com.typingfrontier.GameAction.BuyItem(item))
+        if (result is com.typingfrontier.EngineResult.Success) {
+            android.widget.Toast.makeText(this, result.message, android.widget.Toast.LENGTH_SHORT).show()
+            PlayerManager.save(this)
+            onComplete()
+        } else if (result is com.typingfrontier.EngineResult.Failure) {
+            android.widget.Toast.makeText(this, result.message, android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun mostrarConfirmacaoCompra(item: Equipment, onSucesso: () -> Unit) {
-        val precoAtual = EconomyManager.precoInflacionado(item.preco)
-        
-        androidx.appcompat.app.AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
+    private fun mostrarConfirmacaoCompra(item: Equipment, onComplete: () -> Unit) {
+        val preco = if (item.id == "blessing" || item.id == "medicine") item.preco else EconomyManager.precoInflacionado(item.preco)
+        AlertDialog.Builder(this)
             .setTitle("Confirmar Compra")
-            .setMessage("Deseja comprar ${item.nome}?\n\nPreço: ${CurrencyUtils.formatar(precoAtual)}\n\nVocê tem certeza que deseja adquirir este item?")
-            .setPositiveButton("COMPRAR") { _, _ ->
-                executarCompra(item, onSucesso)
-            }
-            .setNegativeButton("CANCELAR", null)
+            .setMessage("Deseja comprar ${item.nome} por ${CurrencyUtils.formatar(preco)}?")
+            .setPositiveButton("Comprar") { _, _ -> executarCompra(item, onComplete) }
+            .setNegativeButton("Cancelar", null)
             .show()
-            .also { dialog ->
-                val color = android.graphics.Color.parseColor("#FB121212")
-                dialog.window?.findViewById<android.view.View>(androidx.appcompat.R.id.parentPanel)?.let { panel ->
-                    panel.backgroundTintList = android.content.res.ColorStateList.valueOf(color)
-                }
-            }
     }
 
-    private fun mostrarConfirmacaoVenda(item: Equipment, onSucesso: () -> Unit) {
-        val precoAtual = com.typingfrontier.EconomyManager.precoInflacionado(item.preco)
+    private fun mostrarConfirmacaoVenda(item: Equipment, onComplete: () -> Unit) {
+        val precoAtual = EconomyManager.precoInflacionado(item.preco)
         val valorVenda = Math.round(precoAtual * 0.40).toInt()
-
-        androidx.appcompat.app.AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
-            .setTitle("Confirmar Venda")
-            .setMessage("Deseja vender ${item.nome} por ${CurrencyUtils.formatar(valorVenda)}?\n(40% do valor de mercado)")
-            .setPositiveButton("VENDER") { _, _ ->
-                val result = GameEngine.dispatch(GameAction.SellItem(item))
-                when (result) {
-                    is EngineResult.Success -> {
-                        Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
-                        adapter.notifyDataSetChanged()
-                        onSucesso()
-                        PlayerManager.save(this)
-                    }
-                    is EngineResult.Failure -> {
-                        Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
-                    }
+        
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Confirmar Venda")
+        
+        val p = PlayerManager.player
+        val isEquipado = p.slotsEquipados.values.contains(item.id) || p.equipamentoId == item.id
+        
+        if (isEquipado) {
+            builder.setMessage("Este item (${item.nome}) está equipado! Você deve desequipar primeiro na tela de Status para poder vender.")
+            builder.setPositiveButton("Entendido", null)
+        } else {
+            builder.setMessage("Deseja vender ${item.nome} por ${CurrencyUtils.formatar(valorVenda)}?\n(40% do valor de mercado atual)")
+            builder.setPositiveButton("Vender") { _, _ ->
+                val result = com.typingfrontier.GameEngine.dispatch(com.typingfrontier.GameAction.SellItem(item))
+                if (result is com.typingfrontier.EngineResult.Success) {
+                    android.widget.Toast.makeText(this, result.message, android.widget.Toast.LENGTH_SHORT).show()
+                    PlayerManager.save(this)
+                    onComplete()
+                } else if (result is com.typingfrontier.EngineResult.Failure) {
+                    android.widget.Toast.makeText(this, result.message, android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton("CANCELAR", null)
-            .show()
-            .also { dialog ->
-                val color = android.graphics.Color.parseColor("#FB121212")
-                dialog.window?.findViewById<android.view.View>(androidx.appcompat.R.id.parentPanel)?.let { panel ->
-                    panel.backgroundTintList = android.content.res.ColorStateList.valueOf(color)
-                }
-            }
+            builder.setNegativeButton("Cancelar", null)
+        }
+        builder.show()
     }
 
     private fun updateShopList() {
@@ -225,6 +175,27 @@ class ShopActivity : AppCompatActivity() {
                         "MALETA" -> "MALETAS"
                         "LUPA" -> "LUPAS"
                         "DRONE" -> "DRONES"
+                        "CAPACETE" -> "CAPACETES"
+                        "MICROFONE" -> "MICROFONES"
+                        "TONFA" -> "TONFAS"
+                        "ALGEMAS" -> "ALGEMAS"
+                        "BOTA" -> "BOTAS"
+                        "CRACHA" -> "CRACHÁS"
+                        "JALECO" -> "JALECOS"
+                        "BOLSA" -> "BOLSAS"
+                        "SAPATO" -> "SAPATOS"
+                        "RADIO" -> "RÁDIOS"
+                        "NOTEBOOK" -> "NOTEBOOKS"
+                        "MEDIDOR" -> "MEDIDORES"
+                        "OCULOS" -> "ÓCULOS"
+                        "TERNO" -> "TERNOS"
+                        "REGUA" -> "RÉGUAS"
+                        "CELULAR" -> "CELULARES"
+                        "CHAPEU" -> "CHAPÉUS"
+                        "GRAVATA" -> "GRAVATAS"
+                        "SOBRETUDO" -> "SOBRETUDOS"
+                        "CADERNO" -> "CADERNOS"
+                        "LANTERNA" -> "LANTERNAS"
                         else -> tipo.uppercase() + "S"
                     }
                     val isTipoExpanded = typeExpanded == nomeTipo
@@ -238,6 +209,8 @@ class ShopActivity : AppCompatActivity() {
                 }
             }
         }
-        adapter.notifyDataSetChanged()
+        if (::adapter.isInitialized) {
+            adapter.notifyDataSetChanged()
+        }
     }
 }

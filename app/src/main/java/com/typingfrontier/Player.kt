@@ -153,11 +153,23 @@ data class Player(
 
     private fun getBonusEquipamento(atributo: String): Int {
         var total = 0
+        val config = com.typingfrontier.economy.ProfessionManager.getConfig(this.profissao)
+
         slotsEquipados.values.forEach { id ->
             if (id != null) {
                 val equip = com.typingfrontier.economy.ProfessionManager.getEquipment(id)
                 if (equip?.atributoAlvo == atributo) {
-                    total += equip.bonus
+                    // Multiplicador de Eficiência Profissional (100% / 80% / 60% / 40%)
+                    val mult = when {
+                        equip.profissao == null || equip.profissao == this.profissao -> 1.0
+                        equip.atributoAlvo == config?.atributoPrincipal -> 0.8
+                        equip.atributoAlvo == config?.bonusAtributoInicial -> 0.6
+                        else -> 0.4
+                    }
+                    
+                    // Cálculo do bônus efetivo com arredondamento para baixo
+                    val bonusEfetivo = (equip.bonus * mult).toInt()
+                    total += bonusEfetivo
                 }
             }
         }

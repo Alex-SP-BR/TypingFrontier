@@ -162,14 +162,36 @@ class StatusActivity : AppCompatActivity() {
             val equip = ProfessionManager.getEquipment(itemId)
             
             val itemLayout = android.widget.LinearLayout(this).apply {
-                orientation = android.widget.LinearLayout.VERTICAL
+                orientation = android.widget.LinearLayout.HORIZONTAL
                 setPadding(12, 8, 12, 8)
+                gravity = android.view.Gravity.CENTER_VERTICAL
                 isClickable = true
                 isFocusable = true
                 val typedValue = android.util.TypedValue()
                 theme.resolveAttribute(android.R.attr.selectableItemBackground, typedValue, true)
                 setBackgroundResource(typedValue.resourceId)
                 setOnClickListener { confirmarEquipar(itemId) }
+            }
+
+            val imgEquip = android.widget.ImageView(this).apply {
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    (36 * resources.displayMetrics.density).toInt(),
+                    (36 * resources.displayMetrics.density).toInt()
+                ).apply {
+                    marginEnd = (12 * resources.displayMetrics.density).toInt()
+                }
+                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                if (equip?.imagemRes != null) {
+                    setImageResource(equip.imagemRes)
+                } else {
+                    setImageResource(android.R.drawable.ic_menu_agenda)
+                }
+            }
+            itemLayout.addView(imgEquip)
+
+            val infoLayout = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
 
             val txtNome = TextView(this).apply {
@@ -179,7 +201,7 @@ class StatusActivity : AppCompatActivity() {
                 setTextColor(android.graphics.Color.parseColor("#FFFFFF"))
             }
 
-            itemLayout.addView(txtNome)
+            infoLayout.addView(txtNome)
 
             if (equip != null) {
                 val txtBonus = TextView(this).apply {
@@ -187,9 +209,10 @@ class StatusActivity : AppCompatActivity() {
                     setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
                     setTextColor(android.graphics.Color.parseColor("#74C6E0"))
                 }
-                itemLayout.addView(txtBonus)
+                infoLayout.addView(txtBonus)
             }
 
+            itemLayout.addView(infoLayout)
             layout.addView(itemLayout)
 
             // Divider
@@ -213,8 +236,9 @@ class StatusActivity : AppCompatActivity() {
             val equip = if (itemId != null) ProfessionManager.getEquipment(itemId) else null
 
             val slotView = android.widget.LinearLayout(this).apply {
-                orientation = android.widget.LinearLayout.VERTICAL
+                orientation = android.widget.LinearLayout.HORIZONTAL
                 setPadding(12, 12, 12, 12)
+                gravity = android.view.Gravity.CENTER_VERTICAL
                 isClickable = equip != null
                 isFocusable = equip != null
                 if (equip != null) {
@@ -223,6 +247,28 @@ class StatusActivity : AppCompatActivity() {
                     setBackgroundResource(typedValue.resourceId)
                     setOnClickListener { confirmarDesequipar(slotName, equip.nome) }
                 }
+            }
+
+            val imgEquip = android.widget.ImageView(this).apply {
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    (40 * resources.displayMetrics.density).toInt(),
+                    (40 * resources.displayMetrics.density).toInt()
+                ).apply {
+                    marginEnd = (12 * resources.displayMetrics.density).toInt()
+                }
+                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                if (equip?.imagemRes != null) {
+                    setImageResource(equip.imagemRes)
+                } else {
+                    setImageResource(android.R.drawable.ic_menu_agenda)
+                    alpha = 0.3f
+                }
+            }
+            slotView.addView(imgEquip)
+
+            val infoLayout = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
 
             val txtSlot = TextView(this).apply {
@@ -238,8 +284,8 @@ class StatusActivity : AppCompatActivity() {
                 setTextColor(if (equip != null) android.graphics.Color.parseColor("#FFFFFF") else android.graphics.Color.parseColor("#889099"))
             }
 
-            slotView.addView(txtSlot)
-            slotView.addView(txtItem)
+            infoLayout.addView(txtSlot)
+            infoLayout.addView(txtItem)
 
             if (equip != null) {
                 val txtBonus = TextView(this).apply {
@@ -247,9 +293,10 @@ class StatusActivity : AppCompatActivity() {
                     setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
                     setTextColor(android.graphics.Color.parseColor("#74C6E0"))
                 }
-                slotView.addView(txtBonus)
+                infoLayout.addView(txtBonus)
             }
 
+            slotView.addView(infoLayout)
             layout.addView(slotView)
 
             // Divider
