@@ -189,7 +189,7 @@ object ProfessionManager {
             val perdaXP = (player.experienciaAtual * 0.15).toInt() // Perde 15% do XP atual do nível
             player.experienciaAtual -= perdaXP
             
-            return "🚑 VOCÊ DESMAIOU!\nAcordou no hospital fraco. Seu corpo resistiu ao trauma, mas você perdeu $perdaXP de Experiência e todo o lucro da exploração.\n\n⚠️ Desgaste: ${player.traumasAcumulados}/$limite traumas.$medicineMsg"
+            return "🚑 VOCÊ DESMAIOU!\nAcordou no hospital fraco. Seu corpo resistiu ao trauma, mas parte da Experiência adquirida foi perdida e você perdeu todo o lucro da exploração.\n\n⚠️ Traumas: ${player.traumasAcumulados}/$limite.$medicineMsg"
         } else {
             // PUNIÇÃO GRAVE: ESTADO CRÍTICO (COLAPSO)
             player.traumasAcumulados = 0 // Reseta o ciclo após o colapso
@@ -201,9 +201,9 @@ object ProfessionManager {
             val xpPerdido = PlayerManager.aplicarPenalidadeXpColapso()
             
             if (player.nivel < nivelOriginal) {
-                msgPenalidade = "\n📉 NÍVEL REDUZIDO: Você voltou para o Nível ${player.nivel}!\nSeus limites de Vida, Energia e Mente foram reduzidos."
+                msgPenalidade = "\n📉 NÍVEL REDUZIDO: Você perdeu nível!\nSeus limites de Vida, Energia e Mente foram reduzidos."
             } else {
-                msgPenalidade = "\n📉 PROGRESSO PERDIDO: Você perdeu parte da Experiência acumulada."
+                msgPenalidade = "\n📉 PROGRESSO PERDIDO: Parte da sua Experiência acumulada foi perdida."
             }
 
             // Atributos base sofrem sequelas (Novo sistema de perda de progresso)
@@ -218,12 +218,15 @@ object ProfessionManager {
             var msgEquipamento = ""
 
             if (itensEquipados.isNotEmpty()) {
+                val temSeguro = player.estoqueBencao > 0
+                if (temSeguro) {
+                    player.estoqueBencao--
+                    msgEquipamento = "\n\n🛡️ Seu Seguro de Equipamentos foi utilizado."
+                }
+                
                 val sorteioPerda = (1..100).random()
                 if (sorteioPerda <= 25) { // 25% de chance
-                    if (player.estoqueBencao > 0) {
-                        player.estoqueBencao--
-                        msgEquipamento = "\n\n🛡️ Seu Seguro de Equipamentos protegeu seus itens!\nVocê escapou do Colapso sem perder nenhum equipamento."
-                    } else {
+                    if (!temSeguro) {
                         val slotAleatorio = itensEquipados.keys.random()
                         val itemID = player.slotsEquipados[slotAleatorio]
                         val itemNome = ProfessionManager.getEquipment(itemID)?.nome ?: "Item"
@@ -236,7 +239,7 @@ object ProfessionManager {
                 }
             }
 
-            return "🚨 COLAPSO CORPORAL! 🚨\nSeus traumas sucessivos levaram a um estado crítico (coma).$msgPenalidade\nAlguns atributos sofreram sequelas permanentes.$msgEquipamento$medicineMsg\n\n💊 Dica: Use Medicamentos para recuperar parte do progresso perdido."
+            return "🚨 COLAPSO CORPORAL! 🚨\nSeus traumas sucessivos levaram a um estado crítico (coma).$msgPenalidade\nAlguns atributos sofreram sequelas permanentes.$msgEquipamento$medicineMsg"
         }
     }
 }

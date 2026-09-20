@@ -444,12 +444,12 @@ object GameEngine {
         p.estoqueMedicamento--
         p.traumasAcumulados--
         
-        val prefix = if (isAutomatic) "🛡️ Medicamento utilizado automaticamente!\n" else ""
-        val sb = StringBuilder("${prefix}💊 1 Trauma foi tratado.")
+        val prefix = if (isAutomatic) "💊 Medicamento utilizado automaticamente.\n" else ""
+        val sb = StringBuilder("${prefix}💊 Um Trauma foi tratado.")
         if (p.traumasAcumulados > 0) {
-            sb.append(" (Restam ${p.traumasAcumulados})")
+            // Removido detalhe da contagem
         } else {
-            sb.append("\n✅ Todos os traumas foram curados!")
+            sb.append("\n✅ Todos os traumas foram tratados.")
         }
         
         // 1. REGRA DE HP
@@ -458,12 +458,12 @@ object GameEngine {
             val alvoHP = (p.vidaMax * 0.2).toInt()
             p.vida = Math.max(p.vida, alvoHP)
             if (p.vida > vidaAntes) {
-                sb.append("\n❤️ Vida recuperada: +${p.vida - vidaAntes} HP.")
+                sb.append("\n❤️ Parte da sua Vida foi recuperada.")
             }
             sb.append("\n⚠️ A recuperação total da Vida exige tratar os traumas restantes.")
         } else {
             p.vida = p.vidaMax
-            sb.append("\n❤️ Vida totalmente restaurada! (+${p.vida - vidaAntes} HP)")
+            sb.append("\n❤️ Sua Vida foi totalmente restaurada.")
         }
 
         // 2. RECUPERAÇÃO DE XP (50% da perda real)
@@ -471,54 +471,20 @@ object GameEngine {
         if (xpRecuperado > 0) {
             val niveisGanhos = PlayerManager.ganharXp(xpRecuperado)
             p.perdaXpRecuperavel -= xpRecuperado
-            sb.append("\n✨ +${CurrencyUtils.formatar(xpRecuperado)} de Experiência recuperada.")
+            sb.append("\n✨ Parte da Experiência perdida foi recuperada.")
             if (niveisGanhos > 0) {
-                sb.append("\n🎉 LEVEL UP! Você subiu para o Nível ${p.nivel}!")
+                sb.append("\n🎉 LEVEL UP! Você subiu de nível!")
             }
         }
 
         // 3. RECUPERAÇÃO DE ATRIBUTOS (50% da perda real individual)
         val atributosParaRecuperar = p.perdaAtribRecuperavel.filter { it.value > 0 }
         if (atributosParaRecuperar.isNotEmpty()) {
-            sb.append("\n\n💪 Vigor dos Atributos:")
+            sb.append("\n\n💪 Parte dos pontos dos seus atributos foi recuperada.")
             atributosParaRecuperar.forEach { (nome, perda) ->
                 val rec = (perda * 0.5).toInt()
                 if (rec > 0) {
-                    val valorAntes = when(nome) {
-                        "FORCA" -> p.forca
-                        "VELOCIDADE" -> p.velocidade
-                        "RESISTENCIA" -> p.resistencia
-                        "CARISMA" -> p.carisma
-                        "INTELIGENCIA" -> p.inteligencia
-                        else -> 0
-                    }
-                    
                     applyAttributeXP(nome, rec)
-                    
-                    val valorDepois = when(nome) {
-                        "FORCA" -> p.forca
-                        "VELOCIDADE" -> p.velocidade
-                        "RESISTENCIA" -> p.resistencia
-                        "CARISMA" -> p.carisma
-                        "INTELIGENCIA" -> p.inteligencia
-                        else -> 0
-                    }
-                    
-                    val nomeExibicao = when(nome) {
-                        "FORCA" -> "Força"
-                        "VELOCIDADE" -> "Velocidade"
-                        "RESISTENCIA" -> "Resistência"
-                        "CARISMA" -> "Carisma"
-                        "INTELIGENCIA" -> "Inteligência"
-                        else -> nome
-                    }
-                    
-                    if (valorDepois > valorAntes) {
-                        sb.append("\n• $nomeExibicao: +${valorDepois - valorAntes} (Total: $valorDepois)")
-                    } else {
-                        sb.append("\n• $nomeExibicao: Reabilitado")
-                    }
-                    
                     p.perdaAtribRecuperavel[nome] = perda - rec
                 }
             }
@@ -532,8 +498,6 @@ object GameEngine {
             if (xpRecuperado > 0 || atributosParaRecuperar.isNotEmpty()) {
                 sb.append("\n\n✨ Todo o progresso perdido foi restaurado!")
             }
-        } else {
-            sb.append("\n\n💊 Mais doses podem ser usadas para recuperar o restante do progresso.")
         }
         
         return sb.toString()
@@ -548,21 +512,18 @@ object GameEngine {
 
     private fun processCollectRewards(xp: Int, money: Int): EngineResult {
         val p = PlayerManager.player
-        val vidaAntiga = p.vida
-        val energiaAntiga = p.energia
-        val nivelAntigo = p.nivel
         
         val niveisGanhos = PlayerManager.ganharXp(xp)
         p.dinheiro += money
         
         if (niveisGanhos > 0) {
-            val extra = "Você subiu de nível ($nivelAntigo → ${p.nivel})!\n" +
-                        "❤️ Vida recuperada: $vidaAntiga → ${p.vida}\n" +
-                        "⚡ Energia Física recuperada: $energiaAntiga → ${p.energia}\n" +
-                        "🧠 Energia Mental recuperada parcialmente." +
+            val extra = "Você subiu de nível!\n" +
+                        "❤️ Sua Vida foi recuperada.\n" +
+                        "⚡ Sua Energia Física foi recuperada.\n" +
+                        "🧠 Sua Energia Mental foi recuperada parcialmente." +
                         (if (p.traumasAcumulados > 0) "\n🩹 Os traumas ainda exigem descanso." else "")
             
-            return EngineResult.Success("🏆 Nível Up! +$niveisGanhos nível(is) e recompensa coletada.", extra)
+            return EngineResult.Success("🏆 Nível Up! Você subiu de nível e a recompensa foi coletada.", extra)
         }
         
         return EngineResult.Success("Recompensas coletadas com sucesso!")
@@ -613,15 +574,13 @@ object GameEngine {
 
     private fun processCompleteMission(xp: Int, money: Int): EngineResult {
         val p = PlayerManager.player
-        val vidaAntiga = p.vida
-        val nivelAntigo = p.nivel
         
         val niveisGanhos = PlayerManager.ganharXp(xp)
         p.dinheiro += money
         
         if (niveisGanhos > 0) {
-            val extra = "🏆 Nível Up! ($nivelAntigo → ${p.nivel})\n" +
-                        "❤️ Vida: $vidaAntiga → ${p.vida}\n" +
+            val extra = "🏆 Nível Up!\n" +
+                        "❤️ Sua Vida foi recuperada.\n" +
                         (if (p.traumasAcumulados > 0) "🩹 Traumas permanecem em recuperação." else "")
             return EngineResult.Success("Missão concluída com sucesso!", extra)
         }
