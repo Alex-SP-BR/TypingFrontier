@@ -81,6 +81,10 @@ data class Player(
     ),
     var mochila: MutableMap<String, Int> = mutableMapOf(),
     var capacidadeMochila: Int = 5,
+    
+    // 📦 ARMÁRIO (Armazenamento na Estação)
+    var armario: MutableMap<String, Int> = mutableMapOf(),
+    var capacidadeArmario: Int = 20,
 
     // 🕊️ SEGURO DE EQUIPAMENTOS (Bênçãos Acumuláveis)
     var estoqueBencao: Int = 0,

@@ -7,7 +7,7 @@ object PlayerManager {
     var player = Player()
 
     private const val PREFS_NAME = "typing_frontier_save"
-    private const val CURRENT_SAVE_VERSION = 10
+    private const val CURRENT_SAVE_VERSION = 11
 
     // Constantes para a fórmula de XP (Opção C: Polinomial Híbrida)
     private const val XP_BASE = 20
@@ -338,6 +338,11 @@ object PlayerManager {
 
         editor.putInt("capacidadeMochila", player.capacidadeMochila)
 
+        // Save armario Map
+        val armarioStr = player.armario.entries.joinToString(";") { "${it.key}:${it.value}" }
+        editor.putString("armario", armarioStr)
+        editor.putInt("capacidadeArmario", player.capacidadeArmario)
+
         editor.apply()
     }
 
@@ -495,6 +500,19 @@ object PlayerManager {
         }
 
         player.capacidadeMochila = prefs.getInt("capacidadeMochila", 5)
+
+        // Load armario Map
+        val armarioStr = prefs.getString("armario", "") ?: ""
+        player.armario.clear()
+        if (armarioStr.isNotEmpty()) {
+            armarioStr.split(";").forEach {
+                val parts = it.split(":")
+                if (parts.size == 2) {
+                    player.armario[parts[0]] = parts[1].toIntOrNull() ?: 0
+                }
+            }
+        }
+        player.capacidadeArmario = prefs.getInt("capacidadeArmario", 20)
 
         // MIGRATIONS LOGIC
         if (loadedVersion < 3) {

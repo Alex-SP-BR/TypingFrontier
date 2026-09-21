@@ -27,6 +27,8 @@ object GameEngine {
                 is GameAction.CompleteMission -> processCompleteMission(action.xp, action.money)
                 is GameAction.EquipItem -> processEquipItem(action.itemId)
                 is GameAction.UnequipItem -> processUnequipItem(action.slot)
+                is GameAction.DepositItem -> processDepositItem(action.itemId)
+                is GameAction.WithdrawItem -> processWithdrawItem(action.itemId)
             }
             
             if (result is EngineResult.Success) {
@@ -633,6 +635,56 @@ object GameEngine {
         }
 
         return EngineResult.Success("Desequipado: ${equip.nome}!")
+    }
+
+    private fun processDepositItem(itemId: String): EngineResult {
+        val p = PlayerManager.player
+        val qtdNaMochila = p.mochila[itemId] ?: 0
+
+        if (qtdNaMochila <= 0) return EngineResult.Failure("Você não possui este item na mochila.")
+
+        // Capacidade do armário
+        val ocupacaoAtual = p.armario.values.sum()
+        if (ocupacaoAtual >= p.capacidadeArmario) {
+            return EngineResult.Failure("Armário cheio ($ocupacaoAtual/${p.capacidadeArmario}).")
+        }
+
+        // Transferência
+        if (qtdNaMochila > 1) {
+            p.mochila[itemId] = qtdNaMochila - 1
+        } else {
+            p.mochila.remove(itemId)
+        }
+        p.armario[itemId] = (p.armario[itemId] ?: 0) + 1
+
+        PlayerManager.save(TypingFrontierApp.getAppContext())
+        val equip = ProfessionManager.getEquipment(itemId)
+        return EngineResult.Success("Guardado: ${equip?.nome} no armário.")
+    }
+
+    private fun processWithdrawItem(itemId: String): EngineResult {
+        val p = PlayerManager.player
+        val qtdNoArmario = p.armario[itemId] ?: 0
+
+        if (qtdNoArmario <= 0) return EngineResult.Failure("Item não encontrado no armário.")
+
+        // Capacidade da mochila
+        val ocupacaoAtual = p.mochila.values.sum()
+        if (ocupacaoAtual >= p.capacidadeMochila) {
+            return EngineResult.Failure("Mochila cheia ($ocupacaoAtual/${p.capacidadeMochila}).")
+        }
+
+        // Transferência
+        if (qtdNoArmario > 1) {
+            p.armario[itemId] = qtdNoArmario - 1
+        } else {
+            p.armario.remove(itemId)
+        }
+        p.mochila[itemId] = (p.mochila[itemId] ?: 0) + 1
+
+        PlayerManager.save(TypingFrontierApp.getAppContext())
+        val equip = ProfessionManager.getEquipment(itemId)
+        return EngineResult.Success("Retirado: ${equip?.nome} do armário.")
     }
 
     private fun applyAttributeXP(atributo: String, ganho: Int) {

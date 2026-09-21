@@ -96,6 +96,11 @@
             android:exported="false"
             android:configChanges="orientation|screenSize" />
         <activity
+            android:name=".station.StationActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.TypingFrontier.Dark" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

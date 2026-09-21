@@ -218,24 +218,26 @@ object ProfessionManager {
             var msgEquipamento = ""
 
             if (itensEquipados.isNotEmpty()) {
-                val temSeguro = player.estoqueBencao > 0
-                if (temSeguro) {
+                val tinhaSeguro = player.estoqueBencao > 0
+                
+                // Consumo do Seguro (Sempre ocorre se houver seguro e itens equipados durante um Colapso)
+                if (tinhaSeguro) {
                     player.estoqueBencao--
                     msgEquipamento = "\n\n🛡️ Seu Seguro de Equipamentos foi utilizado."
                 }
                 
+                // Sorteio de Perda (25% de chance)
                 val sorteioPerda = (1..100).random()
-                if (sorteioPerda <= 25) { // 25% de chance
-                    if (!temSeguro) {
-                        val slotAleatorio = itensEquipados.keys.random()
-                        val itemID = player.slotsEquipados[slotAleatorio]
-                        val itemNome = ProfessionManager.getEquipment(itemID)?.nome ?: "Item"
-                        
-                        player.slotsEquipados[slotAleatorio] = null
-                        if (player.equipamentoId == itemID) player.equipamentoId = null
-                        
-                        msgEquipamento = "\n\n⚠️ Você perdeu um equipamento devido ao Colapso.\nEquipamento perdido: $itemNome"
-                    }
+                if (sorteioPerda <= 25 && !tinhaSeguro) {
+                    // Perda definitiva (Sorteio desfavorável E Sem Seguro)
+                    val slotAleatorio = itensEquipados.keys.random()
+                    val itemID = player.slotsEquipados[slotAleatorio]
+                    val itemNome = ProfessionManager.getEquipment(itemID)?.nome ?: "Item"
+                    
+                    player.slotsEquipados[slotAleatorio] = null
+                    if (player.equipamentoId == itemID) player.equipamentoId = null
+                    
+                    msgEquipamento = "\n\n⚠️ Você perdeu um equipamento devido ao Colapso.\nEquipamento perdido: $itemNome"
                 }
             }
 

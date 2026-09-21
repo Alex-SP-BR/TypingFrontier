@@ -14,6 +14,9 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ImageSpan
 
+// CONFIGURAÇÃO TEMPORÁRIA: Controla o acesso à Estação de Trem de Alta Velocidade
+private const val ESTACAO_ALTA_VELOCIDADE_LIBERADA = false
+
 class ExplorationActivity : AppCompatActivity() {
 
     private lateinit var layoutSelecao: View
@@ -94,7 +97,10 @@ class ExplorationActivity : AppCompatActivity() {
         rv.layoutManager = LinearLayoutManager(this)
         rv.adapter = ExplorationZoneAdapter(ExplorationZoneRepository.zonas) { zona ->
             if (zona.id == "rio_construcao") {
-                Toast.makeText(this, "Rio de Janeiro — Em construção. Esta região será disponibilizada em uma futura expansão.", Toast.LENGTH_LONG).show()
+                if (ESTACAO_ALTA_VELOCIDADE_LIBERADA) {
+                    val intent = android.content.Intent(this, com.typingfrontier.station.StationActivity::class.java)
+                    startActivity(intent)
+                }
                 return@ExplorationZoneAdapter
             }
 

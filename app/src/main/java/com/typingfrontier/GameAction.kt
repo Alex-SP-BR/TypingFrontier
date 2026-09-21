@@ -26,4 +26,8 @@ sealed class GameAction {
     // Novas ações para o sistema de slots
     data class EquipItem(val itemId: String) : GameAction()
     data class UnequipItem(val slot: String) : GameAction()
+
+    // Ações do Armário da Estação
+    data class DepositItem(val itemId: String) : GameAction()
+    data class WithdrawItem(val itemId: String) : GameAction()
 }
