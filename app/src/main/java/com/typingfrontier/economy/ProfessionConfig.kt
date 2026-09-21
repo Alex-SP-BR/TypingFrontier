@@ -176,8 +176,36 @@ object ProfessionManager {
         }
 
         val limite = player.limiteTraumas
-        // Verifica se atingiu o limite considerando o tratamento automático já aplicado
         val atingiuLimite = player.traumasAcumulados >= limite
+
+        // --- LÓGICA DE EQUIPAMENTOS CENTRALIZADA (Comum a Desmaio e Colapso) ---
+        val itensEquipados = player.slotsEquipados.filter { it.value != null }
+        var msgEquipamento = ""
+
+        if (itensEquipados.isNotEmpty()) {
+            val tinhaSeguro = player.estoqueBencao > 0
+            
+            if (tinhaSeguro) {
+                // REGRA: Seguro disponível -> Consumo obrigatório e proteção garantida
+                player.estoqueBencao--
+                msgEquipamento = "\n\n🛡️ Seu Seguro de Equipamentos foi utilizado."
+                // O sorteio ocorre internamente mas o resultado não causa perda
+                (1..100).random() 
+            } else {
+                // REGRA: Sem Seguro -> Sorteio de 30% de perda
+                val sorteioPerda = (1..100).random()
+                if (sorteioPerda <= 30) {
+                    val slotAleatorio = itensEquipados.keys.random()
+                    val itemID = player.slotsEquipados[slotAleatorio]
+                    val itemNome = getEquipment(itemID)?.nome ?: "Item"
+                    
+                    player.slotsEquipados[slotAleatorio] = null
+                    if (player.equipamentoId == itemID) player.equipamentoId = null
+                    
+                    msgEquipamento = "\n\n⚠️ Você perdeu um equipamento devido à gravidade do ocorrido.\nEquipamento perdido: $itemNome"
+                }
+            }
+        }
 
         // 2. Recuperação de Status Base (Ocorre em todos os desmaios)
         player.vida = (player.vidaMax * 0.4).toInt()
@@ -189,7 +217,7 @@ object ProfessionManager {
             val perdaXP = (player.experienciaAtual * 0.15).toInt() // Perde 15% do XP atual do nível
             player.experienciaAtual -= perdaXP
             
-            return "🚑 VOCÊ DESMAIOU!\nAcordou no hospital fraco. Seu corpo resistiu ao trauma, mas parte da Experiência adquirida foi perdida e você perdeu todo o lucro da exploração.\n\n⚠️ Traumas: ${player.traumasAcumulados}/$limite.$medicineMsg"
+            return "🚑 VOCÊ DESMAIOU!\nAcordou no hospital fraco. Seu corpo resistiu ao trauma, mas parte da Experiência adquirida foi perdida e você perdeu todo o lucro da exploração.\n\n⚠️ Traumas: ${player.traumasAcumulados}/$limite.$msgEquipamento$medicineMsg"
         } else {
             // PUNIÇÃO GRAVE: ESTADO CRÍTICO (COLAPSO)
             player.traumasAcumulados = 0 // Reseta o ciclo após o colapso
@@ -206,40 +234,12 @@ object ProfessionManager {
                 msgPenalidade = "\n📉 PROGRESSO PERDIDO: Parte da sua Experiência acumulada foi perdida."
             }
 
-            // Atributos base sofrem sequelas (Novo sistema de perda de progresso)
+            // Atributos base sofrem sequelas
             PlayerManager.aplicarPenalidadeAtributoColapso("FORCA")
             PlayerManager.aplicarPenalidadeAtributoColapso("INTELIGENCIA")
             PlayerManager.aplicarPenalidadeAtributoColapso("VELOCIDADE")
             PlayerManager.aplicarPenalidadeAtributoColapso("CARISMA")
             PlayerManager.aplicarPenalidadeAtributoColapso("RESISTENCIA")
-
-            // SEGURO DE EQUIPAMENTOS
-            val itensEquipados = player.slotsEquipados.filter { it.value != null }
-            var msgEquipamento = ""
-
-            if (itensEquipados.isNotEmpty()) {
-                val tinhaSeguro = player.estoqueBencao > 0
-                
-                // Consumo do Seguro (Sempre ocorre se houver seguro e itens equipados durante um Colapso)
-                if (tinhaSeguro) {
-                    player.estoqueBencao--
-                    msgEquipamento = "\n\n🛡️ Seu Seguro de Equipamentos foi utilizado."
-                }
-                
-                // Sorteio de Perda (25% de chance)
-                val sorteioPerda = (1..100).random()
-                if (sorteioPerda <= 25 && !tinhaSeguro) {
-                    // Perda definitiva (Sorteio desfavorável E Sem Seguro)
-                    val slotAleatorio = itensEquipados.keys.random()
-                    val itemID = player.slotsEquipados[slotAleatorio]
-                    val itemNome = ProfessionManager.getEquipment(itemID)?.nome ?: "Item"
-                    
-                    player.slotsEquipados[slotAleatorio] = null
-                    if (player.equipamentoId == itemID) player.equipamentoId = null
-                    
-                    msgEquipamento = "\n\n⚠️ Você perdeu um equipamento devido ao Colapso.\nEquipamento perdido: $itemNome"
-                }
-            }
 
             return "🚨 COLAPSO CORPORAL! 🚨\nSeus traumas sucessivos levaram a um estado crítico (coma).$msgPenalidade\nAlguns atributos sofreram sequelas permanentes.$msgEquipamento$medicineMsg"
         }

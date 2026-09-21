@@ -14,8 +14,8 @@ android {
         applicationId = "com.typingfrontier"
         minSdk = 24
         targetSdk = 36
-        versionCode = 18
-        versionName = "1.17"
+        versionCode = 20
+        versionName = "1.19"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
