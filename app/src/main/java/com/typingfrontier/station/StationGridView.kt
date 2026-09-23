@@ -8,6 +8,7 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.widget.ImageView
+import com.typingfrontier.utils.ViewUtils
 
 /**
  * Componente visual experimental para estação de trem.
@@ -29,11 +30,16 @@ class StationGridView @JvmOverloads constructor(
         var movePath: MutableList<Point> = mutableListOf(),
         var isMoving: Boolean = false,
         var route: List<Point> = emptyList(),
-        var currentWaypointIndex: Int = -1
+        var currentWaypointIndex: Int = -1,
+        var isCirculating: Boolean = false,
+        var anchorX: Int = -1,
+        var anchorY: Int = -1,
+        var isInteracting: Boolean = false
     )
 
     interface InteractionListener {
         fun onArmoireTapped()
+        fun onNpcTapped(npcName: String)
     }
 
     private var interactionListener: InteractionListener? = null
@@ -86,6 +92,7 @@ class StationGridView @JvmOverloads constructor(
     private var isMoving = false
     private val moveInterval = 200L // Milissegundos entre células
     private var pendingArmoireAction = false
+    private var pendingNpcName: String? = null
 
     // Detectores de Gestos
     private val scaleDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -121,6 +128,15 @@ class StationGridView @JvmOverloads constructor(
         this.interactionListener = listener
     }
 
+    fun setNpcInteracting(npcName: String, interacting: Boolean) {
+        npcList.find { it.name == npcName }?.let {
+            it.isInteracting = interacting
+            if (!interacting && it.isCirculating) {
+                decidirProximoPassoCirculacao(it)
+            }
+        }
+    }
+
     fun setPlayerData(sprites: Map<String, Int>, name: String) {
         this.playerName = name
         playerSprites.clear()
@@ -139,8 +155,21 @@ class StationGridView @JvmOverloads constructor(
     /**
      * Adiciona ou atualiza um NPC na estação.
      */
-    fun setNpcData(name: String, x: Int, y: Int, direction: String, sprites: Map<String, Int>, route: List<Point> = emptyList()) {
-        val npc = StationNPC(name, x, y, direction, route = route)
+    fun setNpcData(
+        name: String, 
+        x: Int, 
+        y: Int, 
+        direction: String, 
+        sprites: Map<String, Int>, 
+        route: List<Point> = emptyList(),
+        isCirculating: Boolean = false
+    ) {
+        val npc = StationNPC(name, x, y, direction, route = route, isCirculating = isCirculating)
+        if (isCirculating) {
+            npc.anchorX = x
+            npc.anchorY = y
+        }
+        
         val targetProcessingHeight = 256
         
         sprites.forEach { (dir, resId) ->
@@ -151,7 +180,41 @@ class StationGridView @JvmOverloads constructor(
         
         npcList.removeAll { it.name == name }
         npcList.add(npc)
+        
+        // Se for circulante, inicia o ciclo de decisão após o primeiro delay
+        if (isCirculating) {
+            postDelayed({ decidirProximoPassoCirculacao(npc) }, 60000L)
+        }
+        
         invalidate()
+    }
+
+    private fun decidirProximoPassoCirculacao(npc: StationNPC) {
+        if (!npc.isCirculating || npc.anchorX == -1 || npc.isInteracting) return
+        if (npc.isMoving) return
+
+        val neighbors = listOf(
+            Point(npc.x - 1, npc.y), // esquerda
+            Point(npc.x + 1, npc.y), // direita
+            Point(npc.x, npc.y - 1), // cima
+            Point(npc.x, npc.y + 1)  // baixo
+        )
+
+        val validCells = neighbors.filter { n ->
+            // Deve estar dentro da área 3x3 em torno da âncora
+            val withinArea = n.x in (npc.anchorX - 1)..(npc.anchorX + 1) &&
+                             n.y in (npc.anchorY - 1)..(npc.anchorY + 1)
+            
+            withinArea && isWalkable(n.x, n.y)
+        }
+
+        if (validCells.isNotEmpty()) {
+            val target = validCells.random()
+            internalStartNpcMovingTo(npc, target.x, target.y)
+        } else {
+            // Tenta novamente em 1 minuto se não houver vizinhos válidos na área
+            postDelayed({ decidirProximoPassoCirculacao(npc) }, 60000L)
+        }
     }
 
     fun startNpcMovingTo(npcName: String, tx: Int, ty: Int) {
@@ -175,8 +238,13 @@ class StationGridView @JvmOverloads constructor(
         if (npc.movePath.isEmpty()) {
             npc.isMoving = false
             
-            // Lógica de Rota: Se houver rota definida, avança para o próximo waypoint
-            if (npc.route.isNotEmpty()) {
+            if (npc.isCirculating) {
+                // Ao chegar no destino da circulação, aguarda 1 minuto para a próxima decisão
+                postDelayed({
+                    decidirProximoPassoCirculacao(npc)
+                }, 60000L)
+            } else if (npc.route.isNotEmpty()) {
+                // Lógica de Rota: Se houver rota definida, avança para o próximo waypoint
                 npc.currentWaypointIndex = (npc.currentWaypointIndex + 1) % npc.route.size
                 val next = npc.route[npc.currentWaypointIndex]
                 
@@ -214,7 +282,7 @@ class StationGridView @JvmOverloads constructor(
             options.inJustDecodeBounds = false
             
             val scaledDown = BitmapFactory.decodeResource(context.resources, resId, options)
-            makeTransparent(scaledDown)
+            ViewUtils.makeTransparent(scaledDown)
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -239,69 +307,7 @@ class StationGridView @JvmOverloads constructor(
      * Além de transparência, remove pequenos resíduos de marca d'água desconectados.
      */
     private fun makeTransparent(src: Bitmap): Bitmap {
-        val width = src.width
-        val height = src.height
-        val out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val pixels = IntArray(width * height)
-        src.getPixels(pixels, 0, width, 0, 0, width, height)
-        
-        val backgroundMask = java.util.BitSet(width * height)
-        val queue = java.util.ArrayDeque<Int>()
-        
-        // 1. Flood Fill das bordas (Fundo e Marcas d'água conectadas)
-        for (x in 0 until width) {
-            if (!backgroundMask.get(x)) { queue.add(x); backgroundMask.set(x) }
-            val b = (height - 1) * width + x
-            if (!backgroundMask.get(b)) { queue.add(b); backgroundMask.set(b) }
-        }
-        for (y in 0 until height) {
-            val l = y * width
-            if (!backgroundMask.get(l)) { queue.add(l); backgroundMask.set(l) }
-            val r = y * width + (width - 1)
-            if (!backgroundMask.get(r)) { queue.add(r); backgroundMask.set(r) }
-        }
-        
-        while (queue.isNotEmpty()) {
-            val node = queue.poll() ?: continue
-            val color = pixels[node]
-            val r = (color shr 16) and 0xFF
-            val g = (color shr 8) and 0xFF
-            val b = color and 0xFF
-            
-            // Threshold agressivo para fundo branco/claro (RGB > 185) em imagens JPEG compactadas
-            if (r > 185 && g > 185 && b > 185) {
-                pixels[node] = Color.TRANSPARENT
-                val x = node % width
-                val y = node / width
-                val dx = intArrayOf(-1, 1, 0, 0)
-                val dy = intArrayOf(0, 0, -1, 1)
-                for (i in 0 until 4) {
-                    val nx = x + dx[i]; val ny = y + dy[i]
-                    if (nx in 0 until width && ny in 0 until height) {
-                        val next = ny * width + nx
-                        if (!backgroundMask.get(next)) { backgroundMask.set(next); queue.add(next) }
-                    }
-                }
-            }
-        }
-
-        // 2. Limpeza de Ilhas (Resíduos de marca d'água que não tocam a borda mas são claros)
-        // Varre áreas externas ao personagem para remover "pós" residual.
-        for (i in pixels.indices) {
-            val color = pixels[i]
-            if (color != Color.TRANSPARENT) {
-                val r = (color shr 16) and 0xFF
-                val g = (color shr 8) and 0xFF
-                val b = color and 0xFF
-                // Se for muito claro e estiver em uma região periférica (longe do centro), remove.
-                if (r > 240 && g > 240 && b > 240) {
-                    pixels[i] = Color.TRANSPARENT
-                }
-            }
-        }
-        
-        out.setPixels(pixels, 0, width, 0, 0, width, height)
-        return out
+        return ViewUtils.makeTransparent(src)
     }
 
     private fun isWalkable(x: Int, y: Int): Boolean {
@@ -380,8 +386,41 @@ class StationGridView @JvmOverloads constructor(
                 return
             }
 
+            // Verificar se tocou em um NPC
+            val tappedNpc = npcList.find { it.x == tx && it.y == ty }
+            if (tappedNpc != null) {
+                // Se estiver adjacente ao NPC, interage
+                val dx = Math.abs(playerX - tappedNpc.x)
+                val dy = Math.abs(playerY - tappedNpc.y)
+                if (dx <= 1 && dy <= 1 && (dx + dy > 0)) {
+                    interactionListener?.onNpcTapped(tappedNpc.name)
+                } else {
+                    // Senão, caminha até uma posição adjacente ao NPC
+                    val targetX = if (playerX < tappedNpc.x) tappedNpc.x - 1 else if (playerX > tappedNpc.x) tappedNpc.x + 1 else tappedNpc.x
+                    val targetY = if (playerY < tappedNpc.y) tappedNpc.y - 1 else if (playerY > tappedNpc.y) tappedNpc.y + 1 else tappedNpc.y
+                    
+                    var finalX = targetX
+                    var finalY = targetY
+                    if (finalX == tappedNpc.x && finalY == tappedNpc.y) {
+                        val neighbors = listOf(Point(tappedNpc.x-1, tappedNpc.y), Point(tappedNpc.x+1, tappedNpc.y), Point(tappedNpc.x, tappedNpc.y-1), Point(tappedNpc.x, tappedNpc.y+1))
+                        val walkableNeighbor = neighbors.find { isWalkable(it.x, it.y) }
+                        if (walkableNeighbor != null) {
+                            finalX = walkableNeighbor.x
+                            finalY = walkableNeighbor.y
+                        }
+                    }
+
+                    if (isWalkable(finalX, finalY)) {
+                        pendingNpcName = tappedNpc.name
+                        startMovingTo(finalX, finalY)
+                    }
+                }
+                return
+            }
+
             if (isWalkable(tx, ty)) {
                 pendingArmoireAction = false
+                pendingNpcName = null
                 startMovingTo(tx, ty)
             }
         }
@@ -417,6 +456,11 @@ class StationGridView @JvmOverloads constructor(
             if (pendingArmoireAction) {
                 pendingArmoireAction = false
                 interactionListener?.onArmoireTapped()
+            }
+            if (pendingNpcName != null) {
+                val name = pendingNpcName!!
+                pendingNpcName = null
+                interactionListener?.onNpcTapped(name)
             }
             return
         }
@@ -490,29 +534,6 @@ class StationGridView @JvmOverloads constructor(
 
         val cellWidth = imageRect.width() / cols
         val cellHeight = imageRect.height() / rows
-
-        // 2. Desenhar Grade (REMOVIDO DA RENDERIZAÇÃO FINAL - Mantido apenas para lógica interna)
-        /*
-        for (y in 0 until rows) {
-            for (x in 0 until cols) {
-                if (isWalkable(x, y)) {
-                    val l = imageRect.left + x * cellWidth
-                    val t = imageRect.top + y * cellHeight
-                    val r = l + cellWidth
-                    val b = t + cellHeight
-                    
-                    if (!isWalkable(x - 1, y)) canvas.drawLine(l, t, l, b, paintGrid)
-                    if (!isWalkable(x + 1, y)) canvas.drawLine(r, t, r, b, paintGrid)
-                    if (!isWalkable(x, y - 1)) canvas.drawLine(l, t, r, t, paintGrid)
-                    if (!isWalkable(x, y + 1)) canvas.drawLine(l, b, r, b, paintGrid)
-                    
-                    val paintDivider = Paint(paintGrid).apply { alpha = 20 }
-                    if (isWalkable(x + 1, y)) canvas.drawLine(r, t + 5f, r, b - 5f, paintDivider)
-                    if (isWalkable(x, y + 1)) canvas.drawLine(l + 5f, b, r - 5f, b, paintDivider)
-                }
-            }
-        }
-        */
 
         // 3. Desenhar Jogador
         drawCharacter(canvas, playerName, playerX, playerY, currentDirection, playerSprites, imageRect, cellWidth, cellHeight)

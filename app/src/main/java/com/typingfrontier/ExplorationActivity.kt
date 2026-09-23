@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.typingfrontier.exploration.*
 import com.typingfrontier.utils.CurrencyUtils
+import com.typingfrontier.utils.ViewUtils
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.text.Spannable
@@ -254,10 +255,10 @@ class ExplorationActivity : AppCompatActivity() {
             val zona = zonaAtual ?: return
             val acaoProfissao = ExplorationManager.gerarDescricaoSucesso(p.profissao, etapaAtual, zona)
 
-            // Configuração do ícone da moeda para o Spannable (20dp)
-            val coinIcon = androidx.core.content.ContextCompat.getDrawable(this, R.drawable.fron_coin)
+            // Configuração do ícone da moeda com tratamento de transparência para o Spannable (20dp)
+            val coinIcon = ViewUtils.getCoinDrawable(this)
             val size = (20 * resources.displayMetrics.density).toInt()
-            coinIcon?.setBounds(0, 0, size, size)
+            coinIcon.setBounds(0, 0, size, size)
 
             val baseText = "Acumulado: +$xpAcumulado XP | "
             val moneyText = CurrencyUtils.formatar(dinheiroAcumulado)
@@ -341,12 +342,7 @@ class ExplorationActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         val coinSize = (22 * density).toInt()
 
-        val moedasConfig = listOf(
-            R.drawable.fron_coin to false,
-            R.raw.fron_coin_animation_1 to true,
-            R.raw.fron_coin_animation_2 to true,
-            R.raw.fron_coin_animation_3 to true
-        )
+        val moedasConfig = List(4) { R.drawable.fron_coin }
 
         // Origem: txtDescricao (onde está o texto de Vitória/Sucesso)
         val startLoc = IntArray(2)
@@ -364,21 +360,10 @@ class ExplorationActivity : AppCompatActivity() {
         val rootLoc = IntArray(2)
         container.getLocationInWindow(rootLoc)
 
-        moedasConfig.forEachIndexed { index, (resId, isVideo) ->
+        moedasConfig.forEachIndexed { index, resId ->
             container.postDelayed({
-                val coinView = if (isVideo) {
-                    VideoView(this@ExplorationActivity).apply {
-                        setVideoURI(android.net.Uri.parse("android.resource://$packageName/$resId"))
-                        setOnPreparedListener { mp ->
-                            mp.isLooping = true
-                            try { mp.setVolume(0f, 0f) } catch (e: Exception) {}
-                        }
-                        start()
-                    }
-                } else {
-                    ImageView(this@ExplorationActivity).apply {
-                        setImageResource(resId)
-                    }
+                val coinView = ImageView(this@ExplorationActivity).apply {
+                    setImageDrawable(ViewUtils.getCoinDrawable(this@ExplorationActivity))
                 }
 
                 coinView.layoutParams = FrameLayout.LayoutParams(coinSize, coinSize)

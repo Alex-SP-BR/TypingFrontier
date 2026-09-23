@@ -10,6 +10,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.typingfrontier.mental.*
 import com.typingfrontier.utils.CurrencyUtils
+import com.typingfrontier.utils.ViewUtils
 
 class MentalTrainingActivity : AppCompatActivity() {
 
@@ -345,13 +346,8 @@ class MentalTrainingActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         val coinSize = (22 * density).toInt()
 
-        // Definição das 4 moedas (Recurso ID, IsVideo)
-        val moedasConfig = listOf(
-            R.drawable.fron_coin to false,
-            R.raw.fron_coin_animation_1 to true,
-            R.raw.fron_coin_animation_2 to true,
-            R.raw.fron_coin_animation_3 to true
-        )
+        // Definição das 4 moedas (Todas agora usam a versão transparente processada)
+        val moedasConfig = List(4) { R.drawable.fron_coin }
 
         // Captura coordenadas base uma única vez para a sequência
         val startLoc = IntArray(2)
@@ -363,21 +359,10 @@ class MentalTrainingActivity : AppCompatActivity() {
         val rootLoc = IntArray(2)
         container.getLocationInWindow(rootLoc)
 
-        moedasConfig.forEachIndexed { index, (resId, isVideo) ->
+        moedasConfig.forEachIndexed { index, resId ->
             container.postDelayed({
-                val coinView = if (isVideo) {
-                    VideoView(this@MentalTrainingActivity).apply {
-                        setVideoURI(android.net.Uri.parse("android.resource://$packageName/$resId"))
-                        setOnPreparedListener { mp ->
-                            mp.isLooping = true
-                            try { mp.setVolume(0f, 0f) } catch (e: Exception) {}
-                        }
-                        start()
-                    }
-                } else {
-                    ImageView(this@MentalTrainingActivity).apply {
-                        setImageResource(resId)
-                    }
+                val coinView = ImageView(this@MentalTrainingActivity).apply {
+                    setImageDrawable(ViewUtils.getCoinDrawable(this@MentalTrainingActivity))
                 }
 
                 coinView.layoutParams = FrameLayout.LayoutParams(coinSize, coinSize)

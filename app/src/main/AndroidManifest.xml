@@ -99,7 +99,8 @@
             android:name=".station.StationActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.TypingFrontier.Dark" />
+            android:theme="@style/Theme.TypingFrontier.Dark"
+            android:windowSoftInputMode="adjustNothing" />
         <activity
             android:name=".MainActivity"
             android:exported="true">

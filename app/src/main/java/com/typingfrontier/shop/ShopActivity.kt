@@ -1,6 +1,9 @@
 package com.typingfrontier.shop
 
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.ImageSpan
 import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
@@ -11,6 +14,7 @@ import com.typingfrontier.R
 import com.typingfrontier.economy.Equipment
 import com.typingfrontier.economy.ProfessionManager
 import com.typingfrontier.utils.CurrencyUtils
+import com.typingfrontier.utils.ViewUtils
 
 class ShopActivity : AppCompatActivity() {
 
@@ -31,7 +35,19 @@ class ShopActivity : AppCompatActivity() {
         val txtCapacidade = findViewById<TextView>(R.id.txtCapacidadeLoja)
 
         fun updateUIStatus() {
-            txtDinheiro.text = "Seu Saldo: ${CurrencyUtils.formatar(player.dinheiro)}"
+            val coinIcon = ViewUtils.getCoinDrawable(this)
+            val size = (20 * resources.displayMetrics.density).toInt()
+            coinIcon.setBounds(0, 0, size, size)
+            
+            val saldoValor = CurrencyUtils.formatar(player.dinheiro)
+            val baseText = "Saldo:  $saldoValor"
+            val spannable = SpannableStringBuilder(baseText)
+            
+            // Posiciona a moeda no espaço entre "Saldo:" e o valor
+            val imageSpan = ImageSpan(coinIcon, ImageSpan.ALIGN_BOTTOM)
+            spannable.setSpan(imageSpan, 7, 8, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            
+            txtDinheiro.text = spannable
             
             val ocupacaoAtual = player.mochila.values.sum()
             txtCapacidade.text = "Mochila: $ocupacaoAtual/${player.capacidadeMochila}"

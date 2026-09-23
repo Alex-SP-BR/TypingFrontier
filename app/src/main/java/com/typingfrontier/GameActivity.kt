@@ -532,10 +532,10 @@ class GameActivity : AppCompatActivity() {
         binding.txtNomePlayer.text = p.nome
         binding.txtTempo.text = TimeManager.tempoFormatado()
         
-        // Configuração do ícone da moeda com tamanho controlado (20dp)
-        val coinIcon = androidx.core.content.ContextCompat.getDrawable(this, R.drawable.fron_coin)
+        // Configuração do ícone da moeda com tratamento de transparência e tamanho controlado (20dp)
+        val coinIcon = ViewUtils.getCoinDrawable(this)
         val size = (20 * resources.displayMetrics.density).toInt()
-        coinIcon?.setBounds(0, 0, size, size)
+        coinIcon.setBounds(0, 0, size, size)
         binding.txtDinheiro.setCompoundDrawables(coinIcon, null, null, null)
         binding.txtDinheiro.text = CurrencyUtils.formatar(p.dinheiro)
 
@@ -677,13 +677,8 @@ class GameActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         val coinSize = (22 * density).toInt()
 
-        // Definição das 4 moedas (Recurso ID, IsVideo)
-        val moedasConfig = listOf(
-            R.drawable.fron_coin to false,
-            R.raw.fron_coin_animation_1 to true,
-            R.raw.fron_coin_animation_2 to true,
-            R.raw.fron_coin_animation_3 to true
-        )
+        // Definição das 4 moedas (Todas agora usam a versão transparente processada)
+        val moedasConfig = List(4) { R.drawable.fron_coin }
 
         // Origem: txtDescricao (região onde o feedback de pagamento/sucesso aparece)
         val startLoc = IntArray(2)
@@ -696,21 +691,10 @@ class GameActivity : AppCompatActivity() {
         val rootLoc = IntArray(2)
         container.getLocationInWindow(rootLoc)
 
-        moedasConfig.forEachIndexed { index, (resId, isVideo) ->
+        moedasConfig.forEachIndexed { index, resId ->
             container.postDelayed({
-                val coinView = if (isVideo) {
-                    android.widget.VideoView(this@GameActivity).apply {
-                        setVideoURI(android.net.Uri.parse("android.resource://$packageName/$resId"))
-                        setOnPreparedListener { mp ->
-                            mp.isLooping = true
-                            try { mp.setVolume(0f, 0f) } catch (e: Exception) {}
-                        }
-                        start()
-                    }
-                } else {
-                    android.widget.ImageView(this@GameActivity).apply {
-                        setImageResource(resId)
-                    }
+                val coinView = android.widget.ImageView(this@GameActivity).apply {
+                    setImageDrawable(ViewUtils.getCoinDrawable(this@GameActivity))
                 }
 
                 coinView.layoutParams = android.widget.FrameLayout.LayoutParams(coinSize, coinSize)

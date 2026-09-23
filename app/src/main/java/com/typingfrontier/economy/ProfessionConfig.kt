@@ -90,7 +90,8 @@ object ProfessionManager {
         Equipment("stetho_2", "Monitor Cardíaco Portátil", 500, "INTELIGENCIA", 20, "Tecnologia médica de ponta.", R.drawable.equipment_monitor_cardiaco, "Médico", "ESTETOSCOPIO", slot = "PESCOÇO"),
         Equipment("rare_book_2", "Enciclopédia de Filosofia", 400, "CARISMA", 25, "Domine a arte da persuasão.", R.drawable.equipment_enciclopedia_filosofia, "Professor", "LIVRO", slot = "MÃO"),
         Equipment("toolkit_2", "Maleta de Ferramentas Pro", 380, "RESISTENCIA", 18, "Tudo o que um engenheiro precisa.", R.drawable.equipment_maleta_ferramentas_pro, "Engenheiro", "MALETA", slot = "MÃO"),
-        Equipment("drone", "Drone de Vigilância", 600, "VELOCIDADE", 30, "Visão aérea total para o detetive.", R.drawable.equipment_drone_vigilancia, "Detetive", "DRONE", slot = "ACESSÓRIO")
+        Equipment("drone", "Drone de Vigilância", 600, "VELOCIDADE", 30, "Visão aérea total para o detetive.", R.drawable.equipment_drone_vigilancia, "Detetive", "DRONE", slot = "ACESSÓRIO"),
+        Equipment("ticket_rio", "Passagem para o Rio", 1, "VIAGEM", 0, "Bilhete de alta velocidade para o Rio de Janeiro.", null, null, "ESPECIAL", "COMUM", 1, "ESTAÇÃO", null)
     )
 
     fun getAllEquipments(): List<Equipment> = todosEquipamentos

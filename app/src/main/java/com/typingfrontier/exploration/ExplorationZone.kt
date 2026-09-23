@@ -116,7 +116,7 @@ object ExplorationZoneRepository {
         ),
         ExplorationZone(
             id = "rio_construcao",
-            nome = "🚄 Rio de Janeiro",
+            nome = "🚄 São Paulo e Rio",
             descricao = "[ EM CONSTRUÇÃO ] — Esta conexão será disponibilizada em uma futura expansão.",
             nivelMinimo = 1,
             riscoBase = 0,

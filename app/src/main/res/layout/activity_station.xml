@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
@@ -16,5 +17,122 @@
         android:id="@+id/stationGridView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <!-- PAINEL DE CONVERSA OVERLAY -->
+    <LinearLayout
+        android:id="@+id/layoutChatOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:background="#E6121212"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="visible"
+        android:padding="12dp">
+
+        <!-- CABEÇALHO COM ABAS -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:id="@+id/layoutChatTabs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- Abas serão adicionadas dinamicamente aqui -->
+
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <RelativeLayout
+            android:id="@+id/layoutChatHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+
+            <TextView
+                android:id="@+id/txtChatNpcName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Estação São Paulo"
+                android:textColor="#74C6E0"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtChatExpandHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/txtChatNpcName"
+                android:layout_marginStart="8dp"
+                android:text="[+] expandir"
+                android:textColor="#889099"
+                android:textSize="10sp" />
+
+            <ImageButton
+                android:id="@+id/btnChatClose"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentEnd="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                app:tint="#889099" />
+        </RelativeLayout>
+
+        <ScrollView
+            android:id="@+id/scrollChat"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/txtChatMessages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#E8EDF2"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp"/>
+        </ScrollView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/edtChatMessage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Digite sua mensagem..."
+                android:textColor="#FFFFFF"
+                android:textColorHint="#889099"
+                android:background="#333333"
+                android:padding="10dp"
+                android:textSize="14sp"
+                android:maxLines="3"
+                android:inputType="textCapSentences"
+                android:imeOptions="actionSend" />
+
+            <ImageButton
+                android:id="@+id/btnChatSend"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_send"
+                app:tint="#74C6E0" />
+        </LinearLayout>
+    </LinearLayout>
 
 </FrameLayout>

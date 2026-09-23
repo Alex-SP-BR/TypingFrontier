@@ -159,10 +159,10 @@ class LojaAdapter(
         // 2. Lógica de Preço
         val precoExibido = if (item.id == "blessing" || item.id == "medicine") item.preco else com.typingfrontier.EconomyManager.precoInflacionado(item.preco)
         
-        // Configuração do ícone da moeda com tamanho controlado (20dp)
-        val coinIcon = androidx.core.content.ContextCompat.getDrawable(context, com.typingfrontier.R.drawable.fron_coin)
+        // Configuração do ícone da moeda com tratamento de transparência e tamanho controlado (20dp)
+        val coinIcon = com.typingfrontier.utils.ViewUtils.getCoinDrawable(context)
         val size = (20 * context.resources.displayMetrics.density).toInt()
-        coinIcon?.setBounds(0, 0, size, size)
+        coinIcon.setBounds(0, 0, size, size)
         txtPreco.setCompoundDrawables(coinIcon, null, null, null)
 
         txtPreco.text = CurrencyUtils.formatar(precoExibido)

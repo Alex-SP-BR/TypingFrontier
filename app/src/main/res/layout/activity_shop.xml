@@ -45,7 +45,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="4dp"
-            android:text="Seu Saldo: 0"
+            android:text="Saldo: 0"
             android:fontFamily="sans-serif-black"
             android:textColor="#FFFFFF"
             android:shadowColor="#00FFFF"
