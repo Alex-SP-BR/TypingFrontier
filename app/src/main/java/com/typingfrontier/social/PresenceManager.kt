@@ -24,7 +24,14 @@ object PresenceManager {
     data class PresencePayload(
         val user_id: String,
         val username: String,
-        val role: String
+        val role: String,
+        val gender: String = "",
+        val stationId: String? = null,
+        val gridX: Int = -1,
+        val gridY: Int = -1,
+        val direction: String = "baixo",
+        val lastMessage: String = "",
+        val lastMessageTime: Long = 0L
     )
 
     private const val TAG = "PresenceManager"
@@ -52,33 +59,24 @@ object PresenceManager {
      */
     fun startPresence() {
         Log.d(TAG, "[PRESENCE_DEBUG] startPresence requested")
-        val profile = SocialProfileRepository.currentProfile
         val uid = SocialProfileRepository.getCurrentUserId()
 
         Log.d(TAG, "[PRESENCE_DEBUG] auth.uid = $uid")
-        if (profile != null) {
-            Log.d(TAG, "[PRESENCE_DEBUG] currentProfile.id = ${profile.id}")
-            Log.d(TAG, "[PRESENCE_DEBUG] currentProfile.username = ${profile.username}")
-            Log.d(TAG, "[PRESENCE_DEBUG] currentProfile.role = ${profile.role}")
-            Log.d(TAG, "[PRESENCE_DEBUG] auth.uid == profile.id = ${uid == profile.id}")
-        } else {
-            Log.d(TAG, "[PRESENCE_DEBUG] currentProfile is NULL")
-        }
-
-        if (profile == null || uid == null) {
-            Log.w(TAG, "Tentativa de iniciar presença sem perfil ou sessão ativa.")
+        
+        if (uid == null) {
+            Log.w(TAG, "Tentativa de iniciar presença sem sessão ativa.")
             return
         }
+
+        isAppInForeground = true
 
         // Se o canal já existe e os monitores estão ativos, não há necessidade de reiniciar
         if (channel != null && observationJob?.isActive == true && statusJob?.isActive == true) {
+            Log.d(TAG, "[PRESENCE_DEBUG] Presence infra already active")
             return
         }
 
-        // Se o app já estiver em foreground, trackPresence cuidará da inicialização e inscrição.
-        if (isAppInForeground) {
-            trackPresence()
-        }
+        trackPresence()
     }
 
     private fun iniciarObservacaoInterna() {
@@ -140,19 +138,19 @@ object PresenceManager {
 
     private fun trackPresence() {
         Log.d(TAG, "[PRESENCE_DEBUG] trackPresence requested")
-        val profile = SocialProfileRepository.currentProfile ?: return
+        val uid = SocialProfileRepository.getCurrentUserId() ?: return
         
         presenceJob?.cancel()
         presenceJob = scope.launch {
             try {
-                // Se o canal não existe ou os observers morreram, recriamos tudo (Causa da Falha identificada na auditoria)
+                // Se o canal não existe ou os observers morreram, recriamos tudo
                 if (channel == null || observationJob?.isActive != true || statusJob?.isActive != true) {
-                    Log.d(TAG, "[PRESENCE_DEBUG] channel created = $CHANNEL_ID")
+                    Log.d(TAG, "[PRESENCE_DEBUG] channel created = $CHANNEL_ID (key=$uid)")
                     Log.d(TAG, "Configurando canal de presença: $CHANNEL_ID")
                     
                     channel = SupabaseManager.client.realtime.channel(CHANNEL_ID) {
                         presence {
-                            key = profile.id
+                            key = uid
                         }
                     }
                     iniciarObservacaoInterna()
@@ -161,9 +159,10 @@ object PresenceManager {
                 // Aguarda a confirmação de que a subscrição foi aceita pelo servidor antes de prosseguir
                 Log.d(TAG, "[PRESENCE_DEBUG] subscribe started")
                 channel?.subscribe(blockUntilSubscribed = true)
-                Log.d(TAG, "[PRESENCE_DEBUG] subscribe returned")
+                Log.d(TAG, "[PRESENCE_DEBUG] subscribe returned (SUBSCRIBED)")
                 
-                // O anúncio real (track) será disparado pelo statusFlow quando o estado for SUBSCRIBED.
+                // Anuncia o payload de presença atual assim que a subscrição estiver concluída
+                doTrack()
             } catch (e: Exception) {
                 Log.e(TAG, "[PRESENCE_DEBUG] subscribe ERROR: ${e.javaClass.simpleName} - ${e.message}")
                 Log.e(TAG, "Erro ao assinar canal de presença: ${e.message}")
@@ -172,27 +171,75 @@ object PresenceManager {
     }
 
     private suspend fun doTrack() {
-        Log.d(TAG, "[PRESENCE_DEBUG] doTrack START")
-        val profile = SocialProfileRepository.currentProfile ?: return
         val currentChannel = channel ?: return
+        if (currentChannel.status.value != RealtimeChannel.Status.SUBSCRIBED) {
+            Log.d(TAG, "[PRESENCE_DEBUG] doTrack deferred: channel status is ${currentChannel.status.value}")
+            return
+        }
+
+        Log.d(TAG, "[PRESENCE_DEBUG] doTrack START")
+        val uid = SocialProfileRepository.getCurrentUserId() ?: return
+        val profile = SocialProfileRepository.currentProfile
+        
         try {
-            val payload = PresencePayload(
-                user_id = profile.id,
-                username = profile.username,
-                role = profile.role
+            // Se não houver dados específicos de localização (currentPresenceData), 
+            // constrói um payload básico com os dados do perfil ou fallbacks.
+            val payload = currentPresenceData ?: PresencePayload(
+                user_id = uid,
+                username = profile?.username ?: com.typingfrontier.PlayerManager.player.nome.ifEmpty { "Viajante" },
+                role = profile?.role ?: com.typingfrontier.PlayerManager.player.profissao
             )
             
-            Log.d(TAG, "[PRESENCE_DEBUG] track user_id = ${payload.user_id}")
-            Log.d(TAG, "[PRESENCE_DEBUG] track username = ${payload.username}")
-            Log.d(TAG, "[PRESENCE_DEBUG] track role = ${payload.role}")
+            Log.d(TAG, "[PRESENCE_DEBUG] tracking: uid=$uid, user=${payload.username}, station=${payload.stationId}")
 
             currentChannel.track(payload)
             Log.d(TAG, "[PRESENCE_DEBUG] track SUCCESS")
-            Log.d(TAG, "Presença anunciada (Online): @${profile.username}")
         } catch (e: Exception) {
             Log.e(TAG, "[PRESENCE_DEBUG] track ERROR: ${e.javaClass.simpleName} - ${e.message}")
-            e.cause?.let { Log.e(TAG, "[PRESENCE_DEBUG] Cause: ${it.message}") }
             Log.e(TAG, "Erro ao anunciar presença: ${e.message}")
+        }
+    }
+
+    private var currentPresenceData: PresencePayload? = null
+
+    /**
+     * Atualiza os dados de localização e estado do jogador no sistema de presença.
+     */
+    fun updatePresenceData(
+        stationId: String?,
+        gridX: Int,
+        gridY: Int,
+        direction: String,
+        gender: String,
+        lastMessage: String = "",
+        lastMessageTime: Long = 0L
+    ) {
+        val uid = SocialProfileRepository.getCurrentUserId() ?: return
+        val profile = SocialProfileRepository.currentProfile
+        
+        currentPresenceData = PresencePayload(
+            user_id = uid,
+            username = profile?.username ?: com.typingfrontier.PlayerManager.player.nome.ifEmpty { "Viajante" },
+            role = profile?.role ?: com.typingfrontier.PlayerManager.player.profissao,
+            gender = gender,
+            stationId = stationId,
+            gridX = gridX,
+            gridY = gridY,
+            direction = direction,
+            lastMessage = lastMessage,
+            lastMessageTime = lastMessageTime
+        )
+        
+        Log.d(TAG, "[PRESENCE_DEBUG] updatePresenceData: station=$stationId, pos=($gridX,$gridY)")
+        
+        // Assegura que o canal de presença está iniciado
+        startPresence()
+
+        val currentChannel = channel
+        if (currentChannel != null && currentChannel.status.value == RealtimeChannel.Status.SUBSCRIBED) {
+            scope.launch { doTrack() }
+        } else {
+            Log.d(TAG, "[PRESENCE_DEBUG] updatePresenceData deferred: channel status is ${currentChannel?.status?.value}, payload saved and will track on SUBSCRIBED")
         }
     }
 

@@ -102,26 +102,45 @@ object SocialProfileRepository {
                             }
 
                             if (profile == null) {
-                                Log.d(TAG, "Perfil não encontrado para $uid. Aguardando definição de identidade social.")
-                                val savedSocialId = PlayerManager.player.socialUserId
+                                Log.d(TAG, "Perfil não encontrado para $uid. Verificando dados locais para criação automática.")
+                                PlayerManager.awaitLoaded()
+                                val player = PlayerManager.player
+                                val savedSocialId = player.socialUserId
+                                
                                 if (!savedSocialId.isNullOrBlank() && savedSocialId != uid) {
                                     isSessionMismatch = true
                                     Log.w(TAG, "Aviso de Segurança: Sessão Supabase alterada. UUID atual ($uid) difere do original ($savedSocialId).")
                                 } else {
                                     isSessionMismatch = false
                                 }
+
+                                val defaultUsername = if (player.nome.isNotBlank()) {
+                                    player.nome.lowercase().trim().replace(" ", "_")
+                                } else {
+                                    "viajante_${uid.take(6)}"
+                                }
+                                val charName = if (player.nome.isNotBlank()) player.nome else "Viajante"
+
+                                Log.d(TAG, "[PRESENCE_ID_DEBUG] Criando perfil social básico automático para UUID $uid...")
+                                val created = createSocialProfile(defaultUsername, charName)
+                                if (created) {
+                                    Log.d(TAG, "[PRESENCE_ID_DEBUG] Perfil social criado com sucesso para UUID $uid")
+                                } else {
+                                    Log.e(TAG, "[PRESENCE_ID_DEBUG] failed to create social profile")
+                                }
                             } else {
                                 isSessionMismatch = false
                                 currentProfile = profile
                                 Log.d(TAG, "Perfil social recuperado: ${profile.username} (Role: ${profile.role})")
                                 
-                                if (PlayerManager.player.socialUserId != profile.id) {
-                                    PlayerManager.player.socialUserId = profile.id
+                                PlayerManager.awaitLoaded()
+                                val player = PlayerManager.player
+                                if (player.socialUserId != profile.id) {
+                                    player.socialUserId = profile.id
                                     PlayerManager.save(TypingFrontierApp.getAppContext())
                                 }
                                 
                                 // Validação de Avatar Administrativo (Segurança contra perda de Role)
-                                val player = PlayerManager.player
                                 if (!CollectionRepository.isAvatarValidoParaPlayer(player.avatarEquipadoId, player)) {
                                     Log.w(TAG, "Avatar equipado inválido para a role atual. Resetando para padrão.")
                                     player.avatarEquipadoId = null
@@ -129,6 +148,9 @@ object SocialProfileRepository {
                                 }
                             }
                         }
+
+                        Log.d("PRESENCE_ID_DEBUG", "[PRESENCE_ID_DEBUG] user_id = $uid, profile_exists = ${currentProfile != null}, username = ${currentProfile?.username ?: "null"}")
+                        Log.d("PRESENCE_ID_DEBUG", "[PRESENCE_ID_DEBUG] device identity initialization completed")
 
                         // Sincroniza dados mutáveis (nome, avatar equipado) se houver alteração local
                         val current = currentProfile

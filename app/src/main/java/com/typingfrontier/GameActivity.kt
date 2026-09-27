@@ -5,6 +5,8 @@ import com.typingfrontier.economy.ProfessionManager
 import com.typingfrontier.shop.ShopActivity
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
+import android.util.Log
 import android.view.LayoutInflater
 import android.widget.TextView
 import android.widget.Toast
@@ -15,6 +17,7 @@ import com.typingfrontier.utils.CurrencyUtils
 import com.typingfrontier.collection.CentralActivity
 import com.typingfrontier.collection.CollectionRepository
 import com.typingfrontier.utils.ViewUtils
+import java.util.Locale
 
 class GameActivity : AppCompatActivity() {
 
@@ -28,11 +31,21 @@ class GameActivity : AppCompatActivity() {
     // PRIORIDADE DA LOUSA
     private var prioridadeAtual = 5
 
+    companion object {
+        var startTimeNanos: Long = 0L
+        private fun logPerf(marker: String, desc: String) {
+            val base = if (startTimeNanos > 0) startTimeNanos else SystemClock.elapsedRealtimeNanos()
+            val elapsed = (SystemClock.elapsedRealtimeNanos() - base) / 1_000_000.0
+            Log.d("TF_PERF_START", "TF_PERF_START $marker: $desc (+${String.format(Locale.US, "%.1f", elapsed)} ms)")
+        }
+    }
+
     private var soundPool: android.media.SoundPool? = null
     private var soundIdA: Int = 0
     private var soundIdB: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        logPerf("T2", "Entry in GameActivity.onCreate()")
         super.onCreate(savedInstanceState)
         
         // Ajuste da Barra de Status para o tema escuro
@@ -41,21 +54,32 @@ class GameActivity : AppCompatActivity() {
 
         binding = ActivityGameBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        logPerf("T3", "Completion of setContentView()")
 
         configurarTelaPrincipal()
+        logPerf("T4", "Completion of configurarTelaPrincipal()")
         
         // Inicialização da lousa
         prioridadeAtual = 5
         binding.txtDescricao.text = "O que vamos fazer hoje?"
 
-        atualizarHUD()
-        prepararSons()
+        // Preparação de sons diferida para após a primeira renderização da UI
+        binding.root.post {
+            logPerf("T5", "First frame scheduled / post-render UI cycle")
+            logPerf("T8", "Start of prepararSons()")
+            prepararSons()
+        }
     }
 
     override fun onResume() {
+        logPerf("T6", "Entry in GameActivity.onResume()")
         super.onResume()
         atualizarHUD()
-        SoundManager.play(this, "aventura")
+        logPerf("T7", "Completion of onResume()")
+        binding.root.post {
+            logPerf("T9", "Start of SoundManager.play()")
+            SoundManager.play(this, "aventura")
+        }
     }
 
     // ------------------------------------------------
@@ -511,10 +535,10 @@ class GameActivity : AppCompatActivity() {
     // HUD
     // ------------------------------------------------
     private fun atualizarHUD() {
+        logPerf("HUD0", "Entry in atualizarHUD()")
 
         val p = PlayerManager.player
-        
-        // Removido o load() daqui para evitar que o save antigo sobrescreva as mudanças da Engine em tempo real.
+        logPerf("HUD1", "Player retrieved")
 
         // 🏆 SISTEMA DE AVATARES
         val avatarValido = CollectionRepository.isAvatarValidoParaPlayer(p.avatarEquipadoId, p)
@@ -528,16 +552,22 @@ class GameActivity : AppCompatActivity() {
                 else R.drawable.mulher
             )
         }
+        logPerf("HUD2", "Avatar configured")
 
         binding.txtNomePlayer.text = p.nome
         binding.txtTempo.text = TimeManager.tempoFormatado()
+        logPerf("HUD3", "Name and time configured")
         
         // Configuração do ícone da moeda com tratamento de transparência e tamanho controlado (20dp)
+        logPerf("HUD4_BEFORE_COIN", "Before ViewUtils.getCoinDrawable()")
         val coinIcon = ViewUtils.getCoinDrawable(this)
+        logPerf("HUD4_AFTER_COIN", "After ViewUtils.getCoinDrawable()")
+
         val size = (20 * resources.displayMetrics.density).toInt()
         coinIcon.setBounds(0, 0, size, size)
         binding.txtDinheiro.setCompoundDrawables(coinIcon, null, null, null)
         binding.txtDinheiro.text = CurrencyUtils.formatar(p.dinheiro)
+        logPerf("HUD5", "Money configured")
 
         // 🔘 BOTÃO TRABALHAR DINÂMICO
         if (p.trabalhouHoje) {
@@ -552,11 +582,13 @@ class GameActivity : AppCompatActivity() {
             val msgTrauma = "🩹 Seu corpo está se recuperando. Recomendado descansar mais $totalDias ${if (totalDias == 1) "dia" else "dias"}."
             exibirMensagem(msgTrauma, prioridade = 2)
         }
+        logPerf("HUD6", "Button work & traumas configured")
 
         binding.lblNivel.text = "⭐ Nível ${p.nivel}: ${p.experienciaAtual}/${p.experienciaParaProximoNivel} XP"
 
         binding.progressXP.max = p.experienciaParaProximoNivel
         binding.progressXP.progress = p.experienciaAtual
+        logPerf("HUD7", "XP configured")
 
         // HUD - VIDA, TRAUMA E BÊNÇÃO (Barra mantida exclusivamente vida/vidaMax)
         val vidaTextBuilder = StringBuilder("❤️ Vida: ${p.vida}/${p.vidaMax}")
@@ -587,6 +619,7 @@ class GameActivity : AppCompatActivity() {
         } else {
             binding.progressVida.clearAnimation()
         }
+        logPerf("HUD8", "Life configured")
 
         binding.lblEnergia.text = "⚡ Energia: ${p.energia}/${p.energiaMax}"
         binding.progressEnergia.max = p.energiaMax
@@ -621,6 +654,7 @@ class GameActivity : AppCompatActivity() {
             binding.progressMente.progressTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#7B1FA2"))
             binding.progressMente.clearAnimation()
         }
+        logPerf("HUD9", "Exit atualizarHUD()")
     }
 
     /**

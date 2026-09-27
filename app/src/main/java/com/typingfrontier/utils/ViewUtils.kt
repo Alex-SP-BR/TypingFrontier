@@ -11,28 +11,41 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import com.typingfrontier.R
+import java.util.concurrent.atomic.AtomicBoolean
 
 object ViewUtils {
 
+    @Volatile
     private var cachedCoinBitmap: Bitmap? = null
+    private val isProcessingCoin = AtomicBoolean(false)
 
     /**
      * Retorna o Drawable da moeda processado com transparência (Flood Fill).
      * Utiliza cache para evitar re-processamento.
      */
     fun getCoinDrawable(context: Context): Drawable {
-        if (cachedCoinBitmap == null) {
-            val original = BitmapFactory.decodeResource(context.resources, R.drawable.fron_coin)
-            if (original != null) {
-                cachedCoinBitmap = makeTransparent(original)
-            }
+        val cached = cachedCoinBitmap
+        if (cached != null) {
+            return BitmapDrawable(context.resources, cached)
         }
-        
-        return if (cachedCoinBitmap != null) {
-            BitmapDrawable(context.resources, cachedCoinBitmap)
-        } else {
-            AppCompatResources.getDrawable(context, R.drawable.fron_coin)!!
+
+        if (isProcessingCoin.compareAndSet(false, true)) {
+            val appContext = context.applicationContext
+            Thread {
+                try {
+                    val original = BitmapFactory.decodeResource(appContext.resources, R.drawable.fron_coin)
+                    if (original != null) {
+                        cachedCoinBitmap = makeTransparent(original)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    isProcessingCoin.set(false)
+                }
+            }.start()
         }
+
+        return AppCompatResources.getDrawable(context, R.drawable.fron_coin)!!
     }
 
     /**

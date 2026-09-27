@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- PAINEL DE CONVERSA OVERLAY -->
+    <!-- PAINEL DE CONVERSA OVERLAY (ABAS, HEADER, MENSAGENS) -->
     <LinearLayout
         android:id="@+id/layoutChatOverlay"
         android:layout_width="match_parent"
@@ -91,8 +91,7 @@
         <ScrollView
             android:id="@+id/scrollChat"
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:layout_marginBottom="8dp">
+            android:layout_height="55dp">
 
             <TextView
                 android:id="@+id/txtChatMessages"
@@ -102,37 +101,43 @@
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"/>
         </ScrollView>
+    </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
+    <!-- CAIXA COMPACTA / ENTRADA INDEPENDENTE NO RODAPÉ -->
+    <LinearLayout
+        android:id="@+id/layoutChatInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#E6121212"
+        android:padding="12dp"
+        android:visibility="visible">
+
+        <EditText
+            android:id="@+id/edtChatMessage"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_weight="1"
+            android:hint="Digite sua mensagem..."
+            android:textColor="#FFFFFF"
+            android:textColorHint="#889099"
+            android:background="#333333"
+            android:padding="10dp"
+            android:textSize="14sp"
+            android:maxLines="3"
+            android:inputType="textCapSentences"
+            android:imeOptions="actionSend" />
 
-            <EditText
-                android:id="@+id/edtChatMessage"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Digite sua mensagem..."
-                android:textColor="#FFFFFF"
-                android:textColorHint="#889099"
-                android:background="#333333"
-                android:padding="10dp"
-                android:textSize="14sp"
-                android:maxLines="3"
-                android:inputType="textCapSentences"
-                android:imeOptions="actionSend" />
-
-            <ImageButton
-                android:id="@+id/btnChatSend"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_send"
-                app:tint="#74C6E0" />
-        </LinearLayout>
+        <ImageButton
+            android:id="@+id/btnChatSend"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_send"
+            app:tint="#74C6E0" />
     </LinearLayout>
 
 </FrameLayout>

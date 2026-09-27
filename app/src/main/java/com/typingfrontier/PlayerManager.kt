@@ -2,9 +2,19 @@ package com.typingfrontier
 
 import android.content.Context
 import android.content.SharedPreferences
+import kotlinx.coroutines.CompletableDeferred
 
 object PlayerManager {
     var player = Player()
+
+    private val loadedDeferred = CompletableDeferred<Unit>()
+    @Volatile private var isLoadingStarted = false
+
+    suspend fun awaitLoaded() {
+        loadedDeferred.await()
+    }
+
+    fun isLoaded(): Boolean = loadedDeferred.isCompleted
 
     private const val PREFS_NAME = "typing_frontier_save"
     private const val CURRENT_SAVE_VERSION = 11
@@ -232,6 +242,8 @@ object PlayerManager {
     }
 
     fun save(context: Context) {
+        if (!isLoaded()) return
+
         val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val editor = prefs.edit()
 
@@ -347,7 +359,15 @@ object PlayerManager {
     }
 
     fun load(context: Context) {
-        val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        if (loadedDeferred.isCompleted) return
+
+        synchronized(this) {
+            if (isLoadingStarted) return
+            isLoadingStarted = true
+        }
+
+        try {
+            val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
         if (!prefs.contains("nome")) return // No save found
 
@@ -585,6 +605,9 @@ object PlayerManager {
             }
             // Não zeramos estoqueMedicamento aqui porque ele já foi carregado do prefs anteriormente.
             // Se ele era 0 no prefs, continuará 0. Se era > 0 (comprado na v9 bugada), será preservado.
+        }
+        } finally {
+            loadedDeferred.complete(Unit)
         }
     }
 

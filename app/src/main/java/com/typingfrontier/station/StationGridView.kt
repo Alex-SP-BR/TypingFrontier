@@ -2,13 +2,23 @@ package com.typingfrontier.station
 
 import android.content.Context
 import android.graphics.*
+import android.os.Build
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
 import android.util.AttributeSet
+import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.widget.ImageView
+import android.widget.Toast
+import com.typingfrontier.npc.SharedNpcState
+import com.typingfrontier.social.SocialProfileRepository
 import com.typingfrontier.utils.ViewUtils
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 /**
  * Componente visual experimental para estação de trem.
@@ -18,9 +28,6 @@ class StationGridView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    /**
-     * Modelo simples para NPCs na estação.
-     */
     data class StationNPC(
         val name: String,
         var x: Int,
@@ -37,34 +44,86 @@ class StationGridView @JvmOverloads constructor(
         var isInteracting: Boolean = false
     )
 
+    /**
+     * Modelo para jogadores remotos.
+     */
+    data class RemotePlayer(
+        val id: String,
+        val username: String,
+        val role: String,
+        val gender: String,
+        var x: Int,
+        var y: Int,
+        var direction: String,
+        val sprites: MutableMap<String, Bitmap> = mutableMapOf()
+    )
+
+    /**
+     * Modelo para diálogos temporários no mundo.
+     */
+    data class WorldDialog(
+        val senderId: String,
+        val senderName: String,
+        val message: String,
+        val worldX: Int,
+        val worldY: Int,
+        val isPrivate: Boolean = false,
+        val allowedUsers: Set<String> = emptySet(),
+        val expirationTime: Long = System.currentTimeMillis() + 5000L
+    )
+
     interface InteractionListener {
         fun onArmoireTapped()
         fun onNpcTapped(npcName: String)
+        fun onTrainTapped()
+        fun onPlayerPositionChanged(x: Int, y: Int, direction: String)
     }
 
     private var interactionListener: InteractionListener? = null
     private var targetImageView: ImageView? = null
     
-    // Pincéis
-    private val paintGrid = Paint().apply {
-        color = Color.parseColor("#40FFFFFF")
-        strokeWidth = 2f
-        style = Paint.Style.STROKE
-    }
-    
-    private val paintText = Paint().apply {
-        color = Color.CYAN
-        textSize = 20f
-        isFakeBoldText = true
+    // Pincéis de Renderização dos Nomes
+    private val paintPlayerNameStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#121212")
+        textSize = 35f
         textAlign = Paint.Align.CENTER
+        style = Paint.Style.STROKE
+        strokeWidth = 8f
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        isFakeBoldText = true
     }
 
-    private val paintPlayerName = Paint().apply {
+    private val paintPlayerName = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
-        textSize = 18f
+        textSize = 35f
         textAlign = Paint.Align.CENTER
-        setShadowLayer(3f, 0f, 0f, Color.BLACK)
+        style = Paint.Style.FILL
+        isFakeBoldText = true
     }
+
+    // Pincéis de Renderização para Diálogos Privados
+    private val paintPrivateTextStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#0A192F")
+        textSize = 35f
+        textAlign = Paint.Align.CENTER
+        style = Paint.Style.STROKE
+        strokeWidth = 8f
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        isFakeBoldText = true
+    }
+
+    private val paintPrivateText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#74C6E0")
+        textSize = 35f
+        textAlign = Paint.Align.CENTER
+        style = Paint.Style.FILL
+        isFakeBoldText = true
+    }
+
+    // Diálogos temporários no mundo
+    private val activeDialogs = ConcurrentHashMap<String, WorldDialog>()
 
     // Grid e Mapa
     private val cols = 12
@@ -77,6 +136,12 @@ class StationGridView @JvmOverloads constructor(
     private val matrixCamera = Matrix()
     private val inverseMatrix = Matrix()
 
+    private var currentStationId: String = "sao_paulo"
+
+    fun setStationId(stationId: String) {
+        this.currentStationId = stationId
+    }
+
     // Jogador
     private val playerSprites = mutableMapOf<String, Bitmap>()
     private var playerName: String = ""
@@ -86,6 +151,10 @@ class StationGridView @JvmOverloads constructor(
     
     // NPCs
     private val npcList = mutableListOf<StationNPC>()
+    
+    // Jogadores Remotos
+    private val remotePlayers = mutableMapOf<String, RemotePlayer>()
+    private val remoteSpriteCache = mutableMapOf<String, Map<String, Bitmap>>()
 
     // Movimentação
     private var movePath = mutableListOf<Point>()
@@ -128,13 +197,52 @@ class StationGridView @JvmOverloads constructor(
         this.interactionListener = listener
     }
 
+    fun getPlayerX(): Int = playerX
+    fun getPlayerY(): Int = playerY
+
+    fun getNpcPosition(npcName: String): Point? {
+        val npc = npcList.find { it.name == npcName } ?: return null
+        return Point(npc.x, npc.y)
+    }
+
+    /**
+     * Adiciona ou substitui um diálogo temporário sobre o cenário.
+     * A posição (worldX, worldY) é capturada no exato instante do envio/recebimento
+     * e o balão PERMANECE nessa posição durante sua existência (5s).
+     */
+    fun addSpeechDialog(
+        senderId: String,
+        senderName: String,
+        message: String,
+        worldX: Int,
+        worldY: Int,
+        isPrivate: Boolean = false,
+        allowedUsers: Set<String> = emptySet()
+    ) {
+        val dialog = WorldDialog(
+            senderId = senderId,
+            senderName = senderName,
+            message = message,
+            worldX = worldX,
+            worldY = worldY,
+            isPrivate = isPrivate,
+            allowedUsers = allowedUsers,
+            expirationTime = System.currentTimeMillis() + 5000L
+        )
+        activeDialogs[senderId] = dialog
+        postInvalidate()
+    }
+
     fun setNpcInteracting(npcName: String, interacting: Boolean) {
         npcList.find { it.name == npcName }?.let {
             it.isInteracting = interacting
-            if (!interacting && it.isCirculating) {
-                decidirProximoPassoCirculacao(it)
-            }
         }
+    }
+
+    companion object {
+        private val globalSpriteCache = ConcurrentHashMap<Int, Bitmap>()
+        private val globalInFlight = ConcurrentHashMap.newKeySet<Int>()
+        private val globalSpriteExecutor = Executors.newFixedThreadPool(2)
     }
 
     fun setPlayerData(sprites: Map<String, Int>, name: String) {
@@ -145,10 +253,17 @@ class StationGridView @JvmOverloads constructor(
         val targetProcessingHeight = 256
         
         sprites.forEach { (dir, resId) ->
-            loadSprite(resId, targetProcessingHeight)?.let {
+            loadSprite(resId, targetProcessingHeight) { transparentBmp ->
+                playerSprites[dir] = transparentBmp
+            }?.let {
                 playerSprites[dir] = it
             }
         }
+        invalidate()
+    }
+
+    fun clearNpcs() {
+        npcList.clear()
         invalidate()
     }
 
@@ -173,7 +288,9 @@ class StationGridView @JvmOverloads constructor(
         val targetProcessingHeight = 256
         
         sprites.forEach { (dir, resId) ->
-            loadSprite(resId, targetProcessingHeight)?.let {
+            loadSprite(resId, targetProcessingHeight) { transparentBmp ->
+                npc.sprites[dir] = transparentBmp
+            }?.let {
                 npc.sprites[dir] = it
             }
         }
@@ -181,41 +298,158 @@ class StationGridView @JvmOverloads constructor(
         npcList.removeAll { it.name == name }
         npcList.add(npc)
         
-        // Se for circulante, inicia o ciclo de decisão após o primeiro delay
-        if (isCirculating) {
-            postDelayed({ decidirProximoPassoCirculacao(npc) }, 60000L)
-        }
-        
         invalidate()
     }
 
-    private fun decidirProximoPassoCirculacao(npc: StationNPC) {
-        if (!npc.isCirculating || npc.anchorX == -1 || npc.isInteracting) return
-        if (npc.isMoving) return
+    /**
+     * Atualiza a representação local do NPC a partir do estado compartilhado do mundo.
+     * O servidor é a autoridade sobre a próxima célula (gridX/gridY).
+     * A direção visual reflete o vetor do deslocamento real para evitar que a direção
+     * do próximo movimento do servidor sobrescreva prematuramente o movimento atual.
+     */
+    fun updateNpcFromSharedState(sharedState: SharedNpcState) {
+        val npc = npcList.find { it.name == sharedState.displayName || it.name == sharedState.npcId } ?: run {
+            Log.w("StationGridView", "[SHARED_NPC_TRACE] updateNpcFromSharedState: NPC nao encontrado em npcList para displayName=${sharedState.displayName}, npcId=${sharedState.npcId}")
+            return
+        }
+        
+        Log.d("StationGridView", "[SHARED_NPC_TRACE] updateNpcFromSharedState recebido: npc=${npc.name}, posAtual=(${npc.x},${npc.y}), serverGrid=(${sharedState.gridX},${sharedState.gridY}), serverTarget=(${sharedState.targetX},${sharedState.targetY}), state=${sharedState.state}")
 
-        val neighbors = listOf(
-            Point(npc.x - 1, npc.y), // esquerda
-            Point(npc.x + 1, npc.y), // direita
-            Point(npc.x, npc.y - 1), // cima
-            Point(npc.x, npc.y + 1)  // baixo
-        )
+        npc.isInteracting = (sharedState.state == "interacting")
+        if (npc.isInteracting) {
+            npc.direction = sharedState.direction
+            invalidate()
+            return
+        }
 
-        val validCells = neighbors.filter { n ->
-            // Deve estar dentro da área 3x3 em torno da âncora
-            val withinArea = n.x in (npc.anchorX - 1)..(npc.anchorX + 1) &&
-                             n.y in (npc.anchorY - 1)..(npc.anchorY + 1)
+        val serverX = sharedState.gridX
+        val serverY = sharedState.gridY
+        val currentX = npc.x
+        val currentY = npc.y
+
+        val dx = Math.abs(serverX - currentX)
+        val dy = Math.abs(serverY - currentY)
+
+        if (currentX == serverX && currentY == serverY) {
+            // NPC já está na posição autorizada do servidor.
+            // Preserva a direção visual do deslocamento realizado e evita sobrescrever com a direção futura.
+            npc.isMoving = false
+            if (npc.direction.isEmpty()) {
+                npc.direction = sharedState.direction
+            }
+            Log.d("StationGridView", "[SHARED_NPC_TRACE] NPC ${npc.name} ja esta em ($serverX,$serverY). DirecaoMantida=${npc.direction}")
+        } else if (dx <= 1 && dy <= 1 && (dx + dy > 0)) {
+            // Posição adjacente (1 célula): determina direção pelo deslocamento real e executa em ~200ms
+            val moveDirection = when {
+                serverX > currentX -> "direita"
+                serverX < currentX -> "esquerda"
+                serverY > currentY -> "baixo"
+                else -> "cima"
+            }
+            npc.direction = moveDirection
+            Log.d("StationGridView", "[SHARED_NPC_TRACE] NPC ${npc.name}: movendo 1 celula de ($currentX,$currentY) para ($serverX,$serverY) com direcao Real=$moveDirection")
             
-            withinArea && isWalkable(n.x, n.y)
+            npc.movePath = mutableListOf(Point(serverX, serverY))
+            if (!npc.isMoving) {
+                npc.isMoving = true
+                processNpcStep(npc)
+            }
+        } else {
+            // Distância maior que 1 célula (sincronização inicial ou reconexão)
+            Log.d("StationGridView", "[SHARED_NPC_TRACE] NPC ${npc.name}: gap de posicao detectado de ($currentX,$currentY) para ($serverX,$serverY). Sincronizando diretamente.")
+            npc.x = serverX
+            npc.y = serverY
+            npc.direction = sharedState.direction
+            npc.isMoving = false
+        }
+        invalidate()
+    }
+
+    /**
+     * Atualiza a lista de jogadores remotos.
+     */
+    fun setRemotePlayers(newList: List<com.typingfrontier.social.PresenceManager.PresencePayload>, currentUserId: String) {
+        val activeIds = newList.map { it.user_id }.toSet()
+        
+        // 1. Remove jogadores que saíram ou mudaram de estação
+        val iterator = remotePlayers.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (!activeIds.contains(entry.key)) {
+                iterator.remove()
+            }
         }
 
-        if (validCells.isNotEmpty()) {
-            val target = validCells.random()
-            internalStartNpcMovingTo(npc, target.x, target.y)
-        } else {
-            // Tenta novamente em 1 minuto se não houver vizinhos válidos na área
-            postDelayed({ decidirProximoPassoCirculacao(npc) }, 60000L)
+        // 2. Adiciona ou atualiza jogadores
+        newList.forEach { payload ->
+            if (payload.user_id == currentUserId) return@forEach
+            
+            val player = remotePlayers.getOrPut(payload.user_id) {
+                RemotePlayer(
+                    id = payload.user_id,
+                    username = payload.username,
+                    role = payload.role,
+                    gender = payload.gender,
+                    x = payload.gridX,
+                    y = payload.gridY,
+                    direction = payload.direction
+                )
+            }
+            
+            // Atualiza posição e direção vinda da rede
+            player.x = payload.gridX
+            player.y = payload.gridY
+            player.direction = payload.direction
+            
+            // Carrega sprites se necessário usando cache por combinação de profissão/gênero
+            val cacheKey = "${payload.role}_${payload.gender}".lowercase()
+            if (player.sprites.isEmpty()) {
+                val cached = remoteSpriteCache[cacheKey]
+                if (cached != null) {
+                    player.sprites.putAll(cached)
+                } else {
+                    val loaded = loadRemoteSprites(payload.role, payload.gender)
+                    remoteSpriteCache[cacheKey] = loaded
+                    player.sprites.putAll(loaded)
+                }
+            }
         }
+        invalidate()
     }
+
+    private fun loadRemoteSprites(role: String, gender: String): Map<String, Bitmap> {
+        val targetProcessingHeight = 256
+        val map = mutableMapOf<String, Bitmap>()
+        val sexoChar = if (gender.equals("Feminino", ignoreCase = true)) "f" else "m"
+        
+        val baseNome = when (role) {
+            "Médico" -> if (sexoChar == "f") "medica" else "medico"
+            "Engenheiro" -> if (sexoChar == "f") "engenheira" else "engenheiro"
+            "Professor" -> if (sexoChar == "f") "professora" else "professor"
+            "Detetive" -> "detetive"
+            "Policial" -> "policial"
+            else -> "homem"
+        }
+
+        val directions = listOf("frente", "costas", "esquerda", "direita")
+        val dirMap = mapOf("frente" to "baixo", "costas" to "cima", "esquerda" to "esquerda", "direita" to "direita")
+
+        for (dir in directions) {
+            val resName = "${baseNome}_${sexoChar}_$dir"
+            val resId = context.resources.getIdentifier(resName, "drawable", context.packageName)
+            if (resId != 0) {
+                val targetDir = dirMap[dir]!!
+                loadSprite(resId, targetProcessingHeight) { transparentBmp ->
+                    map[targetDir] = transparentBmp
+                }?.let {
+                    map[targetDir] = it
+                }
+            }
+        }
+        return map
+    }
+
+
 
     fun startNpcMovingTo(npcName: String, tx: Int, ty: Int) {
         val npc = npcList.find { it.name == npcName } ?: return
@@ -223,27 +457,34 @@ class StationGridView @JvmOverloads constructor(
     }
 
     private fun internalStartNpcMovingTo(npc: StationNPC, tx: Int, ty: Int) {
+        Log.d("StationGridView", "[SHARED_NPC_TRACE] internalStartNpcMovingTo chamado: npc=${npc.name}, de=(${npc.x},${npc.y}) para=($tx,$ty)")
         val path = findPath(Point(npc.x, npc.y), Point(tx, ty))
         if (path != null && path.size > 1) {
             npc.movePath = path.toMutableList()
             npc.movePath.removeAt(0)
+            Log.d("StationGridView", "[SHARED_NPC_TRACE] Caminho encontrado! movePath tamanho=${npc.movePath.size}")
             if (!npc.isMoving) {
                 npc.isMoving = true
                 processNpcStep(npc)
+            } else {
+                Log.d("StationGridView", "[SHARED_NPC_TRACE] NPC ja estava em movimento, novo movePath definido")
+            }
+        } else {
+            Log.w("StationGridView", "[SHARED_NPC_TRACE] Nenhum caminho valido encontrado ate ($tx,$ty). pathSize=${path?.size ?: 0}")
+            if (!npc.isMoving) {
+                npc.x = tx
+                npc.y = ty
+                invalidate()
             }
         }
     }
 
     private fun processNpcStep(npc: StationNPC) {
         if (npc.movePath.isEmpty()) {
+            Log.d("StationGridView", "[SHARED_NPC_TRACE] processNpcStep: movePath vazio. Finalizando movimento para npc=${npc.name} em (${npc.x},${npc.y})")
             npc.isMoving = false
             
-            if (npc.isCirculating) {
-                // Ao chegar no destino da circulação, aguarda 1 minuto para a próxima decisão
-                postDelayed({
-                    decidirProximoPassoCirculacao(npc)
-                }, 60000L)
-            } else if (npc.route.isNotEmpty()) {
+            if (npc.route.isNotEmpty()) {
                 // Lógica de Rota: Se houver rota definida, avança para o próximo waypoint
                 npc.currentWaypointIndex = (npc.currentWaypointIndex + 1) % npc.route.size
                 val next = npc.route[npc.currentWaypointIndex]
@@ -268,12 +509,15 @@ class StationGridView @JvmOverloads constructor(
 
         npc.x = next.x
         npc.y = next.y
+        Log.d("StationGridView", "[SHARED_NPC_TRACE] processNpcStep executado: npc=${npc.name}, novaPos=(${npc.x},${npc.y}), direcao=${npc.direction}, passosRestantes=${npc.movePath.size}")
         invalidate()
 
         postDelayed({ processNpcStep(npc) }, moveInterval)
     }
 
-    private fun loadSprite(resId: Int, targetHeight: Int): Bitmap? {
+    private fun loadSprite(resId: Int, targetHeight: Int, onProcessed: ((Bitmap) -> Unit)? = null): Bitmap? {
+        globalSpriteCache[resId]?.let { return it }
+
         return try {
             val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeResource(context.resources, resId, options)
@@ -281,8 +525,28 @@ class StationGridView @JvmOverloads constructor(
             options.inSampleSize = calculateInSampleSize(options, targetHeight, targetHeight)
             options.inJustDecodeBounds = false
             
-            val scaledDown = BitmapFactory.decodeResource(context.resources, resId, options)
-            ViewUtils.makeTransparent(scaledDown)
+            val scaledDown = BitmapFactory.decodeResource(context.resources, resId, options) ?: return null
+
+            if (globalInFlight.add(resId)) {
+                globalSpriteExecutor.execute {
+                    try {
+                        val transparent = ViewUtils.makeTransparent(scaledDown)
+                        if (transparent != null) {
+                            globalSpriteCache[resId] = transparent
+                            post {
+                                onProcessed?.invoke(transparent)
+                                invalidate()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        globalInFlight.remove(resId)
+                    }
+                }
+            }
+
+            scaledDown
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -375,7 +639,20 @@ class StationGridView @JvmOverloads constructor(
             val tx = ((mapX - imageRect.left) / cellWidth).toInt()
             val ty = ((mapY - imageRect.top) / cellHeight).toInt()
             
+            Log.d("StationGridView", "[STAIR_TRACE] screenX=$screenX, screenY=$screenY, tx=$tx, ty=$ty")
+
+            // Verificar escadas fechadas para manutenção
+            val isNorthStairs = (ty in 1..2 && tx in 1..8)
+            val isRioSouthStairs = (currentStationId == "rio_de_janeiro" && ty >= 19 && tx in 1..2)
+
+            if (isNorthStairs || isRioSouthStairs) {
+                Toast.makeText(context, "Escada em manutenção. Risco de acidente. Acesso proibido temporariamente.", Toast.LENGTH_SHORT).show()
+                return
+            }
+            
+            Log.d("StationGridView", "[STAIR_TRACE] getInteractionTarget ENTER tx=$tx, ty=$ty")
             val interactionTarget = getInteractionTarget(tx, ty)
+            Log.d("StationGridView", "[STAIR_TRACE] interactionTarget = $interactionTarget")
             if (interactionTarget != null) {
                 if (playerX == interactionTarget.x && playerY == interactionTarget.y) {
                     interactionListener?.onArmoireTapped()
@@ -418,10 +695,28 @@ class StationGridView @JvmOverloads constructor(
                 return
             }
 
-            if (isWalkable(tx, ty)) {
+            // Verificar se tocou no Trem (Faixa Amarela / Trem / Trilhos -> x >= 9)
+            if (tx >= 9) {
+                interactionListener?.onTrainTapped()
+                return
+            }
+
+            val targetX = tx
+            val targetY = ty
+
+            Log.d("StationGridView", "[STAIR_TRACE] targetX=$targetX, targetY=$targetY")
+
+            Log.d("StationGridView", "[STAIR_TRACE] checking walkable target=($targetX,$targetY)")
+            val walkable = isWalkable(targetX, targetY)
+            Log.d("StationGridView", "[STAIR_TRACE] walkable=$walkable")
+
+            if (walkable) {
                 pendingArmoireAction = false
                 pendingNpcName = null
-                startMovingTo(tx, ty)
+                Log.d("StationGridView", "[STAIR_TRACE] START_MOVING_TO target=($targetX,$targetY)")
+                startMovingTo(targetX, targetY)
+            } else {
+                Log.d("StationGridView", "[STAIR_TRACE] startMovingTo NOT CALLED (not walkable)")
             }
         }
     }
@@ -439,7 +734,10 @@ class StationGridView @JvmOverloads constructor(
     }
 
     private fun startMovingTo(tx: Int, ty: Int) {
+        Log.d("StationGridView", "[STAIR_CELL_TRACE] PATH_START current=($playerX,$playerY) target=($tx,$ty)")
+        Log.d("StationGridView", "[STAIR_TRACE] startMovingTo ENTER target=($tx,$ty)")
         val path = findPath(Point(playerX, playerY), Point(tx, ty))
+        Log.d("StationGridView", "[STAIR_TRACE] PATH size=${path?.size ?: 0}, PATH=$path")
         if (path != null && path.size > 1) {
             movePath = path.toMutableList()
             movePath.removeAt(0) // Remove posição atual
@@ -447,12 +745,16 @@ class StationGridView @JvmOverloads constructor(
                 isMoving = true
                 processNextStep()
             }
+        } else {
+            Log.d("StationGridView", "[STAIR_TRACE] startMovingTo NOT CALLED (path null or empty)")
         }
     }
 
     private fun processNextStep() {
+        Log.d("StationGridView", "[STAIR_TRACE] PROCESS_NEXT_STEP current=($playerX,$playerY)")
         if (movePath.isEmpty()) {
             isMoving = false
+            Log.d("StationGridView", "[STAIR_CELL_TRACE] PATH_END final=($playerX,$playerY)")
             if (pendingArmoireAction) {
                 pendingArmoireAction = false
                 interactionListener?.onArmoireTapped()
@@ -477,7 +779,14 @@ class StationGridView @JvmOverloads constructor(
         
         playerX = next.x
         playerY = next.y
+        if (playerX in 0..5 && playerY in 18..23) {
+            Log.d("StationGridView", "[STAIR_CELL_TRACE] PLAYER_CELL x=$playerX y=$playerY direction=$currentDirection")
+        }
+        Log.d("StationGridView", "[STAIR_TRACE] PLAYER_POSITION_CHANGED x=$playerX y=$playerY")
         invalidate()
+        
+        // Notifica a Activity sobre a mudança de posição/direção para sincronização multiplayer
+        interactionListener?.onPlayerPositionChanged(playerX, playerY, currentDirection)
         
         postDelayed({ processNextStep() }, moveInterval)
     }
@@ -542,8 +851,111 @@ class StationGridView @JvmOverloads constructor(
         npcList.forEach { npc ->
             drawCharacter(canvas, npc.name, npc.x, npc.y, npc.direction, npc.sprites, imageRect, cellWidth, cellHeight)
         }
+        
+        // 5. Desenhar Jogadores Remotos
+        remotePlayers.values.forEach { rp ->
+            drawCharacter(canvas, rp.username, rp.x, rp.y, rp.direction, rp.sprites, imageRect, cellWidth, cellHeight)
+        }
+
+        // 6. Desenhar Diálogos Temporários sobre o Cenário
+        val currentTime = System.currentTimeMillis()
+        var hasActiveDialogs = false
+
+        val iterator = activeDialogs.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            val dialog = entry.value
+            if (currentTime >= dialog.expirationTime) {
+                iterator.remove()
+            } else {
+                hasActiveDialogs = true
+                val currentUserId = SocialProfileRepository.getCurrentUserId() ?: ""
+                val isUserAllowed = !dialog.isPrivate ||
+                        dialog.allowedUsers.contains(currentUserId) ||
+                        dialog.allowedUsers.contains("local_user") ||
+                        dialog.allowedUsers.contains("antonio") ||
+                        dialog.senderId == "player_local"
+
+                if (isUserAllowed) {
+                    drawWorldDialogText(canvas, dialog, imageRect, cellWidth, cellHeight)
+                }
+            }
+        }
 
         canvas.restore()
+
+        if (hasActiveDialogs) {
+            postInvalidateDelayed(100)
+        }
+    }
+
+    private fun drawWorldDialogText(
+        canvas: Canvas,
+        dialog: WorldDialog,
+        imageRect: RectF,
+        cellWidth: Float,
+        cellHeight: Float
+    ) {
+        val targetHeight = cellHeight * 2.1f
+        val px = imageRect.left + dialog.worldX * cellWidth + (cellWidth / 2f)
+        val py = imageRect.top + dialog.worldY * cellHeight + cellHeight
+        val headY = py - targetHeight - 8f
+
+        // Formata a mensagem na composição "Nome: mensagem"
+        val fullText = if (dialog.senderName.isNotEmpty()) {
+            if (dialog.message.startsWith("${dialog.senderName}:")) {
+                dialog.message
+            } else {
+                "${dialog.senderName}: ${dialog.message}"
+            }
+        } else {
+            dialog.message
+        }
+
+        val strokePaint = if (dialog.isPrivate) paintPrivateTextStroke else paintPlayerNameStroke
+        val fillPaint = if (dialog.isPrivate) paintPrivateText else paintPlayerName
+
+        val maxLineWidth = (cellWidth * 3.5f).coerceAtLeast(260f)
+        val lines = wrapText(fullText, fillPaint, maxLineWidth)
+
+        val lineHeight = 40f
+        val numLines = lines.size
+
+        for (i in 0 until numLines) {
+            val line = lines[i]
+            // Linha 0 (topo) em headY - (numLines-1)*40, última linha em headY
+            val lineY = headY - ((numLines - 1 - i) * lineHeight)
+
+            canvas.drawText(line, px, lineY, strokePaint)
+            canvas.drawText(line, px, lineY, fillPaint)
+        }
+    }
+
+    private fun wrapText(text: String, paint: Paint, maxWidth: Float): List<String> {
+        if (paint.measureText(text) <= maxWidth) {
+            return listOf(text)
+        }
+        val words = text.split(" ")
+        val lines = mutableListOf<String>()
+        var currentLine = StringBuilder()
+
+        for (word in words) {
+            if (currentLine.isEmpty()) {
+                currentLine.append(word)
+            } else {
+                val testLine = "$currentLine $word"
+                if (paint.measureText(testLine) <= maxWidth) {
+                    currentLine.append(" ").append(word)
+                } else {
+                    lines.add(currentLine.toString())
+                    currentLine = StringBuilder(word)
+                }
+            }
+        }
+        if (currentLine.isNotEmpty()) {
+            lines.add(currentLine.toString())
+        }
+        return lines
     }
 
     private fun drawCharacter(
@@ -569,8 +981,17 @@ class StationGridView @JvmOverloads constructor(
             val dest = RectF(px - (targetWidth / 2), py - targetHeight, px + (targetWidth / 2), py)
             canvas.drawBitmap(sprite, null, dest, null)
 
-            if (name.isNotEmpty()) {
-                canvas.drawText(name, px, py - targetHeight - 8f, paintPlayerName)
+            // Se houver um diálogo ativo exatamente nesta posição e para este personagem, oculta o nome simples
+            val currentTime = System.currentTimeMillis()
+            val hasActiveDialogAtPos = activeDialogs.values.any { d ->
+                currentTime < d.expirationTime && d.worldX == gridX && d.worldY == gridY &&
+                        (d.senderName == name || (d.senderId == "player_local" && name == playerName))
+            }
+
+            if (name.isNotEmpty() && !hasActiveDialogAtPos) {
+                val textY = py - targetHeight - 8f
+                canvas.drawText(name, px, textY, paintPlayerNameStroke)
+                canvas.drawText(name, px, textY, paintPlayerName)
             }
         }
     }

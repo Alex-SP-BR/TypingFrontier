@@ -6,6 +6,11 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import com.typingfrontier.utils.AdManager
+import com.typingfrontier.utils.ViewUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class TypingFrontierApp : Application() {
 
@@ -22,17 +27,16 @@ class TypingFrontierApp : Application() {
         super.onCreate()
         instance = this
         
-        // Inicializa as configurações de som
-        SoundManager.init(this)
-        
-        // Inicializa as configurações de HUD
-        HudSettingsManager.init(this)
-
         // Inicializa AdMob
-        com.typingfrontier.utils.AdManager.init(this)
+        AdManager.init(this)
 
-        // Carrega o save local
-        PlayerManager.load(this)
+        // Carrega configurações de som, HUD, save local e moeda em background (I/O de disco e processamento fora da Main Thread)
+        CoroutineScope(Dispatchers.IO).launch {
+            SoundManager.init(this@TypingFrontierApp)
+            HudSettingsManager.init(this@TypingFrontierApp)
+            PlayerManager.load(this@TypingFrontierApp)
+            ViewUtils.getCoinDrawable(this@TypingFrontierApp)
+        }
 
         // Inicializa Supabase (Camada Social)
         com.typingfrontier.social.SupabaseManager.init()
