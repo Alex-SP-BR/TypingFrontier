@@ -16,7 +16,7 @@ import android.text.SpannableString
 import android.text.style.ImageSpan
 
 // CONFIGURAÇÃO TEMPORÁRIA: Controla o acesso à Estação de Trem de Alta Velocidade
-private const val ESTACAO_ALTA_VELOCIDADE_LIBERADA = false
+private const val ESTACAO_ALTA_VELOCIDADE_LIBERADA = true
 
 class ExplorationActivity : AppCompatActivity() {
 

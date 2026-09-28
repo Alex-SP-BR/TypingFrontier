@@ -152,6 +152,8 @@ object SocialProfileRepository {
                         Log.d("PRESENCE_ID_DEBUG", "[PRESENCE_ID_DEBUG] user_id = $uid, profile_exists = ${currentProfile != null}, username = ${currentProfile?.username ?: "null"}")
                         Log.d("PRESENCE_ID_DEBUG", "[PRESENCE_ID_DEBUG] device identity initialization completed")
 
+                        PrivateMessageRepository.startListening(uid)
+
                         // Sincroniza dados mutáveis (nome, avatar equipado) se houver alteração local
                         val current = currentProfile
                         if (current != null) {
@@ -178,9 +180,6 @@ object SocialProfileRepository {
                                 }
                             }
                         }
-
-                        // Inicia a infraestrutura de presença online
-                        PresenceManager.startPresence()
 
                         onComplete?.invoke()
                     }

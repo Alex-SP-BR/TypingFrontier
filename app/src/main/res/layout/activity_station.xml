@@ -18,6 +18,22 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <Button
+        android:id="@+id/btnVipStation"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="16dp"
+        android:backgroundTint="#286680"
+        android:text="⭐ VIP"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingHorizontal="12dp"
+        app:elevation="4dp"/>
+
     <!-- PAINEL DE CONVERSA OVERLAY (ABAS, HEADER, MENSAGENS) -->
     <LinearLayout
         android:id="@+id/layoutChatOverlay"
@@ -77,6 +93,20 @@
                 android:text="[+] expandir"
                 android:textColor="#889099"
                 android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/btnSairEstacao"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_toStartOf="@id/btnChatClose"
+                android:layout_marginEnd="8dp"
+                android:background="?attr/selectableItemBackground"
+                android:text="Sair da Estação"
+                android:textColor="#74C6E0"
+                android:textSize="12sp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingHorizontal="8dp" />
 
             <ImageButton
                 android:id="@+id/btnChatClose"

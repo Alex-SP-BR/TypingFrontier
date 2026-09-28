@@ -45,6 +45,21 @@
                     android:orientation="vertical"
                     android:padding="12dp">
 
+                    <Button
+                        android:id="@+id/btnVip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:layout_gravity="end"
+                        android:layout_marginBottom="4dp"
+                        android:backgroundTint="#286680"
+                        android:text="⭐ VIP"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingHorizontal="10dp" />
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

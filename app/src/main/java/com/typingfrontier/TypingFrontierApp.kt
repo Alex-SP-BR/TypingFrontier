@@ -6,6 +6,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import com.typingfrontier.social.DiscussionActivity
+import com.typingfrontier.social.PresenceManager
+import com.typingfrontier.station.StationActivity
 import com.typingfrontier.utils.AdManager
 import com.typingfrontier.utils.ViewUtils
 import kotlinx.coroutines.CoroutineScope
@@ -22,6 +25,21 @@ class TypingFrontierApp : Application() {
     private var activityCount = 0
     private val handler = Handler(Looper.getMainLooper())
     private var pauseRunnable: Runnable? = null
+    private var currentActivity: Activity? = null
+
+    private fun isOnlineActivity(activity: Activity?): Boolean {
+        return activity is GameActivity ||
+               activity is DiscussionActivity ||
+               activity is StationActivity
+    }
+
+    private fun updateGlobalPresence(activity: Activity?) {
+        if (isOnlineActivity(activity)) {
+            PresenceManager.startPresence()
+        } else {
+            PresenceManager.stopPresence()
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -58,16 +76,20 @@ class TypingFrontierApp : Application() {
                 // Cancela qualquer pausa pendente pois uma nova tela abriu
                 pauseRunnable?.let { handler.removeCallbacks(it) }
                 pauseRunnable = null
+                currentActivity = activity
 
                 if (activityCount == 0) {
                     // App voltando do background para o primeiro plano
                     SoundManager.resume()
-                    com.typingfrontier.social.PresenceManager.updateAppStatus(true)
                 }
                 activityCount++
             }
 
-            override fun onActivityResumed(activity: Activity) {}
+            override fun onActivityResumed(activity: Activity) {
+                currentActivity = activity
+                updateGlobalPresence(activity)
+            }
+
             override fun onActivityPaused(activity: Activity) {}
 
             override fun onActivityStopped(activity: Activity) {
@@ -80,7 +102,12 @@ class TypingFrontierApp : Application() {
                     pauseRunnable = Runnable {
                         if (activityCount == 0) {
                             SoundManager.pause()
-                            com.typingfrontier.social.PresenceManager.updateAppStatus(false)
+                            PresenceManager.stopPresence()
+
+                            if (currentActivity is StationActivity) {
+                                currentActivity?.finish()
+                                currentActivity = null
+                            }
                         }
                     }
                     handler.postDelayed(pauseRunnable!!, 500)
@@ -88,7 +115,14 @@ class TypingFrontierApp : Application() {
             }
 
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-            override fun onActivityDestroyed(activity: Activity) {}
+            override fun onActivityDestroyed(activity: Activity) {
+                if (currentActivity === activity) {
+                    currentActivity = null
+                }
+                if (isOnlineActivity(currentActivity)) {
+                    PresenceManager.startPresence()
+                }
+            }
         })
     }
 }

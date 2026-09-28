@@ -1,14 +1,27 @@
 package com.typingfrontier.social
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.graphics.Color
+import android.graphics.Typeface
+import android.view.Gravity
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import com.typingfrontier.station.VipManager
+import com.typingfrontier.social.PresenceManager
+import com.typingfrontier.social.PrivateMessageRepository
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.typingfrontier.R
 import com.typingfrontier.databinding.ActivityDiscussionBinding
@@ -50,6 +63,51 @@ class DiscussionActivity : AppCompatActivity() {
         configurarRecycler()
         configurarBotoes()
         carregarDiscussoes()
+
+        scope.launch {
+            SocialProfileRepository.initializeSocialIdentity()
+            SocialProfileRepository.awaitInitialization()
+            val currentUserId = SocialProfileRepository.getCurrentUserId()
+            if (currentUserId != null) {
+                PresenceManager.startPresence()
+            }
+        }
+
+        scope.launch {
+            PrivateMessageRepository.incomingMessages.collect { msg ->
+                val currentUserId = SocialProfileRepository.getCurrentUserId() ?: return@collect
+                if (msg.senderId == currentUserId) return@collect
+
+                if (msg.id != null && activeDisplayedMessageIds.contains(msg.id)) {
+                    return@collect
+                }
+                msg.id?.let { activeDisplayedMessageIds.add(it) }
+
+                val senderName = PresenceManager.onlineUsers.value.find { it.user_id == msg.senderId }?.username
+                    ?: VipManager.getVipList(this@DiscussionActivity).find { it.userId == msg.senderId }?.username
+                    ?: "Viajante"
+
+                val existingSession = activeChatSessions[msg.senderId]
+                if (existingSession != null) {
+                    val currentText = existingSession.historyTv?.text?.toString() ?: ""
+                    val prefix = if (currentText.isEmpty()) "" else "\n"
+                    existingSession.historyTv?.append("$prefix$senderName: ${msg.message}")
+                    existingSession.scrollView?.post { existingSession.scrollView?.fullScroll(View.FOCUS_DOWN) }
+                    if (existingSession.isMinimized) {
+                        existingSession.unreadCount++
+                        val unreadSuffix = if (existingSession.unreadCount > 0) " (${existingSession.unreadCount})" else ""
+                        existingSession.minimizedBar?.text = "$senderName$unreadSuffix"
+                    }
+                } else {
+                    abrirPainelChatPrivado(msg.senderId, senderName, initialMessage = msg, startMinimized = true)
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        PresenceManager.stopPresence()
     }
 
     private fun configurarRecycler() {
@@ -71,6 +129,7 @@ class DiscussionActivity : AppCompatActivity() {
     private fun configurarBotoes() {
         binding.btnVoltar.setOnClickListener { finish() }
         binding.btnRefresh.setOnClickListener { carregarDiscussoes() }
+        binding.btnVipForum.setOnClickListener { mostrarDialogoVip() }
         binding.fabNewTopic.setOnClickListener { mostrarDialogNovoTopico() }
     }
 
@@ -481,5 +540,499 @@ class DiscussionActivity : AppCompatActivity() {
                 Toast.makeText(this@DiscussionActivity, "Erro ao publicar: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private class PrivateChatSession(
+        val targetUserId: String,
+        val targetUsername: String,
+        var panel: View? = null,
+        var historyTv: TextView? = null,
+        var scrollView: ScrollView? = null,
+        var minimizedBar: TextView? = null,
+        var isMinimized: Boolean = false,
+        var unreadCount: Int = 0
+    )
+
+    private val activeChatSessions = mutableMapOf<String, PrivateChatSession>()
+    private val activeDisplayedMessageIds = mutableSetOf<String>()
+
+    private fun abrirPainelChatPrivado(
+        targetUserId: String,
+        targetUsername: String,
+        initialMessage: PrivateMessage? = null,
+        startMinimized: Boolean = false
+    ) {
+        val existingSession = activeChatSessions[targetUserId]
+        if (existingSession != null) {
+            if (existingSession.isMinimized && !startMinimized) {
+                existingSession.minimizedBar?.let {
+                    (it.parent as? ViewGroup)?.removeView(it)
+                    existingSession.minimizedBar = null
+                }
+                existingSession.isMinimized = false
+                existingSession.unreadCount = 0
+                existingSession.panel?.visibility = View.VISIBLE
+            } else if (existingSession.isMinimized && startMinimized) {
+                if (initialMessage != null) {
+                    val currentText = existingSession.historyTv?.text?.toString() ?: ""
+                    val prefix = if (currentText.isEmpty()) "" else "\n"
+                    existingSession.historyTv?.append("$prefix$targetUsername: ${initialMessage.message}")
+                    existingSession.scrollView?.post { existingSession.scrollView?.fullScroll(View.FOCUS_DOWN) }
+                    existingSession.unreadCount++
+                    val unreadSuffix = if (existingSession.unreadCount > 0) " (${existingSession.unreadCount})" else ""
+                    existingSession.minimizedBar?.text = "$targetUsername$unreadSuffix"
+                }
+            }
+            return
+        }
+
+        val context = this
+        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: return
+
+        val panel = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.parseColor("#E6121212"))
+            setPadding(16, 16, 16, 16)
+            elevation = 16f
+            layoutParams = CoordinatorLayout.LayoutParams(
+                (320 * resources.displayMetrics.density).toInt(),
+                (210 * resources.displayMetrics.density).toInt()
+            ).apply {
+                gravity = Gravity.CENTER
+            }
+        }
+
+        val session = PrivateChatSession(
+            targetUserId = targetUserId,
+            targetUsername = targetUsername,
+            panel = panel,
+            unreadCount = if (startMinimized && initialMessage != null) 1 else 0
+        )
+
+        val header = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(8, 8, 8, 8)
+            setBackgroundColor(Color.parseColor("#286680"))
+        }
+
+        val onlineSet = PresenceManager.onlineUsers.value.map { it.user_id }.toSet()
+        val isOnline = onlineSet.contains(targetUserId)
+
+        val indicator = TextView(context).apply {
+            text = "●"
+            textSize = 14f
+            setTextColor(if (isOnline) Color.parseColor("#4CAF50") else Color.parseColor("#889099"))
+            setPadding(0, 0, 8, 0)
+        }
+        header.addView(indicator)
+
+        val titleTv = TextView(context).apply {
+            text = targetUsername
+            textSize = 14f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        header.addView(titleTv)
+
+        val btnMinimize = Button(context).apply {
+            text = "_"
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
+            minWidth = 0
+            minHeight = 0
+            setPadding(12, 0, 12, 0)
+            setOnClickListener {
+                toggleMinimizeChat(session)
+            }
+        }
+        header.addView(btnMinimize)
+
+        val btnClose = Button(context).apply {
+            text = "X"
+            textSize = 12f
+            setTextColor(Color.parseColor("#FF5252"))
+            setBackgroundColor(Color.TRANSPARENT)
+            minWidth = 0
+            minHeight = 0
+            setPadding(12, 0, 12, 0)
+            setOnClickListener {
+                panel.let { (it.parent as? ViewGroup)?.removeView(it) }
+                session.minimizedBar?.let { (it.parent as? ViewGroup)?.removeView(it) }
+                activeChatSessions.remove(targetUserId)
+            }
+        }
+        header.addView(btnClose)
+        panel.addView(header)
+
+        val scrollView = ScrollView(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+            ).apply { topMargin = 8.0f.toInt(); bottomMargin = 8.0f.toInt() }
+            setBackgroundColor(Color.parseColor("#1E1E1E"))
+            setPadding(8, 8, 8, 8)
+        }
+
+        val historyTv = TextView(context).apply {
+            setTextColor(Color.parseColor("#E8EDF2"))
+            textSize = 13f
+            setLineSpacing(12f, 1f)
+        }
+        scrollView.addView(historyTv)
+        panel.addView(scrollView)
+
+        session.historyTv = historyTv
+        session.scrollView = scrollView
+
+        if (initialMessage != null) {
+            historyTv.text = "$targetUsername: ${initialMessage.message}"
+        } else {
+            historyTv.text = ""
+        }
+
+        val footer = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val input = EditText(context).apply {
+            hint = "Digite sua mensagem..."
+            setTextColor(Color.BLACK)
+            setHintTextColor(Color.parseColor("#889099"))
+            setBackgroundColor(Color.WHITE)
+            setPadding(12, 12, 12, 12)
+            textSize = 13f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        footer.addView(input)
+
+        val btnSend = Button(context).apply {
+            text = "Enviar"
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.parseColor("#286680"))
+            setOnClickListener {
+                val text = input.text.toString().trim()
+                if (text.isNotEmpty()) {
+                    input.setText("")
+                    scope.launch {
+                        try {
+                            val sentMsg = PrivateMessageRepository.sendMessage(currentUserId, targetUserId, text)
+                            sentMsg.id?.let { activeDisplayedMessageIds.add(it) }
+                            val currentText = historyTv.text?.toString() ?: ""
+                            val prefix = if (currentText.isEmpty()) "" else "\n"
+                            historyTv.append("${prefix}Você: ${sentMsg.message}")
+                            scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Erro ao enviar: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
+        footer.addView(btnSend)
+        panel.addView(footer)
+
+        var dX = 0f
+        var dY = 0f
+        header.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                if (isTouchInside(btnMinimize, event.rawX, event.rawY) || isTouchInside(btnClose, event.rawX, event.rawY)) {
+                    return@setOnTouchListener false
+                }
+            }
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    dX = panel.x - event.rawX
+                    dY = panel.y - event.rawY
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    var newX = event.rawX + dX
+                    var newY = event.rawY + dY
+                    val parent = panel.parent as? View ?: return@setOnTouchListener false
+                    newX = newX.coerceIn(0f, (parent.width - panel.width).toFloat().coerceAtLeast(0f))
+                    newY = newY.coerceIn(0f, (parent.height - panel.height).toFloat().coerceAtLeast(0f))
+                    panel.x = newX
+                    panel.y = newY
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    header.performClick()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        activeChatSessions[targetUserId] = session
+        binding.root.addView(panel)
+
+        if (startMinimized) {
+            toggleMinimizeChat(session)
+        }
+    }
+
+    private fun isTouchInside(view: View, rawX: Float, rawY: Float): Boolean {
+        val location = IntArray(2)
+        view.getLocationOnScreen(location)
+        val x = location[0]
+        val y = location[1]
+        return rawX >= x.toFloat() && rawX <= (x + view.width).toFloat() && rawY >= y.toFloat() && rawY <= (y + view.height).toFloat()
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun toggleMinimizeChat(session: PrivateChatSession) {
+        val panel = session.panel ?: return
+        if (!session.isMinimized) {
+            session.isMinimized = true
+            panel.visibility = View.GONE
+            val context = this
+            val bar = TextView(context).apply {
+                val unreadSuffix = if (session.unreadCount > 0) " (${session.unreadCount})" else ""
+                text = "${session.targetUsername}$unreadSuffix"
+                setTextColor(Color.WHITE)
+                textSize = 13f
+                setTypeface(null, Typeface.BOLD)
+                setBackgroundColor(Color.parseColor("#286680"))
+                setPadding(24, 12, 24, 12)
+                elevation = 16f
+                layoutParams = CoordinatorLayout.LayoutParams(
+                    CoordinatorLayout.LayoutParams.WRAP_CONTENT,
+                    CoordinatorLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    gravity = Gravity.BOTTOM or Gravity.START
+                    val activeBarIndex = activeChatSessions.values.count { it.minimizedBar != null }
+                    val baseMarginDp = (24 * resources.displayMetrics.density).toInt()
+                    val offsetYDp = (activeBarIndex * 48 * resources.displayMetrics.density).toInt()
+                    setMargins(baseMarginDp, baseMarginDp, baseMarginDp, baseMarginDp + offsetYDp)
+                }
+
+                var dX = 0f
+                var dY = 0f
+                var isDragging = false
+                val touchSlop = 10f
+                var startX = 0f
+                var startY = 0f
+
+                setOnTouchListener { v, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            dX = v.x - event.rawX
+                            dY = v.y - event.rawY
+                            startX = event.rawX
+                            startY = event.rawY
+                            isDragging = false
+                            true
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            val deltaX = Math.abs(event.rawX - startX)
+                            val deltaY = Math.abs(event.rawY - startY)
+                            if (deltaX > touchSlop || deltaY > touchSlop) {
+                                isDragging = true
+                            }
+                            if (isDragging) {
+                                var newX = event.rawX + dX
+                                var newY = event.rawY + dY
+                                val parent = v.parent as? View ?: return@setOnTouchListener false
+                                newX = newX.coerceIn(0f, (parent.width - v.width).toFloat().coerceAtLeast(0f))
+                                newY = newY.coerceIn(0f, (parent.height - v.height).toFloat().coerceAtLeast(0f))
+                                v.x = newX
+                                v.y = newY
+                            }
+                            true
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            if (!isDragging) {
+                                v.performClick()
+                            }
+                            true
+                        }
+                        else -> false
+                    }
+                }
+
+                setOnClickListener {
+                    (parent as? ViewGroup)?.removeView(this)
+                    session.minimizedBar = null
+                    session.isMinimized = false
+                    session.panel?.visibility = View.VISIBLE
+                    session.unreadCount = 0
+                }
+            }
+            session.minimizedBar = bar
+            binding.root.addView(bar)
+        }
+    }
+
+    private fun mostrarDialogoVip() {
+        val context = this
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 24)
+        }
+
+        val scrollView = ScrollView(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                (100 * resources.displayMetrics.density).toInt()
+            ).apply { topMargin = 16.0f.toInt() }
+        }
+
+        val listLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        scrollView.addView(listLayout)
+
+        var dialog: AlertDialog? = null
+        var refreshList: () -> Unit = {}
+
+        refreshList = fun() {
+            listLayout.removeAllViews()
+            val vipList = VipManager.getVipList(context)
+            val onlineSet = PresenceManager.onlineUsers.value.map { it.user_id }.toSet()
+            
+            // Ordena: online primeiro
+            val sortedVips = vipList.sortedByDescending { onlineSet.contains(it.userId) }
+
+            dialog?.setTitle("⭐ Lista VIP (${vipList.size}/50)")
+
+            if (sortedVips.isEmpty()) {
+                val emptyTv = TextView(context).apply {
+                    text = "Sua lista VIP está vazia."
+                    setTextColor(Color.parseColor("#889099"))
+                    setPadding(0, 24, 0, 24)
+                    gravity = Gravity.CENTER
+                }
+                listLayout.addView(emptyTv)
+                return
+            }
+
+            sortedVips.forEach { vip ->
+                val isOnline = onlineSet.contains(vip.userId)
+                val row = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(12, 12, 12, 12)
+                    setBackgroundResource(android.R.drawable.list_selector_background)
+                    setOnClickListener {
+                        abrirPainelChatPrivado(vip.userId, vip.username)
+                        dialog?.dismiss()
+                    }
+                }
+
+                val indicator = TextView(context).apply {
+                    text = "●"
+                    textSize = 16f
+                    setTextColor(if (isOnline) Color.parseColor("#4CAF50") else Color.parseColor("#889099"))
+                    setPadding(0, 0, 16, 0)
+                }
+                row.addView(indicator)
+
+                val nameTv = TextView(context).apply {
+                    text = vip.username
+                    textSize = 16f
+                    setTextColor(Color.BLACK)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                row.addView(nameTv)
+
+                val btnRemove = Button(context).apply {
+                    text = "Remover"
+                    textSize = 12f
+                    setTextColor(Color.parseColor("#FF5252"))
+                    setBackgroundColor(Color.TRANSPARENT)
+                    setOnClickListener {
+                        VipManager.removeVip(context, vip.userId)
+                        refreshList()
+                    }
+                }
+                row.addView(btnRemove)
+
+                listLayout.addView(row)
+            }
+        }
+
+        val btnAdd = Button(context).apply {
+            text = "+ Adicionar VIP"
+            setBackgroundColor(Color.parseColor("#286680"))
+            setTextColor(Color.WHITE)
+            setOnClickListener {
+                mostrarDialogoAdicionarVip {
+                    refreshList()
+                }
+            }
+        }
+        container.addView(btnAdd)
+        container.addView(scrollView)
+
+        refreshList()
+
+        dialog = AlertDialog.Builder(context)
+            .setTitle("⭐ Lista VIP (${VipManager.getVipList(this).size}/50)")
+            .setView(container)
+            .setPositiveButton("Fechar", null)
+            .create()
+
+        dialog.show()
+
+        val presenceJob = scope.launch {
+            PresenceManager.onlineUsers.collect {
+                refreshList()
+            }
+        }
+        dialog.setOnDismissListener {
+            presenceJob.cancel()
+        }
+    }
+
+    private fun mostrarDialogoAdicionarVip(onAdded: () -> Unit) {
+        val input = EditText(this).apply {
+            hint = "Digite o username..."
+            setTextColor(Color.BLACK)
+            setHintTextColor(Color.parseColor("#889099"))
+            setPadding(32, 24, 32, 24)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Adicionar VIP")
+            .setView(input)
+            .setPositiveButton("Adicionar") { _, _ ->
+                val usernameInput = input.text.toString().trim().removePrefix("@")
+                if (usernameInput.isEmpty()) return@setPositiveButton
+
+                val currentUserId = SocialProfileRepository.getCurrentUserId() ?: ""
+                
+                scope.launch {
+                    try {
+                        val profile = ModerationRepository.getProfileByUsername(usernameInput)
+                        if (profile == null) {
+                            Toast.makeText(this@DiscussionActivity, "Jogador não encontrado.", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+
+                        if (profile.id == currentUserId) {
+                            Toast.makeText(this@DiscussionActivity, "Você não pode adicionar a si mesmo.", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+
+                        val added = VipManager.addVip(this@DiscussionActivity, profile.id, profile.username)
+                        if (!added) {
+                            Toast.makeText(this@DiscussionActivity, "Lista cheia (máx 50) ou jogador já adicionado.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@DiscussionActivity, "${profile.username} adicionado aos VIPs!", Toast.LENGTH_SHORT).show()
+                            onAdded()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(this@DiscussionActivity, "Erro ao buscar jogador: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 }

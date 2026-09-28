@@ -77,6 +77,7 @@ class StationGridView @JvmOverloads constructor(
         fun onNpcTapped(npcName: String)
         fun onTrainTapped()
         fun onPlayerPositionChanged(x: Int, y: Int, direction: String)
+        fun onRemotePlayerTapped(userId: String, username: String) {}
     }
 
     private var interactionListener: InteractionListener? = null
@@ -200,6 +201,13 @@ class StationGridView @JvmOverloads constructor(
     fun getPlayerX(): Int = playerX
     fun getPlayerY(): Int = playerY
 
+    fun setInitialPosition(x: Int, y: Int, direction: String) {
+        this.playerX = x
+        this.playerY = y
+        this.currentDirection = direction
+        invalidate()
+    }
+
     fun getNpcPosition(npcName: String): Point? {
         val npc = npcList.find { it.name == npcName } ?: return null
         return Point(npc.x, npc.y)
@@ -229,7 +237,8 @@ class StationGridView @JvmOverloads constructor(
             allowedUsers = allowedUsers,
             expirationTime = System.currentTimeMillis() + 5000L
         )
-        activeDialogs[senderId] = dialog
+        val dialogKey = if (isPrivate) "private_$senderId" else "public_$senderId"
+        activeDialogs[dialogKey] = dialog
         postInvalidate()
     }
 
@@ -384,11 +393,12 @@ class StationGridView @JvmOverloads constructor(
         newList.forEach { payload ->
             if (payload.user_id == currentUserId) return@forEach
             
+            val effectiveRole = payload.profession.ifEmpty { payload.role }
             val player = remotePlayers.getOrPut(payload.user_id) {
                 RemotePlayer(
                     id = payload.user_id,
                     username = payload.username,
-                    role = payload.role,
+                    role = effectiveRole,
                     gender = payload.gender,
                     x = payload.gridX,
                     y = payload.gridY,
@@ -402,24 +412,22 @@ class StationGridView @JvmOverloads constructor(
             player.direction = payload.direction
             
             // Carrega sprites se necessário usando cache por combinação de profissão/gênero
-            val cacheKey = "${payload.role}_${payload.gender}".lowercase()
+            val cacheKey = "${effectiveRole}_${payload.gender}".lowercase()
             if (player.sprites.isEmpty()) {
                 val cached = remoteSpriteCache[cacheKey]
                 if (cached != null) {
                     player.sprites.putAll(cached)
                 } else {
-                    val loaded = loadRemoteSprites(payload.role, payload.gender)
-                    remoteSpriteCache[cacheKey] = loaded
-                    player.sprites.putAll(loaded)
+                    loadRemoteSprites(player, effectiveRole, payload.gender)
+                    remoteSpriteCache[cacheKey] = player.sprites
                 }
             }
         }
         invalidate()
     }
 
-    private fun loadRemoteSprites(role: String, gender: String): Map<String, Bitmap> {
+    private fun loadRemoteSprites(player: RemotePlayer, role: String, gender: String) {
         val targetProcessingHeight = 256
-        val map = mutableMapOf<String, Bitmap>()
         val sexoChar = if (gender.equals("Feminino", ignoreCase = true)) "f" else "m"
         
         val baseNome = when (role) {
@@ -428,7 +436,7 @@ class StationGridView @JvmOverloads constructor(
             "Professor" -> if (sexoChar == "f") "professora" else "professor"
             "Detetive" -> "detetive"
             "Policial" -> "policial"
-            else -> "homem"
+            else -> "detetive"
         }
 
         val directions = listOf("frente", "costas", "esquerda", "direita")
@@ -439,14 +447,19 @@ class StationGridView @JvmOverloads constructor(
             val resId = context.resources.getIdentifier(resName, "drawable", context.packageName)
             if (resId != 0) {
                 val targetDir = dirMap[dir]!!
-                loadSprite(resId, targetProcessingHeight) { transparentBmp ->
-                    map[targetDir] = transparentBmp
-                }?.let {
-                    map[targetDir] = it
+                val cachedBmp = globalSpriteCache[resId]
+                if (cachedBmp != null) {
+                    player.sprites[targetDir] = cachedBmp
+                } else {
+                    loadSprite(resId, targetProcessingHeight) { transparentBmp ->
+                        player.sprites[targetDir] = transparentBmp
+                        val cacheKey = "${role}_${gender}".lowercase()
+                        remoteSpriteCache[cacheKey] = player.sprites
+                        invalidate()
+                    }
                 }
             }
         }
-        return map
     }
 
 
@@ -692,6 +705,13 @@ class StationGridView @JvmOverloads constructor(
                         startMovingTo(finalX, finalY)
                     }
                 }
+                return
+            }
+
+            // Verificar se tocou em um jogador remoto
+            val tappedRemote = remotePlayers.values.find { it.x == tx && it.y == ty }
+            if (tappedRemote != null) {
+                interactionListener?.onRemotePlayerTapped(tappedRemote.id, tappedRemote.username)
                 return
             }
 

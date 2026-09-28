@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -17,8 +18,21 @@ import androidx.lifecycle.lifecycleScope
 import com.typingfrontier.*
 import com.typingfrontier.economy.ProfessionManager
 import com.typingfrontier.npc.SharedNpcManager
+import com.typingfrontier.social.ModerationRepository
 import com.typingfrontier.social.PresenceManager
+import com.typingfrontier.social.PrivateMessageRepository
 import com.typingfrontier.social.SocialProfileRepository
+import com.typingfrontier.social.SupabaseManager
+import io.github.jan.supabase.realtime.RealtimeChannel
+import io.github.jan.supabase.realtime.broadcast
+import io.github.jan.supabase.realtime.broadcastFlow
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class StationActivity : AppCompatActivity(), StationGridView.InteractionListener {
@@ -28,7 +42,8 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         val id: String,
         val title: String,
         var history: String = "",
-        val isNpc: Boolean = false
+        val isNpc: Boolean = false,
+        var lastActivityTime: Long = System.currentTimeMillis()
     )
 
     private var armoireDialog: AlertDialog? = null
@@ -53,6 +68,25 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
     private var currentConversationId = "public"
     private var isChatExpanded = false
     private var isChatHidden = false
+
+    companion object {
+        var lastKnownGridX: Int = 5
+        var lastKnownGridY: Int = 20
+        var lastKnownDirection: String = "frente"
+    }
+
+    private var stationBroadcastChannel: RealtimeChannel? = null
+    private var stationBroadcastJob: Job? = null
+    private val remoteMovements = ConcurrentHashMap<String, PlayerMovePayload>()
+    private val initialSyncedUsers = ConcurrentHashMap.newKeySet<String>()
+    private val processedPublicMessages = ConcurrentHashMap.newKeySet<String>().let { ConcurrentHashMap<String, Long>() }
+    private var latestPresenceList: List<PresenceManager.PresencePayload> = emptyList()
+
+    private var lastSentPayload: PlayerMovePayload? = null
+    private var pendingPayload: PlayerMovePayload? = null
+    private var lastSendTimestamp: Long = 0L
+    private val movementIntervalMs = 200L
+    private var broadcastThrottleJob: Job? = null
 
     // Controle de Digitação
     private val typingHandler = Handler(Looper.getMainLooper())
@@ -119,8 +153,11 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         gridView.setTarget(imgBg)
         gridView.setInteractionListener(this)
         gridView.setStationId(currentStationId)
+        gridView.setInitialPosition(lastKnownGridX, lastKnownGridY, lastKnownDirection)
+        playerX_direcao_local = lastKnownDirection
 
         vincularUiChat()
+        iniciarCanalBroadcastEstacao(currentStationId)
         
         // Inicializa conversas padrão
         val tituloEstacao = if (currentStationId == "rio_de_janeiro") "Estação Rio de Janeiro" else "Estação São Paulo"
@@ -139,6 +176,51 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             observarJogadoresOnline()
             observarNpcsCompartilhados()
         }
+
+        val currentUserId = SocialProfileRepository.getCurrentUserId()
+        if (currentUserId != null) {
+            lifecycleScope.launch {
+                PrivateMessageRepository.incomingMessages.collect { msg ->
+                    if (msg.senderId == currentUserId) return@collect
+                    val senderId = msg.senderId
+                    val senderNameStr = latestPresenceList.find { it.user_id == senderId }?.username ?: "Viajante"
+
+                    if (!conversations.containsKey(senderId)) {
+                        conversations[senderId] = ChatConversation(
+                            id = senderId,
+                            title = senderNameStr,
+                            isNpc = false
+                        )
+                    }
+
+                    val conv = conversations[senderId]!!
+                    conv.history += "\n$senderNameStr: ${msg.message}"
+                    conv.lastActivityTime = System.currentTimeMillis()
+
+                    if (currentConversationId == senderId && !isChatHidden) {
+                        txtChatMessages.text = conv.history
+                        scrollChat.post { scrollChat.fullScroll(View.FOCUS_DOWN) }
+                    } else {
+                        atualizarInterfaceAbas()
+                    }
+
+                    val movePayload = remoteMovements[senderId]
+                    val presencePayload = latestPresenceList.find { it.user_id == senderId }
+                    val posX = movePayload?.gridX ?: presencePayload?.gridX ?: 5
+                    val posY = movePayload?.gridY ?: presencePayload?.gridY ?: 20
+
+                    gridView.addSpeechDialog(
+                        senderId = senderId,
+                        senderName = senderNameStr,
+                        message = msg.message,
+                        worldX = posX,
+                        worldY = posY,
+                        isPrivate = true,
+                        allowedUsers = setOf(senderId, currentUserId)
+                    )
+                }
+            }
+        }
     }
 
     private fun iniciarPresencaEstacao() {
@@ -152,14 +234,14 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             else -> "baixo"
         }
 
-        // Inicia a infraestrutura de presença
-        PresenceManager.startPresence()
+        val initialGridX = gridView.getPlayerX()
+        val initialGridY = gridView.getPlayerY()
 
-        // x=5, y=20 é a posição inicial em StationGridView.kt
+        // Atualiza com a posição real obtida do gridView e inicia a presença
         PresenceManager.updatePresenceData(
             stationId = currentStationId,
-            gridX = 5,
-            gridY = 20,
+            gridX = initialGridX,
+            gridY = initialGridY,
             direction = dirPresenca,
             gender = player.sexo
         )
@@ -170,26 +252,25 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
     private fun observarJogadoresOnline() {
         lifecycleScope.launch {
             PresenceManager.onlineUsers.collect { list ->
+                latestPresenceList = list
                 val currentUserId = SocialProfileRepository.getCurrentUserId() ?: ""
                 val onlineInStation = list.filter { it.stationId == currentStationId }.map { it.user_id }.toSet()
                 
                 // Limpa interações de usuários que saíram ou desconectaram
                 SharedNpcManager.cleanDisconnectedUsers(currentStationId, onlineInStation)
+                initialSyncedUsers.retainAll(onlineInStation)
 
                 Log.d("StationActivity", "[PRESENCE_DEBUG] RAW online users received: ${list.size}")
                 list.forEach { 
                     Log.d("StationActivity", "[PRESENCE_DEBUG] User: ${it.username} (id=${it.user_id}, station=${it.stationId})")
                 }
 
-                // Filtra jogadores que estão na mesma estação (currentStationId)
+                atualizarJogadoresRemotosNoGrid()
+
+                // Exibe balões de fala para mensagens públicas de jogadores remotos no momento do recebimento
                 val filtered = list.filter { 
                     it.stationId == currentStationId && it.user_id != currentUserId 
                 }
-                
-                Log.d("StationActivity", "[PRESENCE_DEBUG] Filtered remote players (station=$currentStationId, not self): ${filtered.size}")
-                gridView.setRemotePlayers(filtered, currentUserId)
-
-                // Exibe balões de fala para mensagens públicas de jogadores remotos no momento do recebimento
                 val currentTime = System.currentTimeMillis()
                 filtered.forEach { payload ->
                     if (payload.lastMessage.isNotEmpty() && payload.lastMessageTime > 0) {
@@ -203,8 +284,144 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                                 isPrivate = false
                             )
                         }
+
+                        val lastProcessedTime = processedPublicMessages[payload.user_id] ?: 0L
+                        if (payload.lastMessageTime > lastProcessedTime) {
+                            processedPublicMessages[payload.user_id] = payload.lastMessageTime
+                            val publicConv = conversations["public"]
+                            if (publicConv != null) {
+                                val prefixo = if (publicConv.history.isEmpty()) "" else "\n"
+                                publicConv.history += "$prefixo${payload.username}: ${payload.lastMessage}"
+                                if (currentConversationId == "public" && !isChatHidden) {
+                                    txtChatMessages.text = publicConv.history
+                                    scrollChat.post { scrollChat.fullScroll(View.FOCUS_DOWN) }
+                                }
+                            }
+                        }
                     }
                 }
+            }
+        }
+    }
+
+    private fun atualizarJogadoresRemotosNoGrid() {
+        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: ""
+        val filtered = latestPresenceList.filter { 
+            it.stationId == currentStationId && it.user_id != currentUserId 
+        }.map { presence ->
+            val move = remoteMovements[presence.user_id]
+            if (move != null) {
+                presence.copy(
+                    gridX = move.gridX,
+                    gridY = move.gridY,
+                    direction = move.direction
+                )
+            } else {
+                presence
+            }
+        }
+        Log.d("StationActivity", "[BROADCAST_TRACE] Filtered remote players combined with broadcast (station=$currentStationId, not self): ${filtered.size}")
+        gridView.setRemotePlayers(filtered, currentUserId)
+    }
+
+    private fun iniciarCanalBroadcastEstacao(stationId: String) {
+        remoteMovements.clear()
+        initialSyncedUsers.clear()
+        processedPublicMessages.clear()
+        lastSentPayload = null
+        pendingPayload = null
+        lastSendTimestamp = 0L
+        broadcastThrottleJob?.cancel()
+        stationBroadcastJob?.cancel()
+
+        val oldChannel = stationBroadcastChannel
+        stationBroadcastChannel = null
+
+        val channelId = "station:$stationId"
+
+        stationBroadcastJob = lifecycleScope.launch {
+            try {
+                if (oldChannel != null) {
+                    try {
+                        SupabaseManager.client.realtime.removeChannel(oldChannel)
+                    } catch (_: Exception) {}
+                }
+
+                val newChannel = SupabaseManager.client.realtime.channel(channelId) {
+                    broadcast {
+                        receiveOwnBroadcasts = true
+                    }
+                }
+                stationBroadcastChannel = newChannel
+
+                val moveFlow = newChannel.broadcastFlow<PlayerMovePayload>("player_movement")
+
+                launch {
+                    newChannel.status.collect { status ->
+                        Log.d("StationActivity", "[BROADCAST_TRACE] Status do canal $channelId: $status")
+                        if (status == RealtimeChannel.Status.SUBSCRIBED) {
+                            Log.d("StationActivity", "[BROADCAST_TRACE] SUBSCRIBED no canal de movimento $channelId")
+                            
+                            val currentUserId = SocialProfileRepository.getCurrentUserId()
+                            if (currentUserId != null && ::gridView.isInitialized) {
+                                val netDir = when (lastKnownDirection) {
+                                    "costas" -> "cima"
+                                    "esquerda" -> "esquerda"
+                                    "direita" -> "direita"
+                                    else -> "baixo"
+                                }
+                                pendingPayload = PlayerMovePayload(
+                                    user_id = currentUserId,
+                                    gridX = gridView.getPlayerX(),
+                                    gridY = gridView.getPlayerY(),
+                                    direction = netDir
+                                )
+                                tentaEnviarMovimento()
+                            }
+                        }
+                    }
+                }
+
+                launch {
+                    moveFlow.collect { payload ->
+                        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: ""
+                        if (payload.user_id == currentUserId) return@collect
+
+                        Log.d("StationActivity", "[BROADCAST_TRACE] Movimento remoto recebido: user=${payload.user_id}, pos=(${payload.gridX},${payload.gridY}), dir=${payload.direction}")
+                        remoteMovements[payload.user_id] = payload
+                        atualizarJogadoresRemotosNoGrid()
+
+                        if (initialSyncedUsers.add(payload.user_id)) {
+                            val channel = stationBroadcastChannel
+                            if (channel != null && channel.status.value == RealtimeChannel.Status.SUBSCRIBED && ::gridView.isInitialized) {
+                                val netDir = when (lastKnownDirection) {
+                                    "costas" -> "cima"
+                                    "esquerda" -> "esquerda"
+                                    "direita" -> "direita"
+                                    else -> "baixo"
+                                }
+                                val responsePayload = PlayerMovePayload(
+                                    user_id = currentUserId,
+                                    gridX = gridView.getPlayerX(),
+                                    gridY = gridView.getPlayerY(),
+                                    direction = netDir
+                                )
+                                lifecycleScope.launch {
+                                    try {
+                                        channel.broadcast("player_movement", responsePayload)
+                                        Log.d("StationActivity", "[BROADCAST_TRACE] Resposta de sincronização inicial enviada para user=${payload.user_id}")
+                                    } catch (e: Exception) {
+                                        Log.e("StationActivity", "[BROADCAST_TRACE] Erro ao enviar resposta de sincronização inicial: ${e.message}")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                newChannel.subscribe(blockUntilSubscribed = true)
+            } catch (e: Exception) {
+                Log.e("StationActivity", "[BROADCAST_TRACE] Erro no canal de broadcast: ${e.message}")
             }
         }
     }
@@ -236,6 +453,16 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
         btnChatClose.setOnClickListener {
             esconderChat()
+        }
+
+        val btnSair = findViewById<Button>(R.id.btnSairEstacao)
+        btnSair.setOnClickListener {
+            finish()
+        }
+
+        val btnVip = findViewById<Button>(R.id.btnVipStation)
+        btnVip.setOnClickListener {
+            mostrarDialogoVip()
         }
 
         layoutChatHeader.setOnClickListener {
@@ -324,7 +551,13 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         layoutChatTabs.removeAllViews()
         val density = resources.displayMetrics.density
         
-        conversations.values.forEach { conv ->
+        val sortedConversations = conversations.values.sortedWith(compareBy<ChatConversation> { 
+            if (it.id == "public") 0 else 1 
+        }.thenByDescending { 
+            it.lastActivityTime 
+        })
+
+        sortedConversations.forEach { conv ->
             val tabContainer = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
@@ -433,26 +666,28 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         val isPublic = currentConversationId == "public"
         val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
 
-        adicionarMensagem("@${p.nome}: $msg", isNpc = false)
-        edtChatMessage.setText("")
-
         // CAPTURA DE POSIÇÃO NO EXATO INSTANTE DO ENVIO (REGRA CRÍTICA)
         val sendX = gridView.getPlayerX()
         val sendY = gridView.getPlayerY()
 
-        // Criar balão de fala no cenário preso à posição (sendX, sendY)
-        gridView.addSpeechDialog(
-            senderId = "player_local",
-            senderName = p.nome.ifEmpty { "Viajante" },
-            message = msg,
-            worldX = sendX,
-            worldY = sendY,
-            isPrivate = !isPublic,
-            allowedUsers = if (isPublic) emptySet() else setOf(currentUserId, "antonio")
-        )
+        // Roteamento de envio baseado no tipo de conversa ativa
+        val conv = conversations[currentConversationId]
+        val isNpc = conv?.isNpc == true || currentConversationId == "antonio" || currentConversationId == "carlos"
 
-        // Se for mensagem pública, transmite aos outros jogadores via PresenceManager
         if (isPublic) {
+            adicionarMensagem("@${p.nome}: $msg", isNpc = false)
+            edtChatMessage.setText("")
+
+            gridView.addSpeechDialog(
+                senderId = currentUserId,
+                senderName = p.nome.ifEmpty { "Viajante" },
+                message = msg,
+                worldX = sendX,
+                worldY = sendY,
+                isPrivate = false,
+                allowedUsers = emptySet()
+            )
+
             val netDir = when (playerX_direcao_local) {
                 "costas" -> "cima"
                 "esquerda" -> "esquerda"
@@ -468,13 +703,58 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                 lastMessage = msg,
                 lastMessageTime = System.currentTimeMillis()
             )
-        }
+        } else if (isNpc) {
+            adicionarMensagem("@${p.nome}: $msg", isNpc = false)
+            edtChatMessage.setText("")
 
-        // Simulação / Diálogo de Compra do Antônio e Carlos
-        if (currentConversationId == "antonio") {
-            processarDialogoAntonio(msg)
-        } else if (currentConversationId == "carlos") {
-            processarDialogoCarlos(msg)
+            gridView.addSpeechDialog(
+                senderId = currentUserId,
+                senderName = p.nome.ifEmpty { "Viajante" },
+                message = msg,
+                worldX = sendX,
+                worldY = sendY,
+                isPrivate = true,
+                allowedUsers = setOf(currentUserId, currentConversationId)
+            )
+
+            if (currentConversationId == "antonio") {
+                processarDialogoAntonio(msg)
+            } else if (currentConversationId == "carlos") {
+                processarDialogoCarlos(msg)
+            }
+        } else {
+            val authUserId = SocialProfileRepository.getCurrentUserId()
+            if (authUserId == null) {
+                Log.e("StationActivity", "Erro: Usuário não autenticado. Impossível enviar mensagem privada.")
+                return
+            }
+            val receiverId = currentConversationId
+            edtChatMessage.setText("")
+
+            lifecycleScope.launch {
+                try {
+                    PrivateMessageRepository.sendMessage(authUserId, receiverId, msg)
+                    
+                    // Sucesso confirmado pelo banco: adiciona ao histórico e exibe o balão
+                    adicionarMensagem("@${p.nome}: $msg", isNpc = false)
+                    conversations[receiverId]?.let {
+                        it.lastActivityTime = System.currentTimeMillis()
+                        atualizarInterfaceAbas()
+                    }
+                    
+                    gridView.addSpeechDialog(
+                        senderId = authUserId,
+                        senderName = p.nome.ifEmpty { "Viajante" },
+                        message = msg,
+                        worldX = sendX,
+                        worldY = sendY,
+                        isPrivate = true,
+                        allowedUsers = setOf(authUserId, receiverId)
+                    )
+                } catch (e: Exception) {
+                    Log.e("StationActivity", "Erro ao enviar mensagem privada (não adicionada ao histórico): ${e.message}")
+                }
+            }
         }
     }
 
@@ -731,6 +1011,185 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         }
     }
 
+    override fun onRemotePlayerTapped(userId: String, username: String) {
+        if (!conversations.containsKey(userId)) {
+            conversations[userId] = ChatConversation(
+                id = userId,
+                title = username,
+                isNpc = false
+            )
+        }
+        selecionarConversa(userId)
+        if (isChatHidden) mostrarChat()
+    }
+
+    private fun mostrarDialogoVip() {
+        val context = this
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 24)
+        }
+
+        val scrollView = ScrollView(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                (150 * resources.displayMetrics.density).toInt()
+            ).apply { topMargin = 16.0f.toInt() }
+        }
+
+        val listLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        scrollView.addView(listLayout)
+
+        var dialog: AlertDialog? = null
+        var refreshList: () -> Unit = {}
+
+        refreshList = fun() {
+            listLayout.removeAllViews()
+            val vipList = VipManager.getVipList(context)
+            val onlineSet = PresenceManager.onlineUsers.value.map { it.user_id }.toSet()
+            
+            // Ordena: online primeiro
+            val sortedVips = vipList.sortedByDescending { onlineSet.contains(it.userId) }
+
+            dialog?.setTitle("⭐ Lista VIP (${vipList.size}/50)")
+
+            if (sortedVips.isEmpty()) {
+                val emptyTv = TextView(context).apply {
+                    text = "Sua lista VIP está vazia."
+                    setTextColor(Color.parseColor("#889099"))
+                    setPadding(0, 24, 0, 24)
+                    gravity = Gravity.CENTER
+                }
+                listLayout.addView(emptyTv)
+                return
+            }
+
+            sortedVips.forEach { vip ->
+                val isOnline = onlineSet.contains(vip.userId)
+                val row = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(12, 12, 12, 12)
+                    setBackgroundResource(android.R.drawable.list_selector_background)
+                    setOnClickListener {
+                        onRemotePlayerTapped(vip.userId, vip.username)
+                        dialog?.dismiss()
+                    }
+                }
+
+                val indicator = TextView(context).apply {
+                    text = "●"
+                    textSize = 16f
+                    setTextColor(if (isOnline) Color.parseColor("#4CAF50") else Color.parseColor("#889099"))
+                    setPadding(0, 0, 16, 0)
+                }
+                row.addView(indicator)
+
+                val nameTv = TextView(context).apply {
+                    text = vip.username
+                    textSize = 16f
+                    setTextColor(if (isOnline) Color.WHITE else Color.parseColor("#889099"))
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                row.addView(nameTv)
+
+                val btnRemove = Button(context).apply {
+                    text = "Remover"
+                    textSize = 12f
+                    setTextColor(Color.parseColor("#FF5252"))
+                    setBackgroundColor(Color.TRANSPARENT)
+                    setOnClickListener {
+                        VipManager.removeVip(context, vip.userId)
+                        refreshList()
+                    }
+                }
+                row.addView(btnRemove)
+
+                listLayout.addView(row)
+            }
+        }
+
+        val btnAdd = Button(context).apply {
+            text = "+ Adicionar VIP"
+            setBackgroundColor(Color.parseColor("#286680"))
+            setTextColor(Color.WHITE)
+            setOnClickListener {
+                mostrarDialogoAdicionarVip {
+                    refreshList()
+                }
+            }
+        }
+        container.addView(btnAdd)
+        container.addView(scrollView)
+
+        refreshList()
+
+        dialog = AlertDialog.Builder(context, R.style.Theme_TypingFrontier_ShopDialog)
+            .setTitle("⭐ Lista VIP (${VipManager.getVipList(this).size}/50)")
+            .setView(container)
+            .setPositiveButton("Fechar", null)
+            .create()
+
+        dialog.show()
+
+        val presenceJob = lifecycleScope.launch {
+            PresenceManager.onlineUsers.collect {
+                refreshList()
+            }
+        }
+        dialog.setOnDismissListener {
+            presenceJob.cancel()
+        }
+    }
+
+    private fun mostrarDialogoAdicionarVip(onAdded: () -> Unit) {
+        val input = EditText(this).apply {
+            hint = "Digite o username..."
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.parseColor("#889099"))
+            setPadding(32, 24, 32, 24)
+        }
+
+        AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
+            .setTitle("Adicionar VIP")
+            .setView(input)
+            .setPositiveButton("Adicionar") { _, _ ->
+                val usernameInput = input.text.toString().trim().removePrefix("@")
+                if (usernameInput.isEmpty()) return@setPositiveButton
+
+                val currentUserId = SocialProfileRepository.getCurrentUserId() ?: ""
+                
+                lifecycleScope.launch {
+                    try {
+                        val profile = ModerationRepository.getProfileByUsername(usernameInput)
+                        if (profile == null) {
+                            Toast.makeText(this@StationActivity, "Jogador não encontrado.", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+
+                        if (profile.id == currentUserId) {
+                            Toast.makeText(this@StationActivity, "Você não pode adicionar a si mesmo.", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+
+                        val added = VipManager.addVip(this@StationActivity, profile.id, profile.username)
+                        if (!added) {
+                            Toast.makeText(this@StationActivity, "Lista cheia (máx 50) ou jogador já adicionado.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@StationActivity, "${profile.username} adicionado aos VIPs!", Toast.LENGTH_SHORT).show()
+                            onAdded()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(this@StationActivity, "Erro ao buscar jogador: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
     override fun onTrainTapped() {
         if (currentStationId == "sao_paulo") {
             processarEmbarqueTrainSP()
@@ -853,6 +1312,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             imgBg.setImageResource(bgNovaEstacaoResId)
 
             currentStationId = novaEstacaoId
+            iniciarCanalBroadcastEstacao(novaEstacaoId)
             gridView.setStationId(currentStationId)
 
             // Persiste a nova estação em disco para restauração ao fechar/reabrir a StationActivity
@@ -902,6 +1362,10 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
     private var lastCheckedExitY = -1
 
     override fun onPlayerPositionChanged(x: Int, y: Int, direction: String) {
+        lastKnownGridX = x
+        lastKnownGridY = y
+        lastKnownDirection = direction
+
         Log.d("StationActivity", "[STAIR_DEBUG] playerPosition x=$x, y=$y, direction=$direction")
         Log.d("StationActivity", "[STAIR_CELL_TRACE] EXIT_CHECK position=($x,$y)")
         // Converte a direção interna do grid para o padrão da rede
@@ -911,14 +1375,20 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             "direita" -> "direita"
             else -> "baixo"
         }
-        
-        PresenceManager.updatePresenceData(
-            stationId = currentStationId,
-            gridX = x,
-            gridY = y,
-            direction = netDir,
-            gender = PlayerManager.player.sexo
-        )
+
+        val currentUserId = SocialProfileRepository.getCurrentUserId()
+        if (currentUserId != null) {
+            val payload = PlayerMovePayload(
+                user_id = currentUserId,
+                gridX = x,
+                gridY = y,
+                direction = netDir
+            )
+            if (payload != lastSentPayload) {
+                pendingPayload = payload
+                tentaEnviarMovimento()
+            }
+        }
 
         // Verifica saída da Estação São Paulo pela escada inferior (x = 1, y = 19 ou x = 2, y = 19)
         if (currentStationId == "sao_paulo" && ((x == 1 && y == 19) || (x == 2 && y == 19))) {
@@ -945,6 +1415,10 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             .setMessage("Você quer voltar para as Aventuras em São Paulo?")
             .setPositiveButton("Voltar para as Aventuras") { _, _ ->
                 isExitPromptVisible = false
+                if (::gridView.isInitialized) {
+                    lastKnownGridX = gridView.getPlayerX()
+                    lastKnownGridY = gridView.getPlayerY()
+                }
                 finish()
             }
             .setNegativeButton("Continuar na estação") { dialogInterface, _ ->
@@ -1115,8 +1589,51 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         gridView.setPlayerData(sprites, nomeExibicao)
     }
 
+    private fun tentaEnviarMovimento() {
+        val channel = stationBroadcastChannel ?: return
+        if (channel.status.value != RealtimeChannel.Status.SUBSCRIBED) return
+        val payload = pendingPayload ?: return
+        val now = System.currentTimeMillis()
+        val elapsed = now - lastSendTimestamp
+
+        if (elapsed >= movementIntervalMs) {
+            lastSendTimestamp = now
+            lastSentPayload = payload
+            pendingPayload = null
+
+            lifecycleScope.launch {
+                try {
+                    channel.broadcast("player_movement", payload)
+                    Log.d("StationActivity", "[BROADCAST_TRACE] Envio de movimento realizado: pos=(${payload.gridX},${payload.gridY}), dir=${payload.direction}")
+                } catch (e: Exception) {
+                    Log.e("StationActivity", "[BROADCAST_TRACE] Erro ao enviar broadcast de movimento: ${e.message}")
+                }
+            }
+        } else {
+            if (broadcastThrottleJob?.isActive != true) {
+                val delayNeeded = movementIntervalMs - elapsed
+                broadcastThrottleJob = lifecycleScope.launch {
+                    delay(delayNeeded)
+                    tentaEnviarMovimento()
+                }
+            }
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        if (::gridView.isInitialized) {
+            lastKnownGridX = gridView.getPlayerX()
+            lastKnownGridY = gridView.getPlayerY()
+        }
+        stationBroadcastJob?.cancel()
+        stationBroadcastChannel?.let { ch ->
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    SupabaseManager.client.realtime.removeChannel(ch)
+                } catch (_: Exception) {}
+            }
+        }
         val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
         SharedNpcManager.removeInteraction("npc_vendedor_antonio", currentUserId)
         SharedNpcManager.stopNpcSystem()
@@ -1129,5 +1646,6 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             direction = "baixo",
             gender = ""
         )
+        PresenceManager.stopPresence()
     }
 }

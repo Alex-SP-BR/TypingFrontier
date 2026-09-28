@@ -1,6 +1,7 @@
 package com.typingfrontier.social
 
 import android.util.Log
+import com.typingfrontier.PlayerManager
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.realtime.channel
@@ -25,6 +26,7 @@ object PresenceManager {
         val user_id: String,
         val username: String,
         val role: String,
+        val profession: String = "",
         val gender: String = "",
         val stationId: String? = null,
         val gridX: Int = -1,
@@ -186,8 +188,10 @@ object PresenceManager {
             // constrói um payload básico com os dados do perfil ou fallbacks.
             val payload = currentPresenceData ?: PresencePayload(
                 user_id = uid,
-                username = profile?.username ?: com.typingfrontier.PlayerManager.player.nome.ifEmpty { "Viajante" },
-                role = profile?.role ?: com.typingfrontier.PlayerManager.player.profissao
+                username = profile?.username ?: PlayerManager.player.nome.ifEmpty { "Viajante" },
+                role = profile?.role ?: "usuario",
+                profession = PlayerManager.player.profissao,
+                gender = PlayerManager.player.sexo
             )
             
             Log.d(TAG, "[PRESENCE_DEBUG] tracking: uid=$uid, user=${payload.username}, station=${payload.stationId}")
@@ -219,8 +223,9 @@ object PresenceManager {
         
         currentPresenceData = PresencePayload(
             user_id = uid,
-            username = profile?.username ?: com.typingfrontier.PlayerManager.player.nome.ifEmpty { "Viajante" },
-            role = profile?.role ?: com.typingfrontier.PlayerManager.player.profissao,
+            username = profile?.username ?: PlayerManager.player.nome.ifEmpty { "Viajante" },
+            role = profile?.role ?: "usuario",
+            profession = PlayerManager.player.profissao,
             gender = gender,
             stationId = stationId,
             gridX = gridX,
@@ -256,8 +261,11 @@ object PresenceManager {
         scope.launch {
             try {
                 currentChannel?.let {
+                    try {
+                        it.untrack()
+                    } catch (_: Exception) {}
                     SupabaseManager.client.realtime.removeChannel(it)
-                    Log.d(TAG, "Presença removida via removeChannel (Background)")
+                    Log.d(TAG, "Presença removida via untrack + removeChannel (Background)")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Erro ao remover presença: ${e.message}")
