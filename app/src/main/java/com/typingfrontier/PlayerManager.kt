@@ -350,10 +350,16 @@ object PlayerManager {
 
         editor.putInt("capacidadeMochila", player.capacidadeMochila)
 
-        // Save armario Map
+        // Save armario Map (São Paulo)
         val armarioStr = player.armario.entries.joinToString(";") { "${it.key}:${it.value}" }
         editor.putString("armario", armarioStr)
+
+        // Save armarioRio Map (Rio de Janeiro)
+        val armarioRioStr = player.armarioRio.entries.joinToString(";") { "${it.key}:${it.value}" }
+        editor.putString("armario_rio", armarioRioStr)
+
         editor.putInt("capacidadeArmario", player.capacidadeArmario)
+        editor.putBoolean("habilitadoFerrovia", player.habilitadoFerrovia)
 
         editor.apply()
     }
@@ -521,7 +527,7 @@ object PlayerManager {
 
         player.capacidadeMochila = prefs.getInt("capacidadeMochila", 5)
 
-        // Load armario Map
+        // Load armario Map (São Paulo)
         val armarioStr = prefs.getString("armario", "") ?: ""
         player.armario.clear()
         if (armarioStr.isNotEmpty()) {
@@ -532,7 +538,21 @@ object PlayerManager {
                 }
             }
         }
+
+        // Load armarioRio Map (Rio de Janeiro)
+        val armarioRioStr = prefs.getString("armario_rio", "") ?: ""
+        player.armarioRio.clear()
+        if (armarioRioStr.isNotEmpty()) {
+            armarioRioStr.split(";").forEach {
+                val parts = it.split(":")
+                if (parts.size == 2) {
+                    player.armarioRio[parts[0]] = parts[1].toIntOrNull() ?: 0
+                }
+            }
+        }
+
         player.capacidadeArmario = prefs.getInt("capacidadeArmario", 20)
+        player.habilitadoFerrovia = prefs.getBoolean("habilitadoFerrovia", false)
 
         // MIGRATIONS LOGIC
         if (loadedVersion < 3) {

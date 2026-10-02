@@ -1,10 +1,14 @@
 package com.typingfrontier.social
 
+import android.util.Log
+import io.github.jan.supabase.exceptions.RestException
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -24,7 +28,26 @@ object ModerationRepository {
             put("description", description)
         }
 
-        SupabaseManager.client.postgrest["reports"].insert(report)
+        try {
+            SupabaseManager.client.postgrest["reports"].insert(report)
+        } catch (e: Exception) {
+            logReportError(targetType, targetId, e)
+            throw e
+        }
+    }
+
+    private fun logReportError(targetType: String, targetId: String, e: Exception) {
+        Log.e("PrivateReportDebug", "=== ERRO NA CRIAÇÃO DE DENÚNCIA ===")
+        Log.e("PrivateReportDebug", "targetType: $targetType, targetId: $targetId")
+        Log.e("PrivateReportDebug", "Classe da Exceção: ${e.javaClass.name}")
+        Log.e("PrivateReportDebug", "Mensagem da Exceção: ${e.message}")
+        if (e is RestException) {
+            Log.e("PrivateReportDebug", "RestException - statusCode: ${e.statusCode}")
+            Log.e("PrivateReportDebug", "RestException - error: ${e.error}")
+            Log.e("PrivateReportDebug", "RestException - description: ${e.description}")
+        }
+        Log.e("PrivateReportDebug", "Stack Trace Completa:", e)
+        Log.e("PrivateReportDebug", "====================================")
     }
 
     suspend fun getReports(): List<Report> = withContext(Dispatchers.IO) {
@@ -43,7 +66,7 @@ object ModerationRepository {
 
             // 2. Resolver os IDs dos autores do conteúdo denunciado
             reports.forEach { report ->
-                val authorId = getContentAuthorId(report.target_type, report.target_id)
+                val authorId = getContentAuthorId(report.target_type, report.target_id, report.id)
                 if (authorId != null) authorIds.add(authorId)
             }
 
@@ -88,8 +111,72 @@ object ModerationRepository {
         }
     }
 
-    suspend fun getContentAuthorId(targetType: String, targetId: String): String? = withContext(Dispatchers.IO) {
+    suspend fun getReportedPrivateMessage(reportId: String): ReportedPrivateMessage? = withContext(Dispatchers.IO) {
         try {
+            val params = buildJsonObject {
+                put("p_report_id", reportId)
+            }
+            SupabaseManager.client.postgrest.rpc("get_reported_private_message_with_context", params)
+                .decodeList<ReportedPrivateMessage>()
+                .find { it.messageType == "target" } ?: SupabaseManager.client.postgrest.rpc("get_reported_private_message_with_context", params)
+                .decodeList<ReportedPrivateMessage>()
+                .firstOrNull()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun getReportedPrivateMessageContext(reportId: String): List<ReportedPrivateMessage> = withContext(Dispatchers.IO) {
+        try {
+            val params = buildJsonObject {
+                put("p_report_id", reportId)
+            }
+            SupabaseManager.client.postgrest.rpc("get_reported_private_message_with_context", params)
+                .decodeList<ReportedPrivateMessage>()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun getReportedPublicMessage(reportId: String): ReportedPublicMessage? = withContext(Dispatchers.IO) {
+        try {
+            val params = buildJsonObject {
+                put("p_report_id", reportId)
+            }
+            SupabaseManager.client.postgrest.rpc("get_reported_public_message_with_context", params)
+                .decodeList<ReportedPublicMessage>()
+                .find { it.messageType == "target" } ?: SupabaseManager.client.postgrest.rpc("get_reported_public_message_with_context", params)
+                .decodeList<ReportedPublicMessage>()
+                .firstOrNull()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun getReportedPublicMessageContext(reportId: String): List<ReportedPublicMessage> = withContext(Dispatchers.IO) {
+        try {
+            val params = buildJsonObject {
+                put("p_report_id", reportId)
+            }
+            SupabaseManager.client.postgrest.rpc("get_reported_public_message_with_context", params)
+                .decodeList<ReportedPublicMessage>()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun getContentAuthorId(targetType: String, targetId: String, reportId: String? = null): String? = withContext(Dispatchers.IO) {
+        try {
+            if (targetType == "private_message") {
+                if (reportId == null) return@withContext null
+                val reportedMsg = getReportedPrivateMessage(reportId)
+                return@withContext reportedMsg?.senderId
+            }
+            if (targetType == "public_message") {
+                if (reportId == null) return@withContext null
+                val reportedMsg = getReportedPublicMessage(reportId)
+                return@withContext reportedMsg?.senderId
+            }
             val table = if (targetType == "discussion") "discussions" else "discussion_replies"
             val result = SupabaseManager.client.postgrest[table]
                 .select(Columns.raw("author_id")) {
@@ -101,8 +188,68 @@ object ModerationRepository {
         }
     }
 
-    suspend fun getContentDetails(targetType: String, targetId: String): ContentDetails? = withContext(Dispatchers.IO) {
+    suspend fun getContentDetails(targetType: String, targetId: String, reportId: String? = null): ContentDetails? = withContext(Dispatchers.IO) {
         try {
+            if (targetType == "private_message") {
+                if (reportId == null) return@withContext null
+                val messages = getReportedPrivateMessageContext(reportId)
+                if (messages.isEmpty()) return@withContext null
+
+                val sb = StringBuilder()
+                messages.forEach { msg ->
+                    val senderProfile = getProfileById(msg.senderId)
+                    val username = senderProfile?.username ?: "Usuário"
+                    val time = msg.createdAt.take(16).replace("T", " ")
+
+                    when (msg.messageType) {
+                        "prior" -> {
+                            sb.append("[Mensagem anterior]\n")
+                            sb.append("@$username ($time):\n\"${msg.message}\"\n\n")
+                        }
+                        "target" -> {
+                            sb.append("━━━━━━━━━━━━━━━━\n")
+                            sb.append("MENSAGEM DENUNCIADA\n")
+                            sb.append("@$username ($time):\n\"${msg.message}\"\n")
+                            sb.append("━━━━━━━━━━━━━━━━")
+                        }
+                        "posterior" -> {
+                            sb.append("\n\n[Mensagem posterior]\n")
+                            sb.append("@$username ($time):\n\"${msg.message}\"")
+                        }
+                    }
+                }
+                return@withContext ContentDetails(content = sb.toString().trim(), title = "MENSAGEM PRIVADA")
+            }
+            if (targetType == "public_message") {
+                if (reportId == null) return@withContext null
+                val messages = getReportedPublicMessageContext(reportId)
+                if (messages.isEmpty()) return@withContext null
+
+                val sb = StringBuilder()
+                messages.forEach { msg ->
+                    val senderProfile = getProfileById(msg.senderId)
+                    val username = senderProfile?.username ?: "Usuário"
+                    val time = msg.createdAt.take(16).replace("T", " ")
+
+                    when (msg.messageType) {
+                        "prior" -> {
+                            sb.append("[Mensagem anterior]\n")
+                            sb.append("@$username ($time):\n\"${msg.message}\"\n\n")
+                        }
+                        "target" -> {
+                            sb.append("━━━━━━━━━━━━━━━━\n")
+                            sb.append("MENSAGEM DENUNCIADA (ESTAÇÃO: ${msg.stationId.uppercase()})\n")
+                            sb.append("@$username ($time):\n\"${msg.message}\"\n")
+                            sb.append("━━━━━━━━━━━━━━━━")
+                        }
+                        "posterior" -> {
+                            sb.append("\n\n[Mensagem posterior]\n")
+                            sb.append("@$username ($time):\n\"${msg.message}\"")
+                        }
+                    }
+                }
+                return@withContext ContentDetails(content = sb.toString().trim(), title = "MENSAGEM PÚBLICA DA ESTAÇÃO")
+            }
             val table = if (targetType == "discussion") "discussions" else "discussion_replies"
             SupabaseManager.client.postgrest[table]
                 .select {
@@ -240,6 +387,26 @@ data class Report(
     var targetContentText: String? = null,
     var targetTitle: String? = null,
     var targetCategory: String? = null
+)
+
+@Serializable
+data class ReportedPrivateMessage(
+    @SerialName("message_id") val messageId: String,
+    @SerialName("sender_id") val senderId: String,
+    @SerialName("receiver_id") val receiverId: String,
+    val message: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("message_type") val messageType: String = "target"
+)
+
+@Serializable
+data class ReportedPublicMessage(
+    @SerialName("message_id") val messageId: String,
+    @SerialName("sender_id") val senderId: String,
+    @SerialName("station_id") val stationId: String,
+    val message: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("message_type") val messageType: String = "target"
 )
 
 @kotlinx.serialization.Serializable

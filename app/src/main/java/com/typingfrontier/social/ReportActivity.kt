@@ -115,7 +115,7 @@ class ReportActivity : AppCompatActivity() {
                 report.reporterUsername = reporter?.username ?: "Usuário Desconhecido"
             }
             if (report.targetAuthorId == null) {
-                report.targetAuthorId = ModerationRepository.getContentAuthorId(report.target_type, report.target_id)
+                report.targetAuthorId = ModerationRepository.getContentAuthorId(report.target_type, report.target_id, report.id)
             }
             if (report.targetAuthorId != null && report.targetAuthorUsername == null) {
                 val author = ModerationRepository.getProfileById(report.targetAuthorId!!)
@@ -124,7 +124,7 @@ class ReportActivity : AppCompatActivity() {
                 report.targetAuthorLevel = author?.level
             }
             if (report.targetContentText == null) {
-                val details = ModerationRepository.getContentDetails(report.target_type, report.target_id)
+                val details = ModerationRepository.getContentDetails(report.target_type, report.target_id, report.id)
                 if (details != null) {
                     report.targetContentText = details.content
                     report.targetTitle = details.title
@@ -184,7 +184,7 @@ class ReportActivity : AppCompatActivity() {
 
                 // 2. Resolver Autor do Conteúdo e Texto
                 if (report.targetAuthorId == null) {
-                    report.targetAuthorId = ModerationRepository.getContentAuthorId(report.target_type, report.target_id)
+                    report.targetAuthorId = ModerationRepository.getContentAuthorId(report.target_type, report.target_id, report.id)
                 }
 
                 if (report.targetAuthorId != null && report.targetAuthorUsername == null) {
@@ -195,7 +195,7 @@ class ReportActivity : AppCompatActivity() {
                 }
 
                 if (report.targetContentText == null) {
-                    val details = ModerationRepository.getContentDetails(report.target_type, report.target_id)
+                    val details = ModerationRepository.getContentDetails(report.target_type, report.target_id, report.id)
                     if (details != null) {
                         report.targetContentText = details.content
                         report.targetTitle = details.title
@@ -220,12 +220,13 @@ class ReportActivity : AppCompatActivity() {
         // Identificar Autor do Conteúdo para impedir auto-moderação (Caso ainda não carregado)
         scope.launch {
             if (report.targetAuthorId == null) {
-                report.targetAuthorId = ModerationRepository.getContentAuthorId(report.target_type, report.target_id)
+                report.targetAuthorId = ModerationRepository.getContentAuthorId(report.target_type, report.target_id, report.id)
             }
             
             val authorId = report.targetAuthorId
 
-            if (authorId != null && authorId == currentUid) {
+            val isOwnerException = currentUid == SocialProfileRepository.OWNER_UUID_EXCEPTION
+            if (authorId != null && authorId == currentUid && !isOwnerException) {
                 runOnUiThread { Toast.makeText(this@ReportActivity, "Você não pode moderar seu próprio conteúdo.", Toast.LENGTH_SHORT).show() }
                 return@launch
             }
@@ -239,7 +240,7 @@ class ReportActivity : AppCompatActivity() {
             }
 
             if (report.targetContentText == null) {
-                val details = ModerationRepository.getContentDetails(report.target_type, report.target_id)
+                val details = ModerationRepository.getContentDetails(report.target_type, report.target_id, report.id)
                 if (details != null) {
                     report.targetContentText = details.content
                     report.targetTitle = details.title
@@ -262,7 +263,8 @@ class ReportActivity : AppCompatActivity() {
         when (status) {
             "pending" -> {
                 // Bloqueia claim se o autor for de cargo igual ou superior (UX)
-                if (getRoleWeight(myRole) <= getRoleWeight(authorRole)) {
+                val isOwnerException = currentUid == SocialProfileRepository.OWNER_UUID_EXCEPTION
+                if (!isOwnerException && getRoleWeight(myRole) <= getRoleWeight(authorRole)) {
                     val msg = if (authorRole == null) "Carregando dados do autor..." else "Esta denúncia envolve um cargo superior ou igual."
                     Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
                     return
@@ -299,8 +301,13 @@ class ReportActivity : AppCompatActivity() {
         val authorName = report.targetAuthorUsername ?: (if (report.targetAuthorId != null) "Desconhecido" else "AUTOR NÃO IDENTIFICADO")
         val authorCargo = traduzirRole(report.targetAuthorRole)
         
-        val typeLabel = if (report.target_type == "discussion") "TÓPICO" else "RESPOSTA"
+        val typeLabel = when (report.target_type) {
+            "discussion" -> "TÓPICO"
+            "private_message" -> "MENSAGEM PRIVADA"
+            else -> "RESPOSTA"
+        }
         val originLabel = when {
+            report.target_type == "private_message" -> "CHAT PRIVADO"
             report.targetCategory == "general" -> "FÓRUM"
             report.targetCategory != null -> "MURAL — ${report.targetCategory!!.uppercase()}"
             else -> "CONTEÚDO"
@@ -378,7 +385,9 @@ class ReportActivity : AppCompatActivity() {
             val contentExists = report.targetContentText != null && 
                                 report.targetContentText != "CONTEÚDO NÃO ENCONTRADO — POSSIVELMENTE EXCLUÍDO"
 
-            val canModerate = getRoleWeight(myRole) > getRoleWeight(report.targetAuthorRole)
+            val currentUid = SocialProfileRepository.currentProfile?.id
+            val isOwnerException = currentUid == SocialProfileRepository.OWNER_UUID_EXCEPTION
+            val canModerate = isOwnerException || (getRoleWeight(myRole) > getRoleWeight(report.targetAuthorRole))
 
             if (contentExists && canModerate) {
                 layoutActionDelete.visibility = View.VISIBLE

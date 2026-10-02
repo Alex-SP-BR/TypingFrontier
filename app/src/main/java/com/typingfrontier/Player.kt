@@ -83,8 +83,12 @@ data class Player(
     var capacidadeMochila: Int = 5,
     
     // 📦 ARMÁRIO (Armazenamento na Estação)
-    var armario: MutableMap<String, Int> = mutableMapOf(),
+    var armario: MutableMap<String, Int> = mutableMapOf(), // São Paulo
+    var armarioRio: MutableMap<String, Int> = mutableMapOf(), // Rio de Janeiro
     var capacidadeArmario: Int = 20,
+
+    // 🚆 HABILITAÇÃO FERROVIÁRIA
+    var habilitadoFerrovia: Boolean = false,
 
     // 🕊️ SEGURO DE EQUIPAMENTOS (Bênçãos Acumuláveis)
     var estoqueBencao: Int = 0,
@@ -131,6 +135,10 @@ data class Player(
     var socialUserId: String? = null
 
 ) {
+
+    fun getArmarioEstacao(stationId: String?): MutableMap<String, Int> {
+        return if (stationId == "rio_de_janeiro") armarioRio else armario
+    }
 
     // ------------------------------------------------
     // 🔹 PROPRIEDADES CALCULADAS (RPG)

@@ -83,10 +83,11 @@ class SocialProfileActivity : AppCompatActivity() {
             } else {
                 if (isOwnProfile) {
                     if (SocialProfileRepository.isSessionMismatch) {
-                        binding.btnRegistrarIdentidade.visibility = View.GONE
+                        binding.btnRegistrarIdentidade.visibility = View.VISIBLE
+                        binding.btnRegistrarIdentidade.setOnClickListener { mostrarDialogRegistroSocial() }
                         exibirPerfilVazio()
                         binding.txtProfileUsername.text = "Identidade Desconectada (Validação Pendente)"
-                        Toast.makeText(this@SocialProfileActivity, "Aviso: Sua sessão social original foi desconectada. Nova identidade bloqueada por segurança.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@SocialProfileActivity, "Aviso: Sua sessão social original foi desconectada. Você pode registrar uma nova identidade.", Toast.LENGTH_LONG).show()
                     } else if (!PlayerManager.player.socialUserId.isNullOrBlank()) {
                         // 2. USUÁRIO CONHECIDO OFFLINE (Possui socialUserId local mas Supabase inacessível)
                         binding.btnRegistrarIdentidade.visibility = View.GONE

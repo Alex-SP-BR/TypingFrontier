@@ -40,6 +40,7 @@
                 android:layout_marginTop="12dp" />
 
             <TextView
+                android:id="@+id/txtTituloSelecao"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
@@ -157,6 +158,14 @@
                                 android:textSize="15sp" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
+
+                    <LinearLayout
+                        android:id="@+id/layoutEscolhasNarrativas"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="vertical"
+                        android:visibility="gone" />
 
                     <LinearLayout
                         android:id="@+id/layoutAcoesAventura"

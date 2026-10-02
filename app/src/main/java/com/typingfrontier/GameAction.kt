@@ -28,6 +28,6 @@ sealed class GameAction {
     data class UnequipItem(val slot: String) : GameAction()
 
     // Ações do Armário da Estação
-    data class DepositItem(val itemId: String) : GameAction()
-    data class WithdrawItem(val itemId: String) : GameAction()
+    data class DepositItem(val itemId: String, val stationId: String = "sao_paulo") : GameAction()
+    data class WithdrawItem(val itemId: String, val stationId: String = "sao_paulo") : GameAction()
 }

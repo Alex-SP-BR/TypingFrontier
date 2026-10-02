@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import com.typingfrontier.social.DiscussionActivity
 import com.typingfrontier.social.PresenceManager
+import com.typingfrontier.social.RoleManagementActivity
 import com.typingfrontier.station.StationActivity
 import com.typingfrontier.utils.AdManager
 import com.typingfrontier.utils.ViewUtils
@@ -30,7 +31,8 @@ class TypingFrontierApp : Application() {
     private fun isOnlineActivity(activity: Activity?): Boolean {
         return activity is GameActivity ||
                activity is DiscussionActivity ||
-               activity is StationActivity
+               activity is StationActivity ||
+               activity is RoleManagementActivity
     }
 
     private fun updateGlobalPresence(activity: Activity?) {

@@ -1,5 +1,8 @@
 package com.typingfrontier
 
+import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
 import android.widget.*
@@ -14,6 +17,9 @@ import android.media.SoundPool
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ImageSpan
+import com.google.android.material.card.MaterialCardView
+import com.typingfrontier.collection.AchievementManager
+import com.typingfrontier.station.StationActivity
 
 // CONFIGURAÇÃO TEMPORÁRIA: Controla o acesso à Estação de Trem de Alta Velocidade
 private const val ESTACAO_ALTA_VELOCIDADE_LIBERADA = true
@@ -22,6 +28,8 @@ class ExplorationActivity : AppCompatActivity() {
 
     private lateinit var layoutSelecao: View
     private lateinit var layoutAventura: View
+    private lateinit var layoutEscolhasNarrativas: LinearLayout
+    private lateinit var layoutAcoesAventura: LinearLayout
     private lateinit var txtZonaNome: TextView
     private lateinit var txtEtapa: TextView
     private lateinit var txtDescricao: TextView
@@ -39,6 +47,8 @@ class ExplorationActivity : AppCompatActivity() {
     private var etapaAtual = 0
     private var xpAcumulado = 0
     private var dinheiroAcumulado = 0
+    private var escolhaAnteriorId: String? = null
+    private var recompensaColetada = false
 
     // ÁUDIO E ANIMAÇÃO RECOMPENSA
     private var soundPool: SoundPool? = null
@@ -50,11 +60,34 @@ class ExplorationActivity : AppCompatActivity() {
         setContentView(R.layout.activity_exploration)
 
         vincularViews()
-        configurarRecycler()
+
+        val regiaoIdExtra = intent.getStringExtra("REGIAO_ID") ?: "sao_paulo"
+        if (regiaoIdExtra == "sao_paulo_norte") {
+            findViewById<TextView>(R.id.txtTituloSelecao)?.text = "São Paulo Norte — Aventuras Disponíveis"
+        }
+
+        configurarRecycler(regiaoIdExtra)
         atualizarHUD()
         prepararSons()
 
-        findViewById<Button>(R.id.btnVoltarMapa).setOnClickListener { finish() }
+        findViewById<Button>(R.id.btnVoltarMapa).setOnClickListener {
+            val regiao = intent.getStringExtra("REGIAO_ID")
+            if (regiao == "sao_paulo_norte") {
+                val intentStation = Intent(this, StationActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                }
+                startActivity(intentStation)
+            }
+            finish()
+        }
+
+        val zonaIdExtra = intent.getStringExtra("ZONA_ID")
+        if (!zonaIdExtra.isNullOrEmpty()) {
+            val zona = ExplorationZoneRepository.getZona(zonaIdExtra)
+            if (zona != null) {
+                iniciarExploracao(zona)
+            }
+        }
     }
 
     private fun prepararSons() {
@@ -75,6 +108,8 @@ class ExplorationActivity : AppCompatActivity() {
     private fun vincularViews() {
         layoutSelecao = findViewById(R.id.layoutSelecaoZona)
         layoutAventura = findViewById(R.id.layoutAventura)
+        layoutEscolhasNarrativas = findViewById(R.id.layoutEscolhasNarrativas)
+        layoutAcoesAventura = findViewById(R.id.layoutAcoesAventura)
         txtZonaNome = findViewById(R.id.txtZonaNome)
         txtEtapa = findViewById(R.id.txtEtapaAventura)
         txtDescricao = findViewById(R.id.txtDescricaoEvento)
@@ -93,10 +128,11 @@ class ExplorationActivity : AppCompatActivity() {
         }
     }
 
-    private fun configurarRecycler() {
+    private fun configurarRecycler(regiao: String = "sao_paulo") {
         val rv = findViewById<RecyclerView>(R.id.rvZonas)
         rv.layoutManager = LinearLayoutManager(this)
-        rv.adapter = ExplorationZoneAdapter(ExplorationZoneRepository.zonas) { zona ->
+        val zonasDisponiveis = ExplorationZoneRepository.getZonasPorRegiao(regiao)
+        rv.adapter = ExplorationZoneAdapter(zonasDisponiveis) { zona ->
             if (zona.id == "rio_construcao") {
                 if (ESTACAO_ALTA_VELOCIDADE_LIBERADA) {
                     val intent = android.content.Intent(this, com.typingfrontier.station.StationActivity::class.java)
@@ -118,16 +154,27 @@ class ExplorationActivity : AppCompatActivity() {
         etapaAtual = 1
         xpAcumulado = 0
         dinheiroAcumulado = 0
+        recompensaColetada = false
+        escolhaAnteriorId = null
 
         layoutSelecao.visibility = View.GONE
         layoutAventura.visibility = View.VISIBLE
         
         atualizarHUD()
+        SoundManager.play(this, "suspense")
+
+        if (PonteEstaiadaStory.isBranchedAdventure(zona.id)) {
+            layoutAcoesAventura.visibility = View.GONE
+            layoutEscolhasNarrativas.visibility = View.VISIBLE
+            carregarNoNarrativo("CENA_1")
+            return
+        }
+
+        layoutAcoesAventura.visibility = View.VISIBLE
+        layoutEscolhasNarrativas.visibility = View.GONE
 
         txtZonaNome.text = zona.nome
         txtEtapa.text = "Entrada"
-        
-        SoundManager.play(this, "suspense")
 
         val p = PlayerManager.player
         val temaProfissao = when (zona.id) {
@@ -213,9 +260,239 @@ class ExplorationActivity : AppCompatActivity() {
             proximaEtapa() 
         }
         btnSairLoot.setOnClickListener { 
-            if (etapaAtual == 1 && xpAcumulado == 0) finish() else finalizarComSucesso() 
+            if (etapaAtual == 1 && xpAcumulado == 0) voltarParaSelecaoDeZonas() else finalizarComSucesso() 
         }
-        btnFinalizar.setOnClickListener { finish() }
+        btnFinalizar.setOnClickListener { voltarParaSelecaoDeZonas() }
+    }
+
+    private fun voltarParaSelecaoDeZonas() {
+        zonaAtual = null
+        etapaAtual = 0
+        xpAcumulado = 0
+        dinheiroAcumulado = 0
+        recompensaColetada = false
+        escolhaAnteriorId = null
+
+        layoutAventura.visibility = View.GONE
+        layoutSelecao.visibility = View.VISIBLE
+        SoundManager.play(this, "aventura")
+    }
+
+    private fun carregarNoNarrativo(nodeId: String) {
+        val node = PonteEstaiadaStory.getNode(nodeId) ?: return
+
+        txtZonaNome.text = zonaAtual?.nome ?: "Incidente na Ponte Estaiada"
+        txtEtapa.text = node.tituloEtapa
+        
+        val textoNarrativo = if (nodeId == "CENA_3_RECONVERGENCIA") {
+            PonteEstaiadaStory.getTextoReconvergencia(escolhaAnteriorId)
+        } else {
+            node.textoNarrativo
+        }
+        txtDescricao.text = textoNarrativo
+        txtResultado.text = ""
+
+        layoutEscolhasNarrativas.removeAllViews()
+
+        if (node.escolhas.isNotEmpty()) {
+            btnFinalizar.visibility = View.GONE
+
+            node.escolhas.forEach { escolha ->
+                val cardView = MaterialCardView(this).apply {
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    params.setMargins(0, 0, 0, (12 * resources.displayMetrics.density).toInt())
+                    layoutParams = params
+
+                    setCardBackgroundColor(Color.parseColor("#1A222D"))
+                    radius = 12f * resources.displayMetrics.density
+                    strokeColor = Color.parseColor("#3374C6E0")
+                    strokeWidth = (1f * resources.displayMetrics.density).toInt()
+                    isClickable = true
+                    isFocusable = true
+                }
+
+                val cardContent = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    val p16 = (16 * resources.displayMetrics.density).toInt()
+                    setPadding(p16, p16, p16, p16)
+                }
+
+                val txtTituloChoice = TextView(this).apply {
+                    text = escolha.titulo
+                    setTextColor(Color.parseColor("#74C6E0"))
+                    textSize = 16f
+                    setTypeface(null, Typeface.BOLD)
+                }
+
+                val txtSituacao = TextView(this).apply {
+                    text = escolha.situacao
+                    setTextColor(Color.parseColor("#D0D6DD"))
+                    textSize = 14f
+                    val pTop = (6 * resources.displayMetrics.density).toInt()
+                    setPadding(0, pTop, 0, 0)
+                }
+
+                val txtAtributos = TextView(this).apply {
+                    text = PonteEstaiadaStory.formatarAtributosEnvolvidos(escolha)
+                    setTextColor(Color.parseColor("#81C784"))
+                    textSize = 13f
+                    setTypeface(null, Typeface.ITALIC)
+                    val pTop = (8 * resources.displayMetrics.density).toInt()
+                    setPadding(0, pTop, 0, 0)
+                }
+
+                val btnEscolher = Button(this).apply {
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        (48 * resources.displayMetrics.density).toInt()
+                    )
+                    params.setMargins(0, (12 * resources.displayMetrics.density).toInt(), 0, 0)
+                    layoutParams = params
+                    text = "ESCOLHER ESTA AÇÃO"
+                    setBackgroundResource(R.drawable.bg_game_button_primary)
+                    backgroundTintList = null
+                    setTextColor(Color.WHITE)
+                    setTypeface(null, Typeface.BOLD)
+                    setOnClickListener {
+                        executarEscolhaNarrativa(node, escolha)
+                    }
+                }
+
+                cardContent.addView(txtTituloChoice)
+                cardContent.addView(txtSituacao)
+                cardContent.addView(txtAtributos)
+                cardContent.addView(btnEscolher)
+
+                cardView.addView(cardContent)
+                cardView.setOnClickListener {
+                    executarEscolhaNarrativa(node, escolha)
+                }
+
+                layoutEscolhasNarrativas.addView(cardView)
+            }
+
+            val btnDesistir = Button(this).apply {
+                val params = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    (48 * resources.displayMetrics.density).toInt()
+                )
+                params.setMargins(0, (8 * resources.displayMetrics.density).toInt(), 0, 0)
+                layoutParams = params
+
+                if (etapaAtual == 1 || xpAcumulado == 0) {
+                    text = "DESISTIR E VOLTAR"
+                    setTextColor(Color.parseColor("#D0D6DD"))
+                    setBackgroundColor(Color.TRANSPARENT)
+                    setOnClickListener {
+                        voltarParaSelecaoDeZonas()
+                    }
+                } else {
+                    text = "DESISTIR E SAIR COM O QUE TENHO 🏃"
+                    setTextColor(Color.parseColor("#E0E0E0"))
+                    setBackgroundColor(Color.TRANSPARENT)
+                    setOnClickListener {
+                        finalizarComSucesso()
+                    }
+                }
+            }
+            layoutEscolhasNarrativas.addView(btnDesistir)
+
+        } else {
+            if (node.etapa == 5 && etapaAtual == 5) {
+                val recompensa5 = PonteEstaiadaStory.gerarRecompensaEtapa(5)
+                val xp = recompensa5["xp"] ?: 1200
+                val grana = recompensa5["dinheiro"] ?: 1800
+                xpAcumulado += xp
+                dinheiroAcumulado += grana
+                etapaAtual = 6
+
+                val coinIcon = ViewUtils.getCoinDrawable(this)
+                val size = (20 * resources.displayMetrics.density).toInt()
+                coinIcon.setBounds(0, 0, size, size)
+
+                val baseText = "Progresso Total: +$xpAcumulado XP | "
+                val moneyText = CurrencyUtils.formatar(dinheiroAcumulado)
+                val fullText = "$baseText $moneyText"
+                val spannable = SpannableString(fullText)
+
+                val imageSpan = ImageSpan(coinIcon, ImageSpan.ALIGN_BOTTOM)
+                val start = baseText.length
+                spannable.setSpan(imageSpan, start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+                txtResultado.text = spannable
+                txtResultado.setTextColor(Color.parseColor("#81C784"))
+            }
+
+            layoutEscolhasNarrativas.visibility = View.GONE
+            btnFinalizar.visibility = View.VISIBLE
+            btnFinalizar.text = "CONCLUIR INVESTIGAÇÃO E COLETAR RECOMPENSAS 🏆"
+            btnFinalizar.setOnClickListener {
+                finalizarComSucesso()
+            }
+        }
+    }
+
+    private fun executarEscolhaNarrativa(currentNode: NarrativeNode, escolha: NarrativeChoice) {
+        val p = PlayerManager.player
+        val zona = zonaAtual ?: return
+
+        val result = GameEngine.dispatch(GameAction.Explore(zona.id))
+        when (result) {
+            is EngineResult.Failure -> {
+                Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+                if (xpAcumulado > 0) finalizarComSucesso() else voltarParaSelecaoDeZonas()
+                return
+            }
+            is EngineResult.Success -> {
+                atualizarHUD()
+            }
+        }
+
+        val (sucesso, mensagem) = PonteEstaiadaStory.resolverTeste(p, escolha, currentNode.etapa)
+
+        if (sucesso) {
+            val recompensa = PonteEstaiadaStory.gerarRecompensaEtapa(currentNode.etapa)
+            val xp = recompensa["xp"] ?: 0
+            val grana = recompensa["dinheiro"] ?: 0
+
+            xpAcumulado += xp
+            dinheiroAcumulado += grana
+
+            val coinIcon = ViewUtils.getCoinDrawable(this)
+            val size = (20 * resources.displayMetrics.density).toInt()
+            coinIcon.setBounds(0, 0, size, size)
+
+            val baseText = "Progresso na Ponte: +$xpAcumulado XP | "
+            val moneyText = CurrencyUtils.formatar(dinheiroAcumulado)
+            val fullText = "$baseText $moneyText"
+            val spannable = SpannableString(fullText)
+
+            val imageSpan = ImageSpan(coinIcon, ImageSpan.ALIGN_BOTTOM)
+            val start = baseText.length
+            spannable.setSpan(imageSpan, start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            txtResultado.text = spannable
+            txtResultado.setTextColor(Color.parseColor("#81C784"))
+
+            escolhaAnteriorId = escolha.id
+            etapaAtual++
+            carregarNoNarrativo(escolha.proximoNodeId)
+        } else {
+            val msgHospital = ExplorationManager.processarFalhaCritica(p, zonaAtual)
+            txtDescricao.text = "❌ INVESTIGAÇÃO INTERROMPIDA!\n\n$mensagem\n\n$msgHospital"
+            txtResultado.text = "Você perdeu o progresso acumulado nesta investigação."
+            txtResultado.setTextColor(Color.parseColor("#FF8A80"))
+
+            layoutEscolhasNarrativas.visibility = View.GONE
+            btnFinalizar.visibility = View.VISIBLE
+            btnFinalizar.text = "VOLTAR AO MAPA"
+            btnFinalizar.setOnClickListener { voltarParaSelecaoDeZonas() }
+
+            PlayerManager.save(this)
+        }
     }
 
     private fun proximaEtapa() {
@@ -232,7 +509,7 @@ class ExplorationActivity : AppCompatActivity() {
         when (result) {
             is EngineResult.Failure -> {
                 Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
-                if (xpAcumulado > 0) finalizarComSucesso() else finish()
+                if (xpAcumulado > 0) finalizarComSucesso() else voltarParaSelecaoDeZonas()
                 return
             }
             is EngineResult.Success -> {
@@ -294,28 +571,35 @@ class ExplorationActivity : AppCompatActivity() {
     }
 
     private fun finalizarComSucesso() {
-        val result = GameEngine.dispatch(GameAction.CollectRewards(xpAcumulado, dinheiroAcumulado))
-        
-        atualizarHUD() 
-        
-        txtDescricao.text = "🏆 VITÓRIA!\nVocê saiu da zona com vida.\n\nColetou $xpAcumulado XP e ${CurrencyUtils.formatar(dinheiroAcumulado)}."
+        if (!recompensaColetada) {
+            recompensaColetada = true
+            val result = GameEngine.dispatch(GameAction.CollectRewards(xpAcumulado, dinheiroAcumulado))
+            
+            atualizarHUD() 
+            
+            txtDescricao.text = "🏆 VITÓRIA!\nVocê saiu da zona com vida.\n\nColetou $xpAcumulado XP e ${CurrencyUtils.formatar(dinheiroAcumulado)}."
 
-        // Dispara a animação das 4 moedas se o depósito foi um sucesso e houver ganho de Frons
-        if (result is EngineResult.Success && dinheiroAcumulado > 0) {
-            dispararAnimacaoMoeda(dinheiroAcumulado)
+            // Dispara a animação das 4 moedas se o depósito foi um sucesso e houver ganho de Frons
+            if (result is EngineResult.Success && dinheiroAcumulado > 0) {
+                dispararAnimacaoMoeda(dinheiroAcumulado)
+            }
+            
+            // 🏆 GATILHO DE CONQUISTA (Apenas se completou as 5 etapas com sucesso)
+            if (etapaAtual > 5) {
+                zonaAtual?.let { AchievementManager.checkExploration(this, it.id) }
+            }
+            
+            PlayerManager.save(this)
         }
-        
+
         btnIrMaisFundo.visibility = View.GONE
         btnSairLoot.visibility = View.GONE
+        if (layoutEscolhasNarrativas.visibility == View.VISIBLE) {
+            layoutEscolhasNarrativas.visibility = View.GONE
+        }
         btnFinalizar.visibility = View.VISIBLE
         btnFinalizar.text = "VOLTAR AO MAPA"
-        
-        // 🏆 GATILHO DE CONQUISTA (Apenas se completou as 5 etapas com sucesso)
-        if (etapaAtual > 5) {
-            zonaAtual?.let { com.typingfrontier.collection.AchievementManager.checkExploration(this, it.id) }
-        }
-        
-        PlayerManager.save(this)
+        btnFinalizar.setOnClickListener { voltarParaSelecaoDeZonas() }
     }
 
     private fun atualizarHUD() {
@@ -412,5 +696,8 @@ class ExplorationActivity : AppCompatActivity() {
         super.onDestroy()
         soundPool?.release()
         soundPool = null
+        if (zonaAtual?.id == "sp_norte_investigacao") {
+            SoundManager.play(this, "aventura")
+        }
     }
 }

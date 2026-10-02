@@ -29,6 +29,9 @@ import kotlinx.serialization.json.putJsonArray
  */
 object SocialProfileRepository {
 
+    /** UUID da conta proprietária com autorização especial de auto-moderação */
+    const val OWNER_UUID_EXCEPTION = "368f03c3-507a-483a-9528-7874f4fe55b8"
+
     private const val TAG = "SocialProfileRepo"
     private val scope = CoroutineScope(Dispatchers.IO)
     private val mutex = Mutex()
@@ -102,7 +105,7 @@ object SocialProfileRepository {
                             }
 
                             if (profile == null) {
-                                Log.d(TAG, "Perfil não encontrado para $uid. Verificando dados locais para criação automática.")
+                                Log.d(TAG, "Perfil não encontrado para $uid. Aguardando definição de identidade social.")
                                 PlayerManager.awaitLoaded()
                                 val player = PlayerManager.player
                                 val savedSocialId = player.socialUserId
@@ -112,21 +115,6 @@ object SocialProfileRepository {
                                     Log.w(TAG, "Aviso de Segurança: Sessão Supabase alterada. UUID atual ($uid) difere do original ($savedSocialId).")
                                 } else {
                                     isSessionMismatch = false
-                                }
-
-                                val defaultUsername = if (player.nome.isNotBlank()) {
-                                    player.nome.lowercase().trim().replace(" ", "_")
-                                } else {
-                                    "viajante_${uid.take(6)}"
-                                }
-                                val charName = if (player.nome.isNotBlank()) player.nome else "Viajante"
-
-                                Log.d(TAG, "[PRESENCE_ID_DEBUG] Criando perfil social básico automático para UUID $uid...")
-                                val created = createSocialProfile(defaultUsername, charName)
-                                if (created) {
-                                    Log.d(TAG, "[PRESENCE_ID_DEBUG] Perfil social criado com sucesso para UUID $uid")
-                                } else {
-                                    Log.e(TAG, "[PRESENCE_ID_DEBUG] failed to create social profile")
                                 }
                             } else {
                                 isSessionMismatch = false
@@ -339,3 +327,4 @@ data class UnlockedItem(
     @kotlinx.serialization.SerialName("item_id") val itemId: String,
     @kotlinx.serialization.SerialName("item_type") val itemType: String
 )
+

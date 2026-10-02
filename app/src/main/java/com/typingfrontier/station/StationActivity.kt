@@ -1,5 +1,6 @@
 package com.typingfrontier.station
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -16,18 +17,31 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.typingfrontier.*
+import com.typingfrontier.ExplorationActivity
 import com.typingfrontier.economy.ProfessionManager
 import com.typingfrontier.npc.SharedNpcManager
 import com.typingfrontier.social.ModerationRepository
 import com.typingfrontier.social.PresenceManager
+import com.typingfrontier.social.PrivateMessage
 import com.typingfrontier.social.PrivateMessageRepository
 import com.typingfrontier.social.SocialProfileRepository
 import com.typingfrontier.social.SupabaseManager
+import com.typingfrontier.utils.CurrencyUtils
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.broadcast
 import io.github.jan.supabase.realtime.broadcastFlow
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.realtime
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.decodeRecord
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import java.util.concurrent.ConcurrentHashMap
@@ -43,8 +57,293 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         val title: String,
         var history: String = "",
         val isNpc: Boolean = false,
-        var lastActivityTime: Long = System.currentTimeMillis()
+        var lastActivityTime: Long = System.currentTimeMillis(),
+        val privateMessages: MutableList<PrivateMessage> = mutableListOf()
     )
+
+    @Serializable
+    data class PublicMessage(
+        val id: String? = null,
+        @SerialName("sender_id") val senderId: String,
+        @SerialName("station_id") val stationId: String,
+        val message: String,
+        @SerialName("created_at") val createdAt: String = ""
+    )
+
+    private lateinit var publicChatLayout: LinearLayout
+    private val activeDisplayedPublicMessageIds = ConcurrentHashMap.newKeySet<String>()
+    private var publicMessagesChannel: RealtimeChannel? = null
+    private var publicMessagesJob: Job? = null
+
+    private fun iniciarRealtimeMensagensPublicas(stationId: String) {
+        publicMessagesJob?.cancel()
+        val oldChannel = publicMessagesChannel
+        publicMessagesChannel = null
+
+        val channelId = "station-public-chat:$stationId"
+
+        publicMessagesJob = lifecycleScope.launch {
+            try {
+                if (oldChannel != null) {
+                    try {
+                        SupabaseManager.client.realtime.removeChannel(oldChannel)
+                    } catch (_: Exception) {}
+                }
+
+                val newChannel = SupabaseManager.client.realtime.channel(channelId)
+                publicMessagesChannel = newChannel
+
+                val changeFlow = newChannel.postgresChangeFlow<PostgresAction>("public") {
+                    table = "public_messages"
+                    filter("station_id", FilterOperator.EQ, stationId)
+                }
+
+                launch {
+                    changeFlow.collect { action ->
+                        if (action is PostgresAction.Insert) {
+                            try {
+                                val pubMsg = action.decodeRecord<PublicMessage>()
+                                if (pubMsg.id != null && activeDisplayedPublicMessageIds.add(pubMsg.id)) {
+                                    val senderName = PresenceManager.onlineUsers.value.find { it.user_id == pubMsg.senderId }?.username
+                                        ?: "Viajante"
+                                    if (currentConversationId == "public" && !isChatHidden) {
+                                        adicionarMensagemPublicaNaUI(pubMsg, "@$senderName")
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("StationActivity", "Erro ao decodificar mensagem pública Realtime: ${e.message}")
+                            }
+                        }
+                    }
+                }
+
+                newChannel.subscribe(blockUntilSubscribed = true)
+            } catch (e: Exception) {
+                Log.e("StationActivity", "Erro ao iniciar Realtime público: ${e.message}")
+                publicMessagesChannel = null
+            }
+        }
+    }
+
+    private fun carregarHistoricoMensagensPublicas(stationId: String) {
+        lifecycleScope.launch {
+            try {
+                val messages = SupabaseManager.client.postgrest["public_messages"]
+                    .select {
+                        filter { eq("station_id", stationId) }
+                        order("created_at", Order.ASCENDING)
+                        limit(50)
+                    }.decodeList<PublicMessage>()
+
+                publicChatLayout.removeAllViews()
+                activeDisplayedPublicMessageIds.clear()
+
+                messages.forEach { pubMsg ->
+                    pubMsg.id?.let { activeDisplayedPublicMessageIds.add(it) }
+                    val senderName = PresenceManager.onlineUsers.value.find { it.user_id == pubMsg.senderId }?.username
+                        ?: "Viajante"
+                    adicionarMensagemPublicaNaUI(pubMsg, "@$senderName")
+                }
+            } catch (e: Exception) {
+                Log.e("StationActivity", "Erro ao carregar histórico público: ${e.message}")
+            }
+        }
+    }
+
+    private fun adicionarMensagemPublicaNaUI(pubMsg: PublicMessage, senderLabel: String) {
+        val context = this
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 4, 0, 4)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val tv = TextView(context).apply {
+            text = "$senderLabel: ${pubMsg.message}"
+            setTextColor(Color.parseColor("#E8EDF2"))
+            textSize = 14f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        row.addView(tv)
+
+        if (pubMsg.id != null) {
+            val btnReportMsg = TextView(context).apply {
+                text = "▷"
+                textSize = 13f
+                setTextColor(Color.parseColor("#889099"))
+                setPadding(12, 4, 4, 4)
+                setOnClickListener {
+                    mostrarDialogDenunciaMensagemPublicaEstacao(pubMsg, senderLabel)
+                }
+            }
+            row.addView(btnReportMsg)
+        }
+
+        publicChatLayout.addView(row)
+        scrollChat.post { scrollChat.fullScroll(View.FOCUS_DOWN) }
+    }
+
+    private fun mostrarDialogDenunciaMensagemPublicaEstacao(pubMsg: PublicMessage, senderName: String) {
+        if (pubMsg.id == null) {
+            Toast.makeText(this, "ID da mensagem inválido para denúncia.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val reasons = arrayOf("Spam / Propaganda", "Ofensas / Assédio", "Conteúdo Inadequado", "Outros")
+        val builder = AlertDialog.Builder(this, R.style.Theme_TypingFrontier_AdminDialog)
+            .setTitle("Denunciar Mensagem Pública")
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 24)
+        }
+
+        val txtPreview = TextView(this).apply {
+            text = "Mensagem de $senderName:\n\"${pubMsg.message}\""
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            setPadding(0, 0, 0, 16)
+        }
+        layout.addView(txtPreview)
+
+        val spinner = Spinner(this).apply {
+            adapter = ArrayAdapter(this@StationActivity, android.R.layout.simple_spinner_dropdown_item, reasons)
+        }
+        layout.addView(spinner)
+
+        val edtDesc = EditText(this).apply {
+            hint = "Descrição opcional (máx 200)"
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.GRAY)
+        }
+        layout.addView(edtDesc)
+
+        builder.setView(layout)
+        builder.setPositiveButton("Enviar Denúncia") { _, _ ->
+            val reason = reasons[spinner.selectedItemPosition]
+            val desc = edtDesc.text.toString().trim()
+            lifecycleScope.launch {
+                try {
+                    ModerationRepository.createReport("public_message", pubMsg.id, reason, desc.ifEmpty { null })
+                    Toast.makeText(this@StationActivity, "Denúncia enviada com sucesso.", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(this@StationActivity, "Erro ao enviar denúncia: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        builder.setNegativeButton("Cancelar", null)
+        builder.show()
+    }
+
+    private fun renderizarMensagensPrivadasDaConversa(conv: ChatConversation) {
+        privateChatLayout.removeAllViews()
+        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: ""
+
+        conv.privateMessages.forEach { msg ->
+            val senderLabel = if (msg.senderId == currentUserId) {
+                "@${PlayerManager.player.nome.ifEmpty { "Viajante" }}"
+            } else {
+                "@${conv.title}"
+            }
+            adicionarMensagemPrivadaNaUI(msg, senderLabel)
+        }
+        scrollChat.post { scrollChat.fullScroll(View.FOCUS_DOWN) }
+    }
+
+    private fun adicionarMensagemPrivadaNaUI(msg: PrivateMessage, senderLabel: String) {
+        val context = this
+        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: ""
+
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 4, 0, 4)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val tv = TextView(context).apply {
+            text = "$senderLabel: ${msg.message}"
+            setTextColor(Color.parseColor("#74C6E0"))
+            textSize = 14f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        row.addView(tv)
+
+        if (msg.id != null && msg.senderId != currentUserId) {
+            val btnReportMsg = TextView(context).apply {
+                text = "▷"
+                textSize = 13f
+                setTextColor(Color.parseColor("#889099"))
+                setPadding(12, 4, 4, 4)
+                setOnClickListener {
+                    mostrarDialogDenunciaMensagemPrivadaEstacao(msg, senderLabel.removePrefix("@"))
+                }
+            }
+            row.addView(btnReportMsg)
+        }
+
+        privateChatLayout.addView(row)
+        scrollChat.post { scrollChat.fullScroll(View.FOCUS_DOWN) }
+    }
+
+    private fun mostrarDialogDenunciaMensagemPrivadaEstacao(msg: PrivateMessage, targetUsername: String) {
+        if (msg.id == null) {
+            Toast.makeText(this, "ID da mensagem inválido para denúncia.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val reasons = arrayOf("Spam / Propaganda", "Ofensas / Assédio", "Conteúdo Inadequado", "Outros")
+        val builder = AlertDialog.Builder(this, R.style.Theme_TypingFrontier_AdminDialog)
+            .setTitle("Denunciar Mensagem Privada")
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 24)
+        }
+
+        val txtPreview = TextView(this).apply {
+            text = "Mensagem de @$targetUsername:\n\"${msg.message}\""
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            setPadding(0, 0, 0, 16)
+        }
+        layout.addView(txtPreview)
+
+        val spinner = Spinner(this).apply {
+            adapter = ArrayAdapter(this@StationActivity, android.R.layout.simple_spinner_dropdown_item, reasons)
+        }
+        layout.addView(spinner)
+
+        val edtDesc = EditText(this).apply {
+            hint = "Descrição opcional (máx 200)"
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.GRAY)
+        }
+        layout.addView(edtDesc)
+
+        builder.setView(layout)
+        builder.setPositiveButton("Enviar Denúncia") { _, _ ->
+            val reason = reasons[spinner.selectedItemPosition]
+            val desc = edtDesc.text.toString().trim()
+            lifecycleScope.launch {
+                try {
+                    ModerationRepository.createReport("private_message", msg.id, reason, desc.ifEmpty { null })
+                    Toast.makeText(this@StationActivity, "Denúncia enviada com sucesso.", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(this@StationActivity, "Erro ao enviar denúncia: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        builder.setNegativeButton("Cancelar", null)
+        builder.show()
+    }
 
     private var armoireDialog: AlertDialog? = null
     private lateinit var gridView: StationGridView
@@ -61,6 +360,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
     private lateinit var btnChatClose: ImageButton
     private lateinit var scrollChat: ScrollView
     private lateinit var layoutChatInput: View
+    private lateinit var privateChatLayout: LinearLayout
 
     // Gerenciamento de Conversas e Estação
     private var currentStationId: String = "sao_paulo"
@@ -158,6 +458,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
         vincularUiChat()
         iniciarCanalBroadcastEstacao(currentStationId)
+        iniciarRealtimeMensagensPublicas(currentStationId)
         
         // Inicializa conversas padrão
         val tituloEstacao = if (currentStationId == "rio_de_janeiro") "Estação Rio de Janeiro" else "Estação São Paulo"
@@ -195,10 +496,13 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
                     val conv = conversations[senderId]!!
                     conv.history += "\n$senderNameStr: ${msg.message}"
+                    if (conv.privateMessages.none { it.id == msg.id && msg.id != null }) {
+                        conv.privateMessages.add(msg)
+                    }
                     conv.lastActivityTime = System.currentTimeMillis()
 
                     if (currentConversationId == senderId && !isChatHidden) {
-                        txtChatMessages.text = conv.history
+                        adicionarMensagemPrivadaNaUI(msg, "@$senderNameStr")
                         scrollChat.post { scrollChat.fullScroll(View.FOCUS_DOWN) }
                     } else {
                         atualizarInterfaceAbas()
@@ -283,20 +587,6 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                                 worldY = payload.gridY,
                                 isPrivate = false
                             )
-                        }
-
-                        val lastProcessedTime = processedPublicMessages[payload.user_id] ?: 0L
-                        if (payload.lastMessageTime > lastProcessedTime) {
-                            processedPublicMessages[payload.user_id] = payload.lastMessageTime
-                            val publicConv = conversations["public"]
-                            if (publicConv != null) {
-                                val prefixo = if (publicConv.history.isEmpty()) "" else "\n"
-                                publicConv.history += "$prefixo${payload.username}: ${payload.lastMessage}"
-                                if (currentConversationId == "public" && !isChatHidden) {
-                                    txtChatMessages.text = publicConv.history
-                                    scrollChat.post { scrollChat.fullScroll(View.FOCUS_DOWN) }
-                                }
-                            }
                         }
                     }
                 }
@@ -451,6 +741,35 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         scrollChat = findViewById(R.id.scrollChat)
         layoutChatInput = findViewById(R.id.layoutChatInput)
 
+        publicChatLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            visibility = View.VISIBLE
+        }
+        privateChatLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            visibility = View.GONE
+        }
+        val scrollContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        scrollChat.removeAllViews()
+        scrollContainer.addView(txtChatMessages)
+        scrollContainer.addView(publicChatLayout)
+        scrollContainer.addView(privateChatLayout)
+        scrollChat.addView(scrollContainer)
+
         btnChatClose.setOnClickListener {
             esconderChat()
         }
@@ -503,23 +822,42 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         // Se mudar de uma conversa NPC, encerra a interação deste jogador especificamente
         if (currentConversationId == "antonio" && id != "antonio") {
             SharedNpcManager.removeInteraction("npc_vendedor_antonio", currentUserId)
+        } else if (currentConversationId == "carlos" && id != "carlos") {
+            SharedNpcManager.removeInteraction("npc_vendedor_carlos", currentUserId)
+        } else if (currentConversationId == "vinicius" && id != "vinicius") {
+            SharedNpcManager.removeInteraction("npc_gerente_vinicius", currentUserId)
+        } else if (currentConversationId == "henrique" && id != "henrique") {
+            SharedNpcManager.removeInteraction("npc_gerente_henrique", currentUserId)
         }
         
         // Se entrar em uma conversa NPC e o chat não estiver escondido, registra/renova interação
         if (id == "antonio" && !isChatHidden) {
             SharedNpcManager.registerOrRenewInteraction("npc_vendedor_antonio", currentUserId)
+        } else if (id == "carlos" && !isChatHidden) {
+            SharedNpcManager.registerOrRenewInteraction("npc_vendedor_carlos", currentUserId)
+        } else if (id == "vinicius" && !isChatHidden) {
+            SharedNpcManager.registerOrRenewInteraction("npc_gerente_vinicius", currentUserId)
+        } else if (id == "henrique" && !isChatHidden) {
+            SharedNpcManager.registerOrRenewInteraction("npc_gerente_henrique", currentUserId)
         }
 
         currentConversationId = id
         concluirDigitacaoImediata()
         
         txtChatNpcName.text = conv.title
-        val isPrivate = id != "public"
-        txtChatMessages.setTextColor(
-            if (isPrivate) Color.parseColor("#74C6E0")
-            else Color.parseColor("#E8EDF2")
-        )
-        txtChatMessages.text = conv.history
+        val isPublic = id == "public"
+        val isNpc = conv.isNpc || id == "antonio" || id == "carlos" || id == "vinicius" || id == "henrique"
+
+        txtChatMessages.visibility = if (!isPublic && isNpc) View.VISIBLE else View.GONE
+        publicChatLayout.visibility = if (isPublic) View.VISIBLE else View.GONE
+        privateChatLayout.visibility = if (!isPublic && !isNpc) View.VISIBLE else View.GONE
+
+        if (!isPublic && !isNpc) {
+            renderizarMensagensPrivadasDaConversa(conv)
+        } else if (!isPublic && isNpc) {
+            txtChatMessages.setTextColor(Color.parseColor("#74C6E0"))
+            txtChatMessages.text = conv.history
+        }
         
         atualizarInterfaceAbas()
         
@@ -533,9 +871,15 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
     private fun fecharConversa(id: String) {
         if (id == "public") return // Não fecha a pública
         
+        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
         if (id == "antonio") {
-            val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
             SharedNpcManager.removeInteraction("npc_vendedor_antonio", currentUserId)
+        } else if (id == "carlos") {
+            SharedNpcManager.removeInteraction("npc_vendedor_carlos", currentUserId)
+        } else if (id == "vinicius") {
+            SharedNpcManager.removeInteraction("npc_gerente_vinicius", currentUserId)
+        } else if (id == "henrique") {
+            SharedNpcManager.removeInteraction("npc_gerente_henrique", currentUserId)
         }
         
         conversations.remove(id)
@@ -634,9 +978,15 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         layoutChat.visibility = View.GONE
         layoutChatInput.visibility = View.VISIBLE
         
+        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
         if (currentConversationId == "antonio") {
-            val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
             SharedNpcManager.removeInteraction("npc_vendedor_antonio", currentUserId)
+        } else if (currentConversationId == "carlos") {
+            SharedNpcManager.removeInteraction("npc_vendedor_carlos", currentUserId)
+        } else if (currentConversationId == "vinicius") {
+            SharedNpcManager.removeInteraction("npc_gerente_vinicius", currentUserId)
+        } else if (currentConversationId == "henrique") {
+            SharedNpcManager.removeInteraction("npc_gerente_henrique", currentUserId)
         }
         
         edtChatMessage.setText("")
@@ -672,37 +1022,55 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
         // Roteamento de envio baseado no tipo de conversa ativa
         val conv = conversations[currentConversationId]
-        val isNpc = conv?.isNpc == true || currentConversationId == "antonio" || currentConversationId == "carlos"
+        val isNpc = conv?.isNpc == true || currentConversationId == "antonio" || currentConversationId == "carlos" || currentConversationId == "vinicius" || currentConversationId == "henrique"
 
         if (isPublic) {
-            adicionarMensagem("@${p.nome}: $msg", isNpc = false)
             edtChatMessage.setText("")
+            lifecycleScope.launch {
+                try {
+                    val data = buildJsonObject {
+                        put("sender_id", currentUserId)
+                        put("station_id", currentStationId)
+                        put("message", msg)
+                    }
+                    val inserted = SupabaseManager.client.postgrest["public_messages"]
+                        .insert(data) {
+                            select()
+                        }.decodeSingle<PublicMessage>()
 
-            gridView.addSpeechDialog(
-                senderId = currentUserId,
-                senderName = p.nome.ifEmpty { "Viajante" },
-                message = msg,
-                worldX = sendX,
-                worldY = sendY,
-                isPrivate = false,
-                allowedUsers = emptySet()
-            )
+                    inserted.id?.let { activeDisplayedPublicMessageIds.add(it) }
+                    adicionarMensagemPublicaNaUI(inserted, "@${p.nome}")
 
-            val netDir = when (playerX_direcao_local) {
-                "costas" -> "cima"
-                "esquerda" -> "esquerda"
-                "direita" -> "direita"
-                else -> "baixo"
+                    gridView.addSpeechDialog(
+                        senderId = currentUserId,
+                        senderName = p.nome.ifEmpty { "Viajante" },
+                        message = msg,
+                        worldX = sendX,
+                        worldY = sendY,
+                        isPrivate = false,
+                        allowedUsers = emptySet()
+                    )
+
+                    val netDir = when (playerX_direcao_local) {
+                        "costas" -> "cima"
+                        "esquerda" -> "esquerda"
+                        "direita" -> "direita"
+                        else -> "baixo"
+                    }
+                    PresenceManager.updatePresenceData(
+                        stationId = currentStationId,
+                        gridX = sendX,
+                        gridY = sendY,
+                        direction = netDir,
+                        gender = p.sexo,
+                        lastMessage = msg,
+                        lastMessageTime = System.currentTimeMillis()
+                    )
+                } catch (e: Exception) {
+                    Log.e("StationActivity", "Erro ao enviar mensagem pública: ${e.message}")
+                    Toast.makeText(this@StationActivity, "Erro ao enviar mensagem: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
-            PresenceManager.updatePresenceData(
-                stationId = currentStationId,
-                gridX = sendX,
-                gridY = sendY,
-                direction = netDir,
-                gender = p.sexo,
-                lastMessage = msg,
-                lastMessageTime = System.currentTimeMillis()
-            )
         } else if (isNpc) {
             adicionarMensagem("@${p.nome}: $msg", isNpc = false)
             edtChatMessage.setText("")
@@ -721,6 +1089,10 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                 processarDialogoAntonio(msg)
             } else if (currentConversationId == "carlos") {
                 processarDialogoCarlos(msg)
+            } else if (currentConversationId == "vinicius") {
+                processarDialogoVinicius(msg)
+            } else if (currentConversationId == "henrique") {
+                processarDialogoHenrique(msg)
             }
         } else {
             val authUserId = SocialProfileRepository.getCurrentUserId()
@@ -733,13 +1105,20 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
             lifecycleScope.launch {
                 try {
-                    PrivateMessageRepository.sendMessage(authUserId, receiverId, msg)
+                    val sentMsg = PrivateMessageRepository.sendMessage(authUserId, receiverId, msg)
                     
                     // Sucesso confirmado pelo banco: adiciona ao histórico e exibe o balão
                     adicionarMensagem("@${p.nome}: $msg", isNpc = false)
-                    conversations[receiverId]?.let {
-                        it.lastActivityTime = System.currentTimeMillis()
+                    conversations[receiverId]?.let { conv ->
+                        if (conv.privateMessages.none { it.id == sentMsg.id && sentMsg.id != null }) {
+                            conv.privateMessages.add(sentMsg)
+                        }
+                        conv.lastActivityTime = System.currentTimeMillis()
                         atualizarInterfaceAbas()
+                    }
+
+                    if (currentConversationId == receiverId && !isChatHidden) {
+                        adicionarMensagemPrivadaNaUI(sentMsg, "@${p.nome.ifEmpty { "Viajante" }}")
                     }
                     
                     gridView.addSpeechDialog(
@@ -758,8 +1137,22 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         }
     }
 
-    private var estadoDialogoAntonio = "INICIO" // "INICIO", "PERGUNTOU_COMPRA", "AGUARDANDO_CONFIRMACAO"
-    private var estadoDialogoCarlos = "INICIO"  // "INICIO", "PERGUNTOU_COMPRA", "AGUARDANDO_CONFIRMACAO"
+    private var estadoDialogoAntonio = "INICIO" // "INICIO", "PERGUNTOU_COMPRA", "AGUARDANDO_CONFIRMACAO", "PERGUNTOU_HABILITACAO", "CONFIRMAR_HABILITACAO"
+    private var estadoDialogoCarlos = "INICIO"  // "INICIO", "PERGUNTOU_COMPRA", "AGUARDANDO_CONFIRMACAO", "PERGUNTOU_HABILITACAO", "CONFIRMAR_HABILITACAO"
+
+    private fun isUsuarioIsentoTarifaFerroviaria(): Boolean {
+        val role = SocialProfileRepository.currentProfile?.role ?: "usuario"
+        return role == "moderator" || role == "senior_moderator" || role == "administrator"
+    }
+
+    private fun traduzirRoleCargo(role: String?): String {
+        return when (role) {
+            "administrator" -> "ADMINISTRADOR"
+            "senior_moderator" -> "MODERADOR SÊNIOR"
+            "moderator" -> "MODERADOR"
+            else -> "USUÁRIO"
+        }
+    }
 
     private fun processarDialogoAntonio(msg: String) {
         val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
@@ -767,54 +1160,99 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
         val lower = msg.lowercase().trim()
         val player = PlayerManager.player
+        val role = SocialProfileRepository.currentProfile?.role ?: "usuario"
+        val isIsento = isUsuarioIsentoTarifaFerroviaria()
 
         val responseText: String
 
-        when (estadoDialogoAntonio) {
-            "INICIO" -> {
-                if (lower == "oi" || lower == "olá" || lower == "ola" || lower.contains("comprar") || lower.contains("passagem")) {
-                    estadoDialogoAntonio = "PERGUNTOU_COMPRA"
-                    responseText = "Antônio: Olá! Você deseja comprar uma passagem para o Rio de Janeiro?"
-                } else {
-                    responseText = "Antônio: Olá! Bem-vindo à estação. Digite 'Oi' para saber mais sobre passagens."
-                }
-            }
-            "PERGUNTOU_COMPRA" -> {
-                if (lower.contains("não") || lower.contains("nao") || lower.contains("passando") || lower.contains("cancelar")) {
-                    estadoDialogoAntonio = "INICIO"
-                    responseText = "Antônio: Tudo bem. Se precisar de uma passagem, é só falar comigo."
-                } else if (lower.contains("sim") || lower.contains("comprar") || lower.contains("quero")) {
-                    if (player.dinheiro < 1) {
+        if (isIsento) {
+            responseText = "Antônio: Como ${traduzirRoleCargo(role)}, você possui isenção total de taxas e passagens. Pode embarcar diretamente no trem para o Rio de Janeiro quando desejar."
+        } else if (!player.habilitadoFerrovia) {
+            when (estadoDialogoAntonio) {
+                "INICIO", "PERGUNTOU_HABILITACAO" -> {
+                    if (lower.contains("não") || lower.contains("nao") || lower.contains("cancelar")) {
                         estadoDialogoAntonio = "INICIO"
-                        responseText = "Antônio: A passagem para o Rio de Janeiro custa 1 Fron. Você não possui Frons suficientes para comprar esta passagem."
+                        responseText = "Antônio: Tudo bem. A taxa de 30.000 Frons é uma tarifa administrativa única para habilitar o acesso ferroviário. Assim que desejar se habilitar, é só falar comigo."
+                    } else if (lower.contains("sim") || lower.contains("comprar") || lower.contains("quero") || lower.contains("pagar") || lower == "oi" || lower == "olá" || lower == "ola") {
+                        if (player.dinheiro < 30000) {
+                            estadoDialogoAntonio = "INICIO"
+                            responseText = "Antônio: A taxa administrativa de habilitação custa 30.000 Frons (paga uma única vez). Você possui ${CurrencyUtils.formatar(player.dinheiro)}. Não é possível se habilitar sem saldo suficiente."
+                        } else {
+                            estadoDialogoAntonio = "CONFIRMAR_HABILITACAO"
+                            responseText = "Antônio: A taxa administrativa de habilitação custa 30.000 Frons (paga uma única vez). Ela ativa seu acesso permanente ao transporte ferroviário. Confirmar pagamento de 30.000 Frons?"
+                        }
                     } else {
-                        estadoDialogoAntonio = "AGUARDANDO_CONFIRMACAO"
-                        responseText = "Antônio: A passagem para o Rio de Janeiro custa 1 Fron. Você tem ${player.dinheiro} Frons. Deseja comprar a passagem?"
+                        responseText = "Antônio: Para utilizar os trens, é necessária uma taxa administrativa única de habilitação de 30.000 Frons. Responda 'Sim' para pagar ou 'Não' para cancelar."
                     }
-                } else {
-                    responseText = "Antônio: Você deseja comprar uma passagem para o Rio de Janeiro? Responda 'Sim' para continuar ou 'Não' para cancelar."
+                }
+                "CONFIRMAR_HABILITACAO" -> {
+                    if (lower.contains("sim") || lower.contains("confirmar") || lower.contains("quero") || lower.contains("pagar")) {
+                        estadoDialogoAntonio = "INICIO"
+                        if (player.dinheiro < 30000) {
+                            responseText = "Antônio: Você não possui Frons suficientes no momento."
+                        } else {
+                            player.dinheiro -= 30000
+                            player.habilitadoFerrovia = true
+                            PlayerManager.save(this)
+                            responseText = "Antônio: Habilitação ferroviária concluída com sucesso! Sua taxa administrativa foi paga e você está autorizado a usar o transporte ferroviário. Agora você já pode adquirir passagens por 2.000 Frons!"
+                        }
+                    } else {
+                        estadoDialogoAntonio = "INICIO"
+                        responseText = "Antônio: Tudo bem. Assim que desejar realizar sua habilitação ferroviária, é só falar comigo."
+                    }
+                }
+                else -> {
+                    estadoDialogoAntonio = "INICIO"
+                    responseText = "Antônio: Olá! Para utilizar os trens, é necessária a habilitação administrativa única de 30.000 Frons."
                 }
             }
-            "AGUARDANDO_CONFIRMACAO" -> {
-                if (lower.contains("sim") || lower.contains("comprar") || lower.contains("quero") || lower.contains("passagem")) {
-                    estadoDialogoAntonio = "INICIO"
-                    if (player.dinheiro < 1) {
-                        responseText = "Antônio: Você não possui Frons suficientes para comprar esta passagem."
+        } else {
+            when (estadoDialogoAntonio) {
+                "INICIO" -> {
+                    if (lower == "oi" || lower == "olá" || lower == "ola" || lower.contains("comprar") || lower.contains("passagem")) {
+                        estadoDialogoAntonio = "PERGUNTOU_COMPRA"
+                        responseText = "Antônio: Olá! Sua habilitação ferroviária está ativa. Deseja comprar uma passagem para o Rio de Janeiro por 2.000 Frons?"
                     } else {
-                        player.dinheiro -= 1
-                        val qtdAtual = player.mochila["ticket_rio"] ?: 0
-                        player.mochila["ticket_rio"] = qtdAtual + 1
-                        PlayerManager.save(this)
-                        responseText = "Antônio: Passagem para o Rio de Janeiro comprada com sucesso!"
+                        responseText = "Antônio: Olá! Sua habilitação ferroviária está ativa. Digite 'Oi' ou 'Comprar' para adquirir sua passagem por 2.000 Frons."
                     }
-                } else {
-                    estadoDialogoAntonio = "INICIO"
-                    responseText = "Antônio: Tudo bem. Se precisar de uma passagem, é só falar comigo."
                 }
-            }
-            else -> {
-                estadoDialogoAntonio = "INICIO"
-                responseText = "Antônio: Olá! Bem-vindo à estação."
+                "PERGUNTOU_COMPRA" -> {
+                    if (lower.contains("não") || lower.contains("nao") || lower.contains("passando") || lower.contains("cancelar")) {
+                        estadoDialogoAntonio = "INICIO"
+                        responseText = "Antônio: Tudo bem. Se precisar de uma passagem para o Rio de Janeiro, é só falar comigo."
+                    } else if (lower.contains("sim") || lower.contains("comprar") || lower.contains("quero")) {
+                        if (player.dinheiro < 2000) {
+                            estadoDialogoAntonio = "INICIO"
+                            responseText = "Antônio: A passagem para o Rio de Janeiro custa 2.000 Frons. Você possui ${CurrencyUtils.formatar(player.dinheiro)}. Saldo insuficiente no momento."
+                        } else {
+                            estadoDialogoAntonio = "AGUARDANDO_CONFIRMACAO"
+                            responseText = "Antônio: A passagem para o Rio de Janeiro custa 2.000 Frons. Você possui ${CurrencyUtils.formatar(player.dinheiro)}. Deseja comprar a passagem?"
+                        }
+                    } else {
+                        responseText = "Antônio: Deseja comprar uma passagem para o Rio de Janeiro por 2.000 Frons? Responda 'Sim' para continuar ou 'Não' para cancelar."
+                    }
+                }
+                "AGUARDANDO_CONFIRMACAO" -> {
+                    if (lower.contains("sim") || lower.contains("comprar") || lower.contains("quero") || lower.contains("passagem")) {
+                        estadoDialogoAntonio = "INICIO"
+                        if (player.dinheiro < 2000) {
+                            responseText = "Antônio: Você não possui Frons suficientes no momento."
+                        } else {
+                            player.dinheiro -= 2000
+                            val qtdAtual = player.mochila["ticket_rio"] ?: 0
+                            player.mochila["ticket_rio"] = qtdAtual + 1
+                            PlayerManager.save(this)
+                            responseText = "Antônio: Passagem para o Rio de Janeiro comprada com sucesso! Ela já está na sua mochila."
+                        }
+                    } else {
+                        estadoDialogoAntonio = "INICIO"
+                        responseText = "Antônio: Tudo bem. Se precisar de uma passagem, é só falar comigo."
+                    }
+                }
+                else -> {
+                    estadoDialogoAntonio = "INICIO"
+                    responseText = "Antônio: Olá! Como posso ajudar?"
+                }
             }
         }
 
@@ -841,54 +1279,99 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
         val lower = msg.lowercase().trim()
         val player = PlayerManager.player
+        val role = SocialProfileRepository.currentProfile?.role ?: "usuario"
+        val isIsento = isUsuarioIsentoTarifaFerroviaria()
 
         val responseText: String
 
-        when (estadoDialogoCarlos) {
-            "INICIO" -> {
-                if (lower == "oi" || lower == "olá" || lower == "ola" || lower.contains("comprar") || lower.contains("passagem")) {
-                    estadoDialogoCarlos = "PERGUNTOU_COMPRA"
-                    responseText = "Carlos: Olá! Você deseja comprar uma passagem para São Paulo?"
-                } else {
-                    responseText = "Carlos: Olá! Bem-vindo à estação. Digite 'Oi' para saber mais sobre passagens."
-                }
-            }
-            "PERGUNTOU_COMPRA" -> {
-                if (lower.contains("não") || lower.contains("nao") || lower.contains("passando") || lower.contains("cancelar")) {
-                    estadoDialogoCarlos = "INICIO"
-                    responseText = "Carlos: Tudo bem. Se precisar de uma passagem, é só falar comigo."
-                } else if (lower.contains("sim") || lower.contains("comprar") || lower.contains("quero")) {
-                    if (player.dinheiro < 1) {
+        if (isIsento) {
+            responseText = "Carlos: Como ${traduzirRoleCargo(role)}, você possui isenção total de taxas e passagens. Pode embarcar diretamente no trem para São Paulo quando desejar."
+        } else if (!player.habilitadoFerrovia) {
+            when (estadoDialogoCarlos) {
+                "INICIO", "PERGUNTOU_HABILITACAO" -> {
+                    if (lower.contains("não") || lower.contains("nao") || lower.contains("cancelar")) {
                         estadoDialogoCarlos = "INICIO"
-                        responseText = "Carlos: A passagem para São Paulo custa 1 Fron. Você não possui Frons suficientes para comprar esta passagem."
+                        responseText = "Carlos: Tudo bem. A taxa de 30.000 Frons é uma tarifa administrativa única para habilitar o acesso ferroviário. Assim que desejar se habilitar, é só falar comigo."
+                    } else if (lower.contains("sim") || lower.contains("comprar") || lower.contains("quero") || lower.contains("pagar") || lower == "oi" || lower == "olá" || lower == "ola") {
+                        if (player.dinheiro < 30000) {
+                            estadoDialogoCarlos = "INICIO"
+                            responseText = "Carlos: A taxa administrativa de habilitação custa 30.000 Frons (paga uma única vez). Você possui ${CurrencyUtils.formatar(player.dinheiro)}. Não é possível se habilitar sem saldo suficiente."
+                        } else {
+                            estadoDialogoCarlos = "CONFIRMAR_HABILITACAO"
+                            responseText = "Carlos: A taxa administrativa de habilitação custa 30.000 Frons (paga uma única vez). Ela ativa seu acesso permanente ao transporte ferroviário. Confirmar pagamento de 30.000 Frons?"
+                        }
                     } else {
-                        estadoDialogoCarlos = "AGUARDANDO_CONFIRMACAO"
-                        responseText = "Carlos: A passagem para São Paulo custa 1 Fron. Você tem ${player.dinheiro} Frons. Deseja comprar a passagem?"
+                        responseText = "Carlos: Para utilizar os trens, é necessária uma taxa administrativa única de habilitação de 30.000 Frons. Responda 'Sim' para pagar ou 'Não' para cancelar."
                     }
-                } else {
-                    responseText = "Carlos: Você deseja comprar uma passagem para São Paulo? Responda 'Sim' para continuar ou 'Não' para cancelar."
+                }
+                "CONFIRMAR_HABILITACAO" -> {
+                    if (lower.contains("sim") || lower.contains("confirmar") || lower.contains("quero") || lower.contains("pagar")) {
+                        estadoDialogoCarlos = "INICIO"
+                        if (player.dinheiro < 30000) {
+                            responseText = "Carlos: Você não possui Frons suficientes no momento."
+                        } else {
+                            player.dinheiro -= 30000
+                            player.habilitadoFerrovia = true
+                            PlayerManager.save(this)
+                            responseText = "Carlos: Habilitação ferroviária concluída com sucesso! Sua taxa administrativa foi paga e você está autorizado a usar o transporte ferroviário. Agora você já pode adquirir passagens por 2.000 Frons!"
+                        }
+                    } else {
+                        estadoDialogoCarlos = "INICIO"
+                        responseText = "Carlos: Tudo bem. Assim que desejar realizar sua habilitação ferroviária, é só falar comigo."
+                    }
+                }
+                else -> {
+                    estadoDialogoCarlos = "INICIO"
+                    responseText = "Carlos: Olá! Para utilizar os trens, é necessária a habilitação administrativa única de 30.000 Frons."
                 }
             }
-            "AGUARDANDO_CONFIRMACAO" -> {
-                if (lower.contains("sim") || lower.contains("comprar") || lower.contains("quero") || lower.contains("passagem")) {
-                    estadoDialogoCarlos = "INICIO"
-                    if (player.dinheiro < 1) {
-                        responseText = "Carlos: Você não possui Frons suficientes para comprar esta passagem."
+        } else {
+            when (estadoDialogoCarlos) {
+                "INICIO" -> {
+                    if (lower == "oi" || lower == "olá" || lower == "ola" || lower.contains("comprar") || lower.contains("passagem")) {
+                        estadoDialogoCarlos = "PERGUNTOU_COMPRA"
+                        responseText = "Carlos: Olá! Sua habilitação ferroviária está ativa. Deseja comprar uma passagem para São Paulo por 2.000 Frons?"
                     } else {
-                        player.dinheiro -= 1
-                        val qtdAtual = player.mochila["ticket_sao_paulo"] ?: 0
-                        player.mochila["ticket_sao_paulo"] = qtdAtual + 1
-                        PlayerManager.save(this)
-                        responseText = "Carlos: Passagem para São Paulo comprada com sucesso!"
+                        responseText = "Carlos: Olá! Sua habilitação ferroviária está ativa. Digite 'Oi' ou 'Comprar' para adquirir sua passagem por 2.000 Frons."
                     }
-                } else {
-                    estadoDialogoCarlos = "INICIO"
-                    responseText = "Carlos: Tudo bem. Se precisar de uma passagem, é só falar comigo."
                 }
-            }
-            else -> {
-                estadoDialogoCarlos = "INICIO"
-                responseText = "Carlos: Olá! Bem-vindo à estação."
+                "PERGUNTOU_COMPRA" -> {
+                    if (lower.contains("não") || lower.contains("nao") || lower.contains("passando") || lower.contains("cancelar")) {
+                        estadoDialogoCarlos = "INICIO"
+                        responseText = "Carlos: Tudo bem. Se precisar de uma passagem para São Paulo, é só falar comigo."
+                    } else if (lower.contains("sim") || lower.contains("comprar") || lower.contains("quero")) {
+                        if (player.dinheiro < 2000) {
+                            estadoDialogoCarlos = "INICIO"
+                            responseText = "Carlos: A passagem para São Paulo custa 2.000 Frons. Você possui ${CurrencyUtils.formatar(player.dinheiro)}. Saldo insuficiente no momento."
+                        } else {
+                            estadoDialogoCarlos = "AGUARDANDO_CONFIRMACAO"
+                            responseText = "Carlos: A passagem para São Paulo custa 2.000 Frons. Você possui ${CurrencyUtils.formatar(player.dinheiro)}. Deseja comprar a passagem?"
+                        }
+                    } else {
+                        responseText = "Carlos: Deseja comprar uma passagem para São Paulo por 2.000 Frons? Responda 'Sim' para continuar ou 'Não' para cancelar."
+                    }
+                }
+                "AGUARDANDO_CONFIRMACAO" -> {
+                    if (lower.contains("sim") || lower.contains("comprar") || lower.contains("quero") || lower.contains("passagem")) {
+                        estadoDialogoCarlos = "INICIO"
+                        if (player.dinheiro < 2000) {
+                            responseText = "Carlos: Você não possui Frons suficientes no momento."
+                        } else {
+                            player.dinheiro -= 2000
+                            val qtdAtual = player.mochila["ticket_sao_paulo"] ?: 0
+                            player.mochila["ticket_sao_paulo"] = qtdAtual + 1
+                            PlayerManager.save(this)
+                            responseText = "Carlos: Passagem para São Paulo comprada com sucesso! Ela já está na sua mochila."
+                        }
+                    } else {
+                        estadoDialogoCarlos = "INICIO"
+                        responseText = "Carlos: Tudo bem. Se precisar de uma passagem, é só falar comigo."
+                    }
+                }
+                else -> {
+                    estadoDialogoCarlos = "INICIO"
+                    responseText = "Carlos: Olá! Como posso ajudar?"
+                }
             }
         }
 
@@ -981,6 +1464,20 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                 sprites = npcSprites,
                 isCirculating = true
             )
+            val viniciusSprites = mapOf(
+                "cima" to R.drawable.npc_vinicius_cima,
+                "baixo" to R.drawable.npc_vinicius_baixo,
+                "esquerda" to R.drawable.npc_vinicius_esquerda,
+                "direita" to R.drawable.npc_vinicius_direita
+            )
+            gridView.setNpcData(
+                name = "NPC Vinícius",
+                x = 3,
+                y = 6,
+                direction = "baixo",
+                sprites = viniciusSprites,
+                isCirculating = true
+            )
         } else if (stationId == "rio_de_janeiro") {
             val carlosSprites = mapOf(
                 "cima" to R.drawable.npc_carlos_costas,
@@ -996,6 +1493,20 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                 sprites = carlosSprites,
                 isCirculating = true
             )
+            val henriqueSprites = mapOf(
+                "cima" to R.drawable.npc_henrique_cima,
+                "baixo" to R.drawable.npc_henrique_baixo,
+                "esquerda" to R.drawable.npc_henrique_esquerda,
+                "direita" to R.drawable.npc_henrique_direita
+            )
+            gridView.setNpcData(
+                name = "NPC Henrique",
+                x = 3,
+                y = 6,
+                direction = "baixo",
+                sprites = henriqueSprites,
+                isCirculating = true
+            )
         }
     }
 
@@ -1008,6 +1519,10 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             abrirChatAntonio()
         } else if (npcName == "NPC Carlos" || npcName == "Carlos") {
             abrirChatCarlos()
+        } else if (npcName == "NPC Vinícius" || npcName == "Vinícius") {
+            abrirChatVinicius()
+        } else if (npcName == "NPC Henrique" || npcName == "Henrique") {
+            abrirChatHenrique()
         }
     }
 
@@ -1198,14 +1713,52 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         }
     }
 
+    override fun onNorthStairsTapped() {
+        if (currentStationId == "sao_paulo") {
+            if (!isExitPromptVisible) {
+                isExitPromptVisible = true
+                mostrarDialogoSaida(isNorth = true)
+            }
+        }
+    }
+
     private fun processarEmbarqueTrainSP() {
         val player = PlayerManager.player
+        val role = SocialProfileRepository.currentProfile?.role ?: "usuario"
+        val isIsento = isUsuarioIsentoTarifaFerroviaria()
+
+        if (isIsento) {
+            AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
+                .setTitle("🚆 Trem para o Rio de Janeiro")
+                .setMessage("Como ${traduzirRoleCargo(role)}, você possui isenção total de taxas e passagens.\n\nDeseja embarcar no trem para o Rio de Janeiro agora?")
+                .setPositiveButton("Embarcar") { _, _ ->
+                    exibirTransicaoEIrParaEstacao(
+                        transicaoResId = R.drawable.bg_transicao_sp_rio,
+                        novaEstacaoId = "rio_de_janeiro",
+                        bgNovaEstacaoResId = R.drawable.bg_estacao_rio_01,
+                        tituloNovaEstacao = "Estação Rio de Janeiro"
+                    )
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+            return
+        }
+
+        if (!player.habilitadoFerrovia) {
+            AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
+                .setTitle("🚆 Acesso Ferroviário Bloqueado")
+                .setMessage("Para utilizar o serviço ferroviário, é necessária a taxa administrativa única de habilitação de 30.000 Frons.\n\nFale com o NPC Antônio para realizar sua habilitação.")
+                .setPositiveButton("OK", null)
+                .show()
+            return
+        }
+
         val qtdTicket = player.mochila["ticket_rio"] ?: 0
 
         if (qtdTicket <= 0) {
             AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
                 .setTitle("🚆 Trem para o Rio de Janeiro")
-                .setMessage("Para embarcar no trem para o Rio de Janeiro, você precisa ter uma passagem na sua mochila.\n\nFale com o NPC Antônio para comprar sua passagem por 1 Fron.")
+                .setMessage("Para embarcar no trem para o Rio de Janeiro, você precisa ter uma passagem na sua mochila.\n\nFale com o NPC Antônio para adquirir sua passagem por 2.000 Frons.")
                 .setPositiveButton("OK", null)
                 .show()
             return
@@ -1245,12 +1798,41 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
     private fun processarEmbarqueTrainRio() {
         val player = PlayerManager.player
+        val role = SocialProfileRepository.currentProfile?.role ?: "usuario"
+        val isIsento = isUsuarioIsentoTarifaFerroviaria()
+
+        if (isIsento) {
+            AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
+                .setTitle("🚆 Trem para São Paulo")
+                .setMessage("Como ${traduzirRoleCargo(role)}, você possui isenção total de taxas e passagens.\n\nDeseja embarcar no trem para São Paulo agora?")
+                .setPositiveButton("Embarcar") { _, _ ->
+                    exibirTransicaoEIrParaEstacao(
+                        transicaoResId = R.drawable.bg_transicao_rio_sp,
+                        novaEstacaoId = "sao_paulo",
+                        bgNovaEstacaoResId = R.drawable.bg_estacao_sp_01,
+                        tituloNovaEstacao = "Estação São Paulo"
+                    )
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+            return
+        }
+
+        if (!player.habilitadoFerrovia) {
+            AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
+                .setTitle("🚆 Acesso Ferroviário Bloqueado")
+                .setMessage("Para utilizar o serviço ferroviário, é necessária a taxa administrativa única de habilitação de 30.000 Frons.\n\nFale com o NPC Carlos para realizar sua habilitação.")
+                .setPositiveButton("OK", null)
+                .show()
+            return
+        }
+
         val qtdTicket = player.mochila["ticket_sao_paulo"] ?: 0
 
         if (qtdTicket <= 0) {
             AlertDialog.Builder(this, R.style.Theme_TypingFrontier_ShopDialog)
                 .setTitle("🚆 Trem para São Paulo")
-                .setMessage("Para embarcar no trem para São Paulo, você precisa ter uma passagem na sua mochila.\n\nFale com o NPC Carlos para comprar sua passagem por 1 Fron.")
+                .setMessage("Para embarcar no trem para São Paulo, você precisa ter uma passagem na sua mochila.\n\nFale com o NPC Carlos para adquirir sua passagem por 2.000 Frons.")
                 .setPositiveButton("OK", null)
                 .show()
             return
@@ -1313,6 +1895,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
             currentStationId = novaEstacaoId
             iniciarCanalBroadcastEstacao(novaEstacaoId)
+            iniciarRealtimeMensagensPublicas(novaEstacaoId)
             gridView.setStationId(currentStationId)
 
             // Persiste a nova estação em disco para restauração ao fechar/reabrir a StationActivity
@@ -1398,7 +1981,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                 isExitPromptVisible = true
                 lastCheckedExitX = x
                 lastCheckedExitY = y
-                mostrarDialogoSaida()
+                mostrarDialogoSaida(isNorth = false)
             }
         } else {
             Log.d("StationActivity", "[STAIR_CELL_TRACE] EXIT_CHECK_NO_MATCH position=($x,$y)")
@@ -1409,7 +1992,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         }
     }
 
-    private fun mostrarDialogoSaida() {
+    private fun mostrarDialogoSaida(isNorth: Boolean = false) {
         val dialog = AlertDialog.Builder(this)
             .setTitle("Estação São Paulo")
             .setMessage("Você quer voltar para as Aventuras em São Paulo?")
@@ -1418,6 +2001,12 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                 if (::gridView.isInitialized) {
                     lastKnownGridX = gridView.getPlayerX()
                     lastKnownGridY = gridView.getPlayerY()
+                }
+                if (isNorth) {
+                    val intent = Intent(this, ExplorationActivity::class.java).apply {
+                        putExtra("REGIAO_ID", "sao_paulo_norte")
+                    }
+                    startActivity(intent)
                 }
                 finish()
             }
@@ -1442,16 +2031,29 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         selecionarConversa("antonio")
         
         if (conversations["antonio"]?.history?.isEmpty() == true) {
-            estadoDialogoAntonio = "PERGUNTOU_COMPRA"
-            val greetMsg = "Antônio: Olá! Você deseja comprar uma passagem para o Rio de Janeiro?"
+            val player = PlayerManager.player
+            val role = SocialProfileRepository.currentProfile?.role ?: "usuario"
+            val isIsento = isUsuarioIsentoTarifaFerroviaria()
+
+            val greetMsg = if (isIsento) {
+                "Antônio: Olá! Como ${traduzirRoleCargo(role)}, você possui isenção total de taxas e passagens. Pode embarcar diretamente no trem para o Rio de Janeiro!"
+            } else if (!player.habilitadoFerrovia) {
+                estadoDialogoAntonio = "PERGUNTOU_HABILITACAO"
+                "Antônio: Olá! Para utilizar o serviço ferroviário, é necessária uma taxa administrativa única de habilitação de 30.000 Frons (paga apenas uma vez). Deseja pagar a taxa de habilitação agora?"
+            } else {
+                estadoDialogoAntonio = "PERGUNTOU_COMPRA"
+                "Antônio: Olá! Sua habilitação ferroviária está ativa. Deseja comprar uma passagem para o Rio de Janeiro por 2.000 Frons?"
+            }
+
             adicionarMensagem(greetMsg, isNpc = true)
 
             val npcPos = gridView.getNpcPosition("NPC Antônio")
             if (npcPos != null) {
+                val cleanMsg = greetMsg.removePrefix("Antônio: ")
                 gridView.addSpeechDialog(
                     senderId = "npc_antonio",
                     senderName = "NPC Antônio",
-                    message = "Olá! Você deseja comprar uma passagem para o Rio de Janeiro?",
+                    message = cleanMsg,
                     worldX = npcPos.x,
                     worldY = npcPos.y,
                     isPrivate = true,
@@ -1472,22 +2074,141 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         selecionarConversa("carlos")
         
         if (conversations["carlos"]?.history?.isEmpty() == true) {
-            estadoDialogoCarlos = "PERGUNTOU_COMPRA"
-            val greetMsg = "Carlos: Olá! Você deseja comprar uma passagem para São Paulo?"
+            val player = PlayerManager.player
+            val role = SocialProfileRepository.currentProfile?.role ?: "usuario"
+            val isIsento = isUsuarioIsentoTarifaFerroviaria()
+
+            val greetMsg = if (isIsento) {
+                "Carlos: Olá! Como ${traduzirRoleCargo(role)}, você possui isenção total de taxas e passagens. Pode embarcar diretamente no trem para São Paulo!"
+            } else if (!player.habilitadoFerrovia) {
+                estadoDialogoCarlos = "PERGUNTOU_HABILITACAO"
+                "Carlos: Olá! Para utilizar o serviço ferroviário, é necessária uma taxa administrativa única de habilitação de 30.000 Frons (paga apenas uma vez). Deseja pagar a taxa de habilitação agora?"
+            } else {
+                estadoDialogoCarlos = "PERGUNTOU_COMPRA"
+                "Carlos: Olá! Sua habilitação ferroviária está ativa. Deseja comprar uma passagem para São Paulo por 2.000 Frons?"
+            }
+
             adicionarMensagem(greetMsg, isNpc = true)
 
             val npcPos = gridView.getNpcPosition("NPC Carlos")
             if (npcPos != null) {
+                val cleanMsg = greetMsg.removePrefix("Carlos: ")
                 gridView.addSpeechDialog(
                     senderId = "npc_carlos",
                     senderName = "NPC Carlos",
-                    message = "Olá! Você deseja comprar uma passagem para São Paulo?",
+                    message = cleanMsg,
                     worldX = npcPos.x,
                     worldY = npcPos.y,
                     isPrivate = true,
                     allowedUsers = setOf(currentUserId, "carlos")
                 )
             }
+        }
+    }
+
+    private fun abrirChatVinicius() {
+        if (!conversations.containsKey("vinicius")) {
+            conversations["vinicius"] = ChatConversation("vinicius", "Vinícius", isNpc = true)
+        }
+        
+        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
+        SharedNpcManager.registerOrRenewInteraction("npc_gerente_vinicius", currentUserId)
+
+        selecionarConversa("vinicius")
+        
+        if (conversations["vinicius"]?.history?.isEmpty() == true) {
+            val greetMsg = "Vinícius: Olá! Sou o gerente da agência bancária da Estação São Paulo. Os serviços bancários estarão disponíveis em breve!"
+
+            adicionarMensagem(greetMsg, isNpc = true)
+
+            val npcPos = gridView.getNpcPosition("NPC Vinícius")
+            if (npcPos != null) {
+                val cleanMsg = greetMsg.removePrefix("Vinícius: ")
+                gridView.addSpeechDialog(
+                    senderId = "npc_vinicius",
+                    senderName = "NPC Vinícius",
+                    message = cleanMsg,
+                    worldX = npcPos.x,
+                    worldY = npcPos.y,
+                    isPrivate = true,
+                    allowedUsers = setOf(currentUserId, "vinicius")
+                )
+            }
+        }
+    }
+
+    private fun processarDialogoVinicius(msg: String) {
+        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
+        SharedNpcManager.registerOrRenewInteraction("npc_gerente_vinicius", currentUserId)
+
+        val responseText = "Vinícius: Olá! Sou o gerente bancário da Estação São Paulo. O sistema bancário estará disponível em breve!"
+        adicionarMensagem(responseText, isNpc = true)
+
+        val npcPos = gridView.getNpcPosition("NPC Vinícius")
+        if (npcPos != null) {
+            val cleanMsg = responseText.removePrefix("Vinícius: ")
+            gridView.addSpeechDialog(
+                senderId = "npc_vinicius",
+                senderName = "NPC Vinícius",
+                message = cleanMsg,
+                worldX = npcPos.x,
+                worldY = npcPos.y,
+                isPrivate = true,
+                allowedUsers = setOf(currentUserId, "vinicius")
+            )
+        }
+    }
+
+    private fun abrirChatHenrique() {
+        if (!conversations.containsKey("henrique")) {
+            conversations["henrique"] = ChatConversation("henrique", "Henrique", isNpc = true)
+        }
+        
+        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
+        SharedNpcManager.registerOrRenewInteraction("npc_gerente_henrique", currentUserId)
+
+        selecionarConversa("henrique")
+        
+        if (conversations["henrique"]?.history?.isEmpty() == true) {
+            val greetMsg = "Henrique: Olá! Sou o gerente da agência bancária da Estação Rio de Janeiro. Os serviços bancários estarão disponíveis em breve!"
+
+            adicionarMensagem(greetMsg, isNpc = true)
+
+            val npcPos = gridView.getNpcPosition("NPC Henrique")
+            if (npcPos != null) {
+                val cleanMsg = greetMsg.removePrefix("Henrique: ")
+                gridView.addSpeechDialog(
+                    senderId = "npc_henrique",
+                    senderName = "NPC Henrique",
+                    message = cleanMsg,
+                    worldX = npcPos.x,
+                    worldY = npcPos.y,
+                    isPrivate = true,
+                    allowedUsers = setOf(currentUserId, "henrique")
+                )
+            }
+        }
+    }
+
+    private fun processarDialogoHenrique(msg: String) {
+        val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
+        SharedNpcManager.registerOrRenewInteraction("npc_gerente_henrique", currentUserId)
+
+        val responseText = "Henrique: Olá! Sou o gerente bancário da Estação Rio de Janeiro. O sistema bancário estará disponível em breve!"
+        adicionarMensagem(responseText, isNpc = true)
+
+        val npcPos = gridView.getNpcPosition("NPC Henrique")
+        if (npcPos != null) {
+            val cleanMsg = responseText.removePrefix("Henrique: ")
+            gridView.addSpeechDialog(
+                senderId = "npc_henrique",
+                senderName = "NPC Henrique",
+                message = cleanMsg,
+                worldX = npcPos.x,
+                worldY = npcPos.y,
+                isPrivate = true,
+                allowedUsers = setOf(currentUserId, "henrique")
+            )
         }
     }
 
@@ -1508,6 +2229,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
     private fun atualizarListasArmario(view: View) {
         val player = PlayerManager.player
+        val targetArmario = player.getArmarioEstacao(currentStationId)
         val layoutMochila = view.findViewById<LinearLayout>(R.id.layoutMochilaTransfer)
         val layoutArmario = view.findViewById<LinearLayout>(R.id.layoutArmarioTransfer)
         val txtCapacidade = view.findViewById<TextView>(R.id.txtCapacidadeArmario)
@@ -1515,7 +2237,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         layoutMochila.removeAllViews()
         layoutArmario.removeAllViews()
 
-        val totalArmario = player.armario.values.sum()
+        val totalArmario = targetArmario.values.sum()
         txtCapacidade.text = "Capacidade: $totalArmario/${player.capacidadeArmario}"
 
         player.mochila.forEach { (id, qtd) ->
@@ -1525,7 +2247,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             }
         }
 
-        player.armario.forEach { (id, qtd) ->
+        targetArmario.forEach { (id, qtd) ->
             if (qtd > 0) {
                 val itemView = criarItemTransfer(id, qtd, false, view)
                 layoutArmario.addView(itemView)
@@ -1549,7 +2271,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         btn.text = if (isMochila) "GUARDAR" else "RETIRAR"
         
         btn.setOnClickListener {
-            val action = if (isMochila) GameAction.DepositItem(id) else GameAction.WithdrawItem(id)
+            val action = if (isMochila) GameAction.DepositItem(id, currentStationId) else GameAction.WithdrawItem(id, currentStationId)
             val result = GameEngine.dispatch(action)
             
             if (result is EngineResult.Success) {
@@ -1620,6 +2342,11 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        SoundManager.play(this, "aventura")
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         if (::gridView.isInitialized) {
@@ -1636,6 +2363,9 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         }
         val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
         SharedNpcManager.removeInteraction("npc_vendedor_antonio", currentUserId)
+        SharedNpcManager.removeInteraction("npc_vendedor_carlos", currentUserId)
+        SharedNpcManager.removeInteraction("npc_gerente_vinicius", currentUserId)
+        SharedNpcManager.removeInteraction("npc_gerente_henrique", currentUserId)
         SharedNpcManager.stopNpcSystem()
 
         // Limpa os dados da estação ao sair

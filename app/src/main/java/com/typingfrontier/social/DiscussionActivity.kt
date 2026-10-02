@@ -1,6 +1,7 @@
 package com.typingfrontier.social
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -12,8 +13,10 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.view.Gravity
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Spinner
 import com.typingfrontier.station.VipManager
 import com.typingfrontier.social.PresenceManager
 import com.typingfrontier.social.PrivateMessageRepository
@@ -89,10 +92,10 @@ class DiscussionActivity : AppCompatActivity() {
 
                 val existingSession = activeChatSessions[msg.senderId]
                 if (existingSession != null) {
-                    val currentText = existingSession.historyTv?.text?.toString() ?: ""
-                    val prefix = if (currentText.isEmpty()) "" else "\n"
-                    existingSession.historyTv?.append("$prefix$senderName: ${msg.message}")
-                    existingSession.scrollView?.post { existingSession.scrollView?.fullScroll(View.FOCUS_DOWN) }
+                    existingSession.lastReceivedMessage = msg
+                    if (existingSession.historyLayout != null && existingSession.scrollView != null) {
+                        adicionarMensagemAoHistorico(this@DiscussionActivity, existingSession.historyLayout!!, existingSession.scrollView!!, senderName, msg.message, msg, existingSession.targetUsername)
+                    }
                     if (existingSession.isMinimized) {
                         existingSession.unreadCount++
                         val unreadSuffix = if (existingSession.unreadCount > 0) " (${existingSession.unreadCount})" else ""
@@ -210,15 +213,16 @@ class DiscussionActivity : AppCompatActivity() {
         options.add("Ver Perfil de @${discussion.authorUsername}")
 
         // Hierarquia de Moderação (Visual)
-        val canModerate = !isAuthor && (role == "moderator" || role == "senior_moderator" || role == "administrator")
+        val isOwnerException = profile?.id == SocialProfileRepository.OWNER_UUID_EXCEPTION
+        val canModerate = (!isAuthor || isOwnerException) && (role == "moderator" || role == "senior_moderator" || role == "administrator")
         val targetRole = discussion.authorProfile?.role ?: "usuario"
         
         if (canModerate) {
             val weightExecutor = getRoleWeight(role)
             val weightTarget = getRoleWeight(targetRole)
             
-            // Só mostra opções se o executor for estritamente superior ao autor
-            if (weightExecutor > weightTarget) {
+            // Só mostra opções se o executor for estritamente superior ao autor ou for a exceção do proprietário
+            if (isOwnerException || weightExecutor > weightTarget) {
                 options.add("Moderação: Analisar Tópico")
             }
         }
@@ -546,15 +550,60 @@ class DiscussionActivity : AppCompatActivity() {
         val targetUserId: String,
         val targetUsername: String,
         var panel: View? = null,
-        var historyTv: TextView? = null,
+        var historyLayout: LinearLayout? = null,
         var scrollView: ScrollView? = null,
         var minimizedBar: TextView? = null,
         var isMinimized: Boolean = false,
-        var unreadCount: Int = 0
+        var unreadCount: Int = 0,
+        var lastReceivedMessage: PrivateMessage? = null
     )
 
     private val activeChatSessions = mutableMapOf<String, PrivateChatSession>()
     private val activeDisplayedMessageIds = mutableSetOf<String>()
+
+    private fun adicionarMensagemAoHistorico(
+        context: Context,
+        historyLayout: LinearLayout,
+        scrollView: ScrollView,
+        senderLabel: String,
+        messageText: String,
+        msg: PrivateMessage?,
+        targetUsername: String
+    ) {
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 4, 0, 4)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val tv = TextView(context).apply {
+            text = "$senderLabel: $messageText"
+            setTextColor(Color.parseColor("#E8EDF2"))
+            textSize = 13f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        row.addView(tv)
+
+        if (msg != null && msg.id != null) {
+            val btnReportMsg = TextView(context).apply {
+                text = "▷"
+                textSize = 13f
+                setTextColor(Color.parseColor("#889099"))
+                setPadding(12, 4, 4, 4)
+                setOnClickListener {
+                    mostrarDialogDenunciaMensagemPrivada(msg, targetUsername)
+                }
+            }
+            row.addView(btnReportMsg)
+        }
+
+        historyLayout.addView(row)
+        scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+    }
 
     private fun abrirPainelChatPrivado(
         targetUserId: String,
@@ -564,6 +613,7 @@ class DiscussionActivity : AppCompatActivity() {
     ) {
         val existingSession = activeChatSessions[targetUserId]
         if (existingSession != null) {
+            if (initialMessage != null) existingSession.lastReceivedMessage = initialMessage
             if (existingSession.isMinimized && !startMinimized) {
                 existingSession.minimizedBar?.let {
                     (it.parent as? ViewGroup)?.removeView(it)
@@ -574,10 +624,9 @@ class DiscussionActivity : AppCompatActivity() {
                 existingSession.panel?.visibility = View.VISIBLE
             } else if (existingSession.isMinimized && startMinimized) {
                 if (initialMessage != null) {
-                    val currentText = existingSession.historyTv?.text?.toString() ?: ""
-                    val prefix = if (currentText.isEmpty()) "" else "\n"
-                    existingSession.historyTv?.append("$prefix$targetUsername: ${initialMessage.message}")
-                    existingSession.scrollView?.post { existingSession.scrollView?.fullScroll(View.FOCUS_DOWN) }
+                    if (existingSession.historyLayout != null && existingSession.scrollView != null) {
+                        adicionarMensagemAoHistorico(this, existingSession.historyLayout!!, existingSession.scrollView!!, targetUsername, initialMessage.message, initialMessage, targetUsername)
+                    }
                     existingSession.unreadCount++
                     val unreadSuffix = if (existingSession.unreadCount > 0) " (${existingSession.unreadCount})" else ""
                     existingSession.minimizedBar?.text = "$targetUsername$unreadSuffix"
@@ -606,7 +655,8 @@ class DiscussionActivity : AppCompatActivity() {
             targetUserId = targetUserId,
             targetUsername = targetUsername,
             panel = panel,
-            unreadCount = if (startMinimized && initialMessage != null) 1 else 0
+            unreadCount = if (startMinimized && initialMessage != null) 1 else 0,
+            lastReceivedMessage = initialMessage
         )
 
         val header = LinearLayout(context).apply {
@@ -635,6 +685,24 @@ class DiscussionActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
         header.addView(titleTv)
+
+        val btnHelpChat = Button(context).apply {
+            text = "?"
+            textSize = 12f
+            setTextColor(Color.CYAN)
+            setBackgroundColor(Color.TRANSPARENT)
+            minWidth = 0
+            minHeight = 0
+            setPadding(12, 0, 12, 0)
+            setOnClickListener {
+                AlertDialog.Builder(context, R.style.Theme_TypingFrontier_AdminDialog)
+                    .setTitle("Ajuda - Denunciar Mensagem")
+                    .setMessage("Para denunciar uma mensagem específica, toque no símbolo ▷ localizado ao lado daquela mensagem.")
+                    .setPositiveButton("Entendi", null)
+                    .show()
+            }
+        }
+        header.addView(btnHelpChat)
 
         val btnMinimize = Button(context).apply {
             text = "_"
@@ -677,21 +745,21 @@ class DiscussionActivity : AppCompatActivity() {
             setPadding(8, 8, 8, 8)
         }
 
-        val historyTv = TextView(context).apply {
-            setTextColor(Color.parseColor("#E8EDF2"))
-            textSize = 13f
-            setLineSpacing(12f, 1f)
+        val historyLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
         }
-        scrollView.addView(historyTv)
+        scrollView.addView(historyLayout)
         panel.addView(scrollView)
 
-        session.historyTv = historyTv
+        session.historyLayout = historyLayout
         session.scrollView = scrollView
 
         if (initialMessage != null) {
-            historyTv.text = "$targetUsername: ${initialMessage.message}"
-        } else {
-            historyTv.text = ""
+            adicionarMensagemAoHistorico(context, historyLayout, scrollView, targetUsername, initialMessage.message, initialMessage, targetUsername)
         }
 
         val footer = LinearLayout(context).apply {
@@ -723,10 +791,7 @@ class DiscussionActivity : AppCompatActivity() {
                         try {
                             val sentMsg = PrivateMessageRepository.sendMessage(currentUserId, targetUserId, text)
                             sentMsg.id?.let { activeDisplayedMessageIds.add(it) }
-                            val currentText = historyTv.text?.toString() ?: ""
-                            val prefix = if (currentText.isEmpty()) "" else "\n"
-                            historyTv.append("${prefix}Você: ${sentMsg.message}")
-                            scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                            adicionarMensagemAoHistorico(context, historyLayout, scrollView, "Você", sentMsg.message, sentMsg, targetUsername)
                         } catch (e: Exception) {
                             Toast.makeText(context, "Erro ao enviar: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
@@ -775,6 +840,58 @@ class DiscussionActivity : AppCompatActivity() {
         if (startMinimized) {
             toggleMinimizeChat(session)
         }
+    }
+
+    private fun mostrarDialogDenunciaMensagemPrivada(msg: PrivateMessage, targetUsername: String) {
+        if (msg.id == null) {
+            Toast.makeText(this, "ID da mensagem inválido para denúncia.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val reasons = arrayOf("Spam / Propaganda", "Ofensas / Assédio", "Conteúdo Inadequado", "Outros")
+        val builder = AlertDialog.Builder(this, R.style.Theme_TypingFrontier_AdminDialog)
+            .setTitle("Denunciar Mensagem Privada")
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 24)
+        }
+
+        val txtPreview = TextView(this).apply {
+            text = "Mensagem de @$targetUsername:\n\"${msg.message}\""
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            setPadding(0, 0, 0, 16)
+        }
+        layout.addView(txtPreview)
+
+        val spinner = Spinner(this).apply {
+            adapter = ArrayAdapter(this@DiscussionActivity, android.R.layout.simple_spinner_dropdown_item, reasons)
+        }
+        layout.addView(spinner)
+
+        val edtDesc = EditText(this).apply {
+            hint = "Descrição opcional (máx 200)"
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.GRAY)
+        }
+        layout.addView(edtDesc)
+
+        builder.setView(layout)
+        builder.setPositiveButton("Enviar Denúncia") { _, _ ->
+            val reason = reasons[spinner.selectedItemPosition]
+            val desc = edtDesc.text.toString().trim()
+            scope.launch {
+                try {
+                    ModerationRepository.createReport("private_message", msg.id, reason, desc.ifEmpty { null })
+                    Toast.makeText(this@DiscussionActivity, "Denúncia enviada com sucesso.", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(this@DiscussionActivity, "Erro ao enviar denúncia: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        builder.setNegativeButton("Cancelar", null)
+        builder.show()
     }
 
     private fun isTouchInside(view: View, rawX: Float, rawY: Float): Boolean {

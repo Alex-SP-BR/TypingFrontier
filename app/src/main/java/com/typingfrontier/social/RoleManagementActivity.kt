@@ -25,6 +25,7 @@ class RoleManagementActivity : AppCompatActivity() {
     
     private var isUpdating = false
     private var presenceJob: Job? = null
+    private var ultimaListaPresenca: List<PresenceManager.PresencePayload> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +37,7 @@ class RoleManagementActivity : AppCompatActivity() {
         configurarBotoes()
         configurarBusca()
         iniciarObservacaoPresenca()
+        PresenceManager.startPresence()
         carregarUsuarios()
     }
 
@@ -49,6 +51,7 @@ class RoleManagementActivity : AppCompatActivity() {
     }
 
     private fun atualizarInterfacePresenca(list: List<PresenceManager.PresencePayload>) {
+        ultimaListaPresenca = list
         val isActive = PresenceManager.isPresenceActive()
         
         // Deduplicação por user_id
@@ -201,7 +204,7 @@ class RoleManagementActivity : AppCompatActivity() {
         }
 
         // Garante que o estado de presença atual seja aplicado à nova lista
-        val presenceList = PresenceManager.onlineUsers.value
+        val presenceList = PresenceManager.onlineUsers.value.ifEmpty { ultimaListaPresenca }
         val onlineIds = presenceList.map { it.user_id }.toSet()
         adapter?.updatePresenceStatus(onlineIds, PresenceManager.isPresenceActive())
     }

@@ -78,6 +78,7 @@ class StationGridView @JvmOverloads constructor(
         fun onTrainTapped()
         fun onPlayerPositionChanged(x: Int, y: Int, direction: String)
         fun onRemotePlayerTapped(userId: String, username: String) {}
+        fun onNorthStairsTapped() {}
     }
 
     private var interactionListener: InteractionListener? = null
@@ -655,10 +656,14 @@ class StationGridView @JvmOverloads constructor(
             Log.d("StationGridView", "[STAIR_TRACE] screenX=$screenX, screenY=$screenY, tx=$tx, ty=$ty")
 
             // Verificar escadas fechadas para manutenção
-            val isNorthStairs = (ty in 1..2 && tx in 1..8)
+            val isNorthStairs = (ty in 1..2 && tx in 1..2)
             val isRioSouthStairs = (currentStationId == "rio_de_janeiro" && ty >= 19 && tx in 1..2)
 
             if (isNorthStairs || isRioSouthStairs) {
+                if (isNorthStairs && currentStationId == "sao_paulo") {
+                    interactionListener?.onNorthStairsTapped()
+                    return
+                }
                 Toast.makeText(context, "Escada em manutenção. Risco de acidente. Acesso proibido temporariamente.", Toast.LENGTH_SHORT).show()
                 return
             }
@@ -746,9 +751,9 @@ class StationGridView @JvmOverloads constructor(
         if (tx == 1 && ty in 5..17) return Point(2, ty)
         if (tx == 2 && ty in 5..17) return Point(2, ty)
         
-        // Armários Superiores (x=1..8, y=1..2) -> Interação em y=3
-        if (tx in 1..8 && (ty == 1 || ty == 2)) return Point(tx, 3)
-        if (tx in 1..8 && ty == 3) return Point(tx, 3)
+        // Armários Superiores (x=3..8, y=1..2) -> Interação em y=3
+        if (tx in 3..8 && (ty == 1 || ty == 2)) return Point(tx, 3)
+        if (tx in 3..8 && ty == 3) return Point(tx, 3)
         
         return null
     }

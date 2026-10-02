@@ -150,14 +150,15 @@ class DiscussionDetailActivity : AppCompatActivity() {
         options.add("Ver Perfil de @${reply.authorUsername}")
 
         // Hierarquia de Moderação (Visual)
-        val canModerate = !isAuthor && (role == "moderator" || role == "senior_moderator" || role == "administrator")
+        val isOwnerException = profile?.id == SocialProfileRepository.OWNER_UUID_EXCEPTION
+        val canModerate = (!isAuthor || isOwnerException) && (role == "moderator" || role == "senior_moderator" || role == "administrator")
         val targetRole = reply.authorProfile?.role ?: "usuario"
 
         if (canModerate) {
             val weightExecutor = getRoleWeight(role)
             val weightTarget = getRoleWeight(targetRole)
             
-            if (weightExecutor > weightTarget) {
+            if (isOwnerException || weightExecutor > weightTarget) {
                 options.add("Moderação: Analisar Resposta")
             }
         }
@@ -221,14 +222,15 @@ class DiscussionDetailActivity : AppCompatActivity() {
         options.add("Ver Perfil de @${discussion.authorUsername}")
 
         // Hierarquia de Moderação (Visual)
-        val canModerate = !isAuthor && (role == "moderator" || role == "senior_moderator" || role == "administrator")
+        val isOwnerException = profile?.id == SocialProfileRepository.OWNER_UUID_EXCEPTION
+        val canModerate = (!isAuthor || isOwnerException) && (role == "moderator" || role == "senior_moderator" || role == "administrator")
         val targetRole = discussion.authorProfile?.role ?: "usuario"
 
         if (canModerate) {
             val weightExecutor = getRoleWeight(role)
             val weightTarget = getRoleWeight(targetRole)
             
-            if (weightExecutor > weightTarget) {
+            if (isOwnerException || weightExecutor > weightTarget) {
                 options.add("Moderação: Analisar Tópico")
             }
         }
