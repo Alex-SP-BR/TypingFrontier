@@ -73,6 +73,10 @@ class ExplorationActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnVoltarMapa).setOnClickListener {
             val regiao = intent.getStringExtra("REGIAO_ID")
             if (regiao == "sao_paulo_norte") {
+                if (!ViewUtils.isNetworkAvailable(this)) {
+                    Toast.makeText(this, "É necessário estar conectado à internet para acessar a Estação.", Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
                 val intentStation = Intent(this, StationActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 }
@@ -135,6 +139,10 @@ class ExplorationActivity : AppCompatActivity() {
         rv.adapter = ExplorationZoneAdapter(zonasDisponiveis) { zona ->
             if (zona.id == "rio_construcao") {
                 if (ESTACAO_ALTA_VELOCIDADE_LIBERADA) {
+                    if (!ViewUtils.isNetworkAvailable(this)) {
+                        Toast.makeText(this, "É necessário estar conectado à internet para acessar a Estação.", Toast.LENGTH_LONG).show()
+                        return@ExplorationZoneAdapter
+                    }
                     val intent = android.content.Intent(this, com.typingfrontier.station.StationActivity::class.java)
                     startActivity(intent)
                 }

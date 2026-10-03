@@ -2,6 +2,8 @@ package com.typingfrontier.utils
 
 import androidx.appcompat.app.AlertDialog
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -18,6 +20,32 @@ object ViewUtils {
     @Volatile
     private var cachedCoinBitmap: Bitmap? = null
     private val isProcessingCoin = AtomicBoolean(false)
+
+    /**
+     * Verifica se o dispositivo possui uma conexão com a internet ativa e válida.
+     */
+    fun isNetworkAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return false
+
+        val activeNetwork = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork) ?: return false
+
+        val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        if (!hasInternet) return false
+
+        val isWifi = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+        val isCellular = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+
+        return if (isWifi) {
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        } else if (isCellular) {
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED) ||
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        } else {
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        }
+    }
 
     /**
      * Retorna o Drawable da moeda processado com transparência (Flood Fill).

@@ -139,8 +139,8 @@ object ExplorationZoneRepository {
         ),
         ExplorationZone(
             id = "rio_construcao",
-            nome = "🚄 São Paulo e Rio",
-            descricao = "[ EM CONSTRUÇÃO ] — Esta conexão será disponibilizada em uma futura expansão.",
+            nome = "Conexão São Paulo – Rio de Janeiro",
+            descricao = "Viaje entre São Paulo e Rio de Janeiro a bordo do trem de alta velocidade e descubra novos destinos nesta expansão ferroviária.",
             nivelMinimo = 1,
             riscoBase = 0,
             atributoPrincipal = "INTELIGENCIA",

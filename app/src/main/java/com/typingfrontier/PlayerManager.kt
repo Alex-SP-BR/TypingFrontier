@@ -3,6 +3,7 @@ package com.typingfrontier
 import android.content.Context
 import android.content.SharedPreferences
 import kotlinx.coroutines.CompletableDeferred
+import java.util.UUID
 
 object PlayerManager {
     var player = Player()
@@ -244,124 +245,126 @@ object PlayerManager {
     fun save(context: Context) {
         if (!isLoaded()) return
 
-        val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val editor = prefs.edit()
+        synchronized(this) {
+            val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val editor = prefs.edit()
 
-        editor.putInt("saveVersion", CURRENT_SAVE_VERSION)
+            editor.putInt("saveVersion", CURRENT_SAVE_VERSION)
 
-        editor.putString("nome", player.nome)
-        editor.putString("sexo", player.sexo)
-        editor.putString("profissao", player.profissao)
-        editor.putString("cidadeNascimento", player.cidadeNascimento)
+            editor.putString("nome", player.nome)
+            editor.putString("sexo", player.sexo)
+            editor.putString("profissao", player.profissao)
+            editor.putString("cidadeNascimento", player.cidadeNascimento)
 
-        editor.putInt("nivel", player.nivel)
-        editor.putInt("experienciaAtual", player.experienciaAtual)
-        editor.putInt("experienciaParaProximoNivel", player.experienciaParaProximoNivel)
+            editor.putInt("nivel", player.nivel)
+            editor.putInt("experienciaAtual", player.experienciaAtual)
+            editor.putInt("experienciaParaProximoNivel", player.experienciaParaProximoNivel)
 
-        editor.putInt("vida", player.vida)
-        editor.putInt("vidaMax", player.vidaMax)
-        editor.putInt("energia", player.energia)
-        editor.putInt("energiaMax", player.energiaMax)
-        editor.putInt("reputacao", player.reputacao)
+            editor.putInt("vida", player.vida)
+            editor.putInt("vidaMax", player.vidaMax)
+            editor.putInt("energia", player.energia)
+            editor.putInt("energiaMax", player.energiaMax)
+            editor.putInt("reputacao", player.reputacao)
 
-        editor.putBoolean("ajudouAlguem", player.ajudouAlguem)
-        editor.putBoolean("falhouMuito", player.falhouMuito)
-        editor.putBoolean("entrouEmConfusao", player.entrouEmConfusao)
-        editor.putInt("eventosPositivos", player.eventosPositivos)
-        editor.putInt("eventosNegativos", player.eventosNegativos)
+            editor.putBoolean("ajudouAlguem", player.ajudouAlguem)
+            editor.putBoolean("falhouMuito", player.falhouMuito)
+            editor.putBoolean("entrouEmConfusao", player.entrouEmConfusao)
+            editor.putInt("eventosPositivos", player.eventosPositivos)
+            editor.putInt("eventosNegativos", player.eventosNegativos)
 
-        editor.putString("eventoEncadeadoId", player.eventoEncadeadoId)
-        editor.putInt("etapaEvento", player.etapaEvento)
-        editor.putString("escolhaAnterior", player.escolhaAnterior)
+            editor.putString("eventoEncadeadoId", player.eventoEncadeadoId)
+            editor.putInt("etapaEvento", player.etapaEvento)
+            editor.putString("escolhaAnterior", player.escolhaAnterior)
 
-        editor.putInt("dinheiro", player.dinheiro)
+            editor.putInt("dinheiro", player.dinheiro)
 
-        editor.putInt("forca", player.forca)
-        editor.putInt("velocidade", player.velocidade)
-        editor.putInt("resistencia", player.resistencia)
-        editor.putInt("inteligencia", player.inteligencia)
-        editor.putInt("carisma", player.carisma)
+            editor.putInt("forca", player.forca)
+            editor.putInt("velocidade", player.velocidade)
+            editor.putInt("resistencia", player.resistencia)
+            editor.putInt("inteligencia", player.inteligencia)
+            editor.putInt("carisma", player.carisma)
 
-        editor.putString("especializacaoPortugues", player.especializacaoPortugues?.name)
+            editor.putString("especializacaoPortugues", player.especializacaoPortugues?.name)
 
-        editor.putInt("cansacoMental", player.cansacoMental)
-        editor.putInt("cansacoMax", player.cansacoMax)
+            editor.putInt("cansacoMental", player.cansacoMental)
+            editor.putInt("cansacoMax", player.cansacoMax)
 
-        editor.putInt("progressoInteligencia", player.progressoInteligencia)
-        editor.putInt("progressoCarisma", player.progressoCarisma)
-        editor.putInt("progressoForca", player.progressoForca)
-        editor.putInt("progressoResistencia", player.progressoResistencia)
-        editor.putInt("progressoVelocidade", player.progressoVelocidade)
+            editor.putInt("progressoInteligencia", player.progressoInteligencia)
+            editor.putInt("progressoCarisma", player.progressoCarisma)
+            editor.putInt("progressoForca", player.progressoForca)
+            editor.putInt("progressoResistencia", player.progressoResistencia)
+            editor.putInt("progressoVelocidade", player.progressoVelocidade)
 
-        editor.putInt("progressoInteligenciaMax", player.progressoInteligenciaMax)
-        editor.putInt("progressoCarismaMax", player.progressoCarismaMax)
-        editor.putInt("progressoForcaMax", player.progressoForcaMax)
-        editor.putInt("progressoResistenciaMax", player.progressoResistenciaMax)
-        editor.putInt("progressoVelocidadeMax", player.progressoVelocidadeMax)
+            editor.putInt("progressoInteligenciaMax", player.progressoInteligenciaMax)
+            editor.putInt("progressoCarismaMax", player.progressoCarismaMax)
+            editor.putInt("progressoForcaMax", player.progressoForcaMax)
+            editor.putInt("progressoResistenciaMax", player.progressoResistenciaMax)
+            editor.putInt("progressoVelocidadeMax", player.progressoVelocidadeMax)
 
-        editor.putString("equipamentoId", player.equipamentoId)
-        editor.putInt("estoqueBencao", player.estoqueBencao)
-        editor.putInt("estoqueMedicamento", player.estoqueMedicamento)
-        
-        editor.putInt("perdaXpRecuperavel", player.perdaXpRecuperavel)
-        val perdaAtribStr = player.perdaAtribRecuperavel.entries.joinToString(";") { "${it.key}:${it.value}" }
-        editor.putString("perdaAtribRecuperavel", perdaAtribStr)
+            editor.putString("equipamentoId", player.equipamentoId)
+            editor.putInt("estoqueBencao", player.estoqueBencao)
+            editor.putInt("estoqueMedicamento", player.estoqueMedicamento)
+            
+            editor.putInt("perdaXpRecuperavel", player.perdaXpRecuperavel)
+            val perdaAtribStr = player.perdaAtribRecuperavel.entries.joinToString(";") { "${it.key}:${it.value}" }
+            editor.putString("perdaAtribRecuperavel", perdaAtribStr)
 
-        editor.putBoolean("introConcluida", player.introConcluida)
+            editor.putBoolean("introConcluida", player.introConcluida)
 
-        editor.putBoolean("trabalhouHoje", player.trabalhouHoje)
-        editor.putBoolean("pausouHoje", player.pausouHoje)
-        editor.putInt("horasExtrasFeitasHoje", player.horasExtrasFeitasHoje)
+            editor.putBoolean("trabalhouHoje", player.trabalhouHoje)
+            editor.putBoolean("pausouHoje", player.pausouHoje)
+            editor.putInt("horasExtrasFeitasHoje", player.horasExtrasFeitasHoje)
 
-        editor.putInt("dia", player.dia)
-        editor.putInt("hora", player.hora)
-        editor.putInt("minuto", player.minuto)
+            editor.putInt("dia", player.dia)
+            editor.putInt("hora", player.hora)
+            editor.putInt("minuto", player.minuto)
 
-        editor.putInt("traumasAcumulados", player.traumasAcumulados)
-        editor.putInt("diasParaRecuperarTrauma", player.diasParaRecuperarTrauma)
+            editor.putInt("traumasAcumulados", player.traumasAcumulados)
+            editor.putInt("diasParaRecuperarTrauma", player.diasParaRecuperarTrauma)
 
-        // 🏆 COLEÇÃO E CONQUISTAS
-        editor.putString("avatarEquipadoId", player.avatarEquipadoId)
-        editor.putStringSet("avataresDesbloqueados", player.avataresDesbloqueados)
-        editor.putStringSet("conquistasDesbloqueadas", player.conquistasDesbloqueadas)
-        
-        // 📊 ESTATÍSTICAS PARA CONQUISTAS
-        editor.putInt("mentalStreak", player.mentalStreak)
-        editor.putStringSet("zonasExploradas", player.zonasExploradas)
+            // 🏆 COLEÇÃO E CONQUISTAS
+            editor.putString("avatarEquipadoId", player.avatarEquipadoId)
+            editor.putStringSet("avataresDesbloqueados", player.avataresDesbloqueados)
+            editor.putStringSet("conquistasDesbloqueadas", player.conquistasDesbloqueadas)
+            
+            // 📊 ESTATÍSTICAS PARA CONQUISTAS
+            editor.putInt("mentalStreak", player.mentalStreak)
+            editor.putStringSet("zonasExploradas", player.zonasExploradas)
 
-        // 🔗 ÂNCORA DA IDENTIDADE SOCIAL
-        editor.putString("socialUserId", player.socialUserId)
-        
-        // Save avataresProgressoAds Map
-        val progressoStr = player.avataresProgressoAds.entries.joinToString(";") { "${it.key}:${it.value}" }
-        editor.putString("avataresProgressoAds", progressoStr)
+            // 🔗 ÂNCORA DA IDENTIDADE SOCIAL
+            editor.putString("socialUserId", player.socialUserId)
+            
+            // Save avataresProgressoAds Map
+            val progressoStr = player.avataresProgressoAds.entries.joinToString(";") { "${it.key}:${it.value}" }
+            editor.putString("avataresProgressoAds", progressoStr)
 
-        // Save historiasAtivas Map
-        val historiasStr = player.historiasAtivas.entries.joinToString(";") { "${it.key}:${it.value}" }
-        editor.putString("historiasAtivas", historiasStr)
+            // Save historiasAtivas Map
+            val historiasStr = player.historiasAtivas.entries.joinToString(";") { "${it.key}:${it.value}" }
+            editor.putString("historiasAtivas", historiasStr)
 
-        // Save mochila Map
-        val mochilaStr = player.mochila.entries.joinToString(";") { "${it.key}:${it.value}" }
-        editor.putString("mochila", mochilaStr)
+            // Save mochila Map
+            val mochilaStr = player.mochila.entries.joinToString(";") { "${it.key}:${it.value}" }
+            editor.putString("mochila", mochilaStr)
 
-        // Save slotsEquipados Map
-        val slotsStr = player.slotsEquipados.entries.joinToString(";") { "${it.key}:${it.value}" }
-        editor.putString("slotsEquipados", slotsStr)
+            // Save slotsEquipados Map
+            val slotsStr = player.slotsEquipados.entries.joinToString(";") { "${it.key}:${it.value}" }
+            editor.putString("slotsEquipados", slotsStr)
 
-        editor.putInt("capacidadeMochila", player.capacidadeMochila)
+            editor.putInt("capacidadeMochila", player.capacidadeMochila)
 
-        // Save armario Map (São Paulo)
-        val armarioStr = player.armario.entries.joinToString(";") { "${it.key}:${it.value}" }
-        editor.putString("armario", armarioStr)
+            // Save armario Map (São Paulo)
+            val armarioStr = player.armario.entries.joinToString(";") { "${it.key}:${it.value}" }
+            editor.putString("armario", armarioStr)
 
-        // Save armarioRio Map (Rio de Janeiro)
-        val armarioRioStr = player.armarioRio.entries.joinToString(";") { "${it.key}:${it.value}" }
-        editor.putString("armario_rio", armarioRioStr)
+            // Save armarioRio Map (Rio de Janeiro)
+            val armarioRioStr = player.armarioRio.entries.joinToString(";") { "${it.key}:${it.value}" }
+            editor.putString("armario_rio", armarioRioStr)
 
-        editor.putInt("capacidadeArmario", player.capacidadeArmario)
-        editor.putBoolean("habilitadoFerrovia", player.habilitadoFerrovia)
+            editor.putInt("capacidadeArmario", player.capacidadeArmario)
+            editor.putBoolean("habilitadoFerrovia", player.habilitadoFerrovia)
 
-        editor.apply()
+            editor.apply()
+        }
     }
 
     fun load(context: Context) {
@@ -655,5 +658,128 @@ object PlayerManager {
         save(context)
         
         android.widget.Toast.makeText(context, "🏆 Conquista: ${conquista.nome}", android.widget.Toast.LENGTH_LONG).show()
+    }
+
+    data class PendingTransferData(
+        val idempotencyKey: String,
+        val recipient: String,
+        val amount: Int
+    )
+
+    fun getAppliedClaimIds(context: Context): MutableSet<String> {
+        synchronized(this) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val set = prefs.getStringSet("applied_claim_ids_set", null)
+            if (set != null) {
+                return set.toMutableSet()
+            }
+            // Migration from legacy typing_frontier_bank_local if present
+            val legacyPrefs = context.getSharedPreferences("typing_frontier_bank_local", Context.MODE_PRIVATE)
+            val legacySet = legacyPrefs.getStringSet("applied_claim_ids", null)
+            val migratedSet = legacySet?.toMutableSet() ?: mutableSetOf()
+            if (migratedSet.isNotEmpty()) {
+                val editor = prefs.edit()
+                editor.putStringSet("applied_claim_ids_set", migratedSet)
+                editor.commit()
+            }
+            return migratedSet
+        }
+    }
+
+    fun getPendingTransfer(context: Context): PendingTransferData? {
+        synchronized(this) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val active = prefs.getBoolean("pending_transfer_active", false)
+            if (!active) return null
+            val key = prefs.getString("pending_transfer_idempotency_key", null) ?: return null
+            val recipient = prefs.getString("pending_transfer_recipient", null) ?: return null
+            val amount = prefs.getInt("pending_transfer_amount", 0)
+            return PendingTransferData(key, recipient, amount)
+        }
+    }
+
+    fun startOrGetPendingTransfer(context: Context, targetRecipient: String, amount: Int): PendingTransferData? {
+        synchronized(this) {
+            val existing = getPendingTransfer(context)
+            if (existing != null) {
+                return existing
+            }
+
+            if (player.dinheiro < amount) return null
+
+            val key = UUID.randomUUID().toString()
+            val saldoAntigo = player.dinheiro
+            val novoSaldo = saldoAntigo - amount
+
+            player.dinheiro = novoSaldo
+
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+            editor.putInt("dinheiro", novoSaldo)
+            editor.putBoolean("pending_transfer_active", true)
+            editor.putString("pending_transfer_idempotency_key", key)
+            editor.putString("pending_transfer_recipient", targetRecipient)
+            editor.putInt("pending_transfer_amount", amount)
+
+            val success = editor.commit()
+            if (!success) {
+                player.dinheiro = saldoAntigo
+                return null
+            }
+            return PendingTransferData(key, targetRecipient, amount)
+        }
+    }
+
+    fun clearPendingTransfer(context: Context): Boolean {
+        synchronized(this) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+            editor.putBoolean("pending_transfer_active", false)
+            editor.remove("pending_transfer_idempotency_key")
+            editor.remove("pending_transfer_recipient")
+            editor.remove("pending_transfer_amount")
+            editor.putInt("dinheiro", player.dinheiro)
+            return editor.commit()
+        }
+    }
+
+    fun rollbackPendingTransfer(context: Context, amount: Int): Boolean {
+        synchronized(this) {
+            val saldoAntigo = player.dinheiro
+            val novoSaldo = saldoAntigo + amount
+            player.dinheiro = novoSaldo
+
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+            editor.putInt("dinheiro", novoSaldo)
+            editor.putBoolean("pending_transfer_active", false)
+            editor.remove("pending_transfer_idempotency_key")
+            editor.remove("pending_transfer_recipient")
+            editor.remove("pending_transfer_amount")
+            return editor.commit()
+        }
+    }
+
+    fun creditClaimAndSave(context: Context, amount: Int, claimId: String): Boolean {
+        synchronized(this) {
+            val saldoAntigo = player.dinheiro
+            val novoSaldo = saldoAntigo + amount
+            player.dinheiro = novoSaldo
+
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val currentSet = getAppliedClaimIds(context)
+            currentSet.add(claimId)
+
+            val editor = prefs.edit()
+            editor.putInt("dinheiro", novoSaldo)
+            editor.putStringSet("applied_claim_ids_set", currentSet)
+
+            val success = editor.commit()
+            if (!success) {
+                player.dinheiro = saldoAntigo
+                return false
+            }
+            return true
+        }
     }
 }

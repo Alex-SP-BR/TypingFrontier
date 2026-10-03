@@ -77,10 +77,24 @@ class ManualActivity : AppCompatActivity() {
                 "• Beco Escuro: Foco em Inteligência e Força.\n" +
                 "• Lab Abandonado: Exige alta Inteligência e Resistência.\n" +
                 "• Cassino Clandestino: Exige alto Carisma e Força.\n" +
-                "• Esgotos Profundos: O desafio máximo de Inteligência e Velocidade."),
+                "• Esgotos Profundos: O desafio máximo de Inteligência e Velocidade.\n" +
+                "• Incidente na Ponte Estaiada: Investigação narrativa com escolhas e múltiplos caminhos (Nível Mínimo: 55). Atributo principal: Inteligência, secundário: Velocidade e terciário: Resistência. Cada etapa concluída concede 1.200 XP e 1.800 Frons."),
+
+            ManualTopic("🚆 Estações e Viagem Ferroviária", "Explore as Estações de São Paulo e do Rio de Janeiro e viaje entre as cidades de trem!\n\n" +
+                "• Viagem de Trem: Fale com os bilheteiros da estação (Antônio em SP ou Carlos no RJ) para comprar uma passagem individual por 2.000 Frons ou adquirir a Habilitação Ferroviária (tarifa única de 30.000 Frons que libera viagens ilimitadas). Com a passagem na mochila ou a habilitação ativa, caminhe até a plataforma de embarque para viajar.\n" +
+                "• Personagens das Estações: Encontre personagens locais como os bilheteiros e os gerentes de banco para acessar serviços de transporte e financeiros."),
+
+            ManualTopic("💬 Comunicação e Interação nas Estações", "Converse e interaja com outros jogadores nas estações.\n\n" +
+                "• Chat Público: Envie mensagens no chat da estação para conversar com todos os jogadores presentes. As suas mensagens também aparecem em balões de fala sobre o seu personagem.\n" +
+                "• Mensagens Privadas: Você pode iniciar uma conversa privada tocando em outro personagem na estação. A conversa fica reservada entre vocês dois.\n" +
+                "• Lista VIP: Adicione jogadores à sua lista VIP informando manualmente o username social deles. Assim, você pode encontrar seus contatos favoritos com mais facilidade."),
             
             ManualTopic("🎒 Equipamentos e Mochila", "Melhore seu personagem com itens profissionais!\n\n• Mochila: Tudo o que você compra vai para sua mochila, que possui um limite de 5 itens.\n• Slots: Para ganhar os bônus, você deve equipar os itens em seus respectivos slots (Corpo, Cabeça, Mão, Acessório, etc).\n• Troca: Ao equipar um novo item em um slot ocupado, o antigo retornará automaticamente para sua mochila.\n• Loja: Você pode comprar equipamentos de qualquer profissão, desde que tenha o Nível Mínimo e Frons suficientes.\n• Eficiência por Profissão: Você pode equipar itens de outras profissões, mas a eficiência do bônus pode ser reduzida. Equipamentos da sua própria profissão (ou itens gerais) aproveitam 100% do bônus. Equipamentos de outras profissões aproveitam 80% quando favorecem seu atributo principal, 60% quando favorecem seu atributo secundário e 40% nos demais casos."),
             
+            ManualTopic("📦 Armários da Estação", "Guarde seus itens com segurança nos armários localizados nas estações.\n\n" +
+                "• Capacidade: Cada armário suporta até 20 equipamentos.\n" +
+                "• Armários Independentes: Os armários de São Paulo e do Rio de Janeiro são separados. Itens guardados no armário da Estação São Paulo permanecem em São Paulo, e itens guardados na Estação Rio de Janeiro permanecem no Rio de Janeiro."),
+
             ManualTopic("💰 Venda de Equipamentos", "Não precisa mais de um item? Você pode vendê-lo na Loja para recuperar parte do investimento.\n\n• Valor: Você recebe 40% do valor atual de mercado do item.\n• Condição: O equipamento deve estar na sua mochila. Itens atualmente equipados não aparecem para venda direta; você precisa desequipá-los primeiro."),
 
             ManualTopic("🕊️ Seguro de Equipamentos", "Uma proteção essencial para seus bens. O Seguro de Equipamentos protege seus itens equipados durante um Colapso Corporal.\n\n• Funcionamento: Se você sofrer um Colapso (atingir o limite de traumas), existe uma chance de perder um equipamento. O Seguro impede essa perda, sendo consumido no processo.\n• Recomendação: Sempre mantenha um Seguro ativo antes de expedições perigosas!"),
@@ -92,6 +106,10 @@ class ManualActivity : AppCompatActivity() {
                 "• Regra de Estoque: Medicamentos comprados APÓS um Trauma não são consumidos retroativamente; eles permanecem no estoque para uso posterior."),
 
             ManualTopic("💰 Economia", "A moeda oficial é o Fron. Guarde suas moedas para financiar sua evolução! Para facilitar a leitura, valores altos podem aparecer como 1K (mil) ou 1KK (milhão). Toque no saldo no topo da tela para ver o valor exato."),
+            
+            ManualTopic("🏦 Agência Bancária e Transferências", "Movimente seu capital com segurança nas agências bancárias localizadas dentro das estações.\n\n" +
+                "• Gerentes Bancários: Fale com os gerentes de banco (Vinícius na Estação SP e Henrique na Estação RJ) para acessar os serviços financeiros.\n" +
+                "• Transferência de Frons: Envie dinheiro diretamente para a conta de outro jogador digitando o username social do destinatário. As transferências passam pelo sistema bancário para garantir uma entrega segura entre as contas."),
             
             ManualTopic("👥 Profissões", 
                 "• Policial: Ganha mais Vida ao evoluir (+15 por nível). Especialista em exploração e combate.\n" +

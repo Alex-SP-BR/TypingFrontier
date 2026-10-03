@@ -1,5 +1,10 @@
 package com.typingfrontier.exploration
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -30,13 +35,12 @@ class ExplorationZoneAdapter(
         val imgItem = holder.itemView.findViewById<android.widget.ImageView>(R.id.imgItem)
 
         if (zona.id == "rio_construcao") {
-            holder.txtDesc.text = "${zona.descricao}\nTrem de alta velocidade"
-            holder.txtNivel.text = "Conteúdo Futuro"
-            holder.txtNivel.setTextColor(android.graphics.Color.GRAY)
-            holder.itemView.alpha = 0.6f
-            imgItem.setImageResource(android.R.drawable.ic_menu_manage) 
-            // Destaque sutil: Ícone em tom dourado/obra
-            imgItem.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FFD600"))
+            holder.txtDesc.text = zona.descricao
+            holder.txtNivel.text = "Nível Requerido: ${zona.nivelMinimo}"
+            holder.txtNivel.setTextColor(Color.parseColor("#74C6E0"))
+            holder.itemView.alpha = 1.0f
+            imgItem.setImageBitmap(createEmojiBitmap(holder.itemView.context, "🚄", 40))
+            imgItem.imageTintList = null
         } else {
             val sb = StringBuilder(zona.descricao)
             sb.append("\nFoco: ").append(formatAttr(zona.atributoPrincipal))
@@ -52,7 +56,7 @@ class ExplorationZoneAdapter(
 
             holder.txtDesc.text = sb.toString()
             holder.txtNivel.text = "Nível Requerido: ${zona.nivelMinimo}"
-            holder.txtNivel.setTextColor(android.graphics.Color.parseColor("#74C6E0"))
+            holder.txtNivel.setTextColor(Color.parseColor("#74C6E0"))
             holder.itemView.alpha = 1.0f
             imgItem.setImageResource(android.R.drawable.ic_menu_agenda)
             imgItem.imageTintList = null
@@ -70,6 +74,21 @@ class ExplorationZoneAdapter(
             "INTELIGENCIA" -> "🧠 Inteligência"
             else -> attr ?: ""
         }
+    }
+
+    private fun createEmojiBitmap(context: Context, emoji: String, sizeDp: Int): Bitmap {
+        val sizePx = (sizeDp * context.resources.displayMetrics.density).toInt()
+        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint().apply {
+            textSize = sizePx * 0.7f
+            textAlign = Paint.Align.CENTER
+            isAntiAlias = true
+        }
+        val x = sizePx / 2f
+        val y = (sizePx / 2f) - ((paint.descent() + paint.ascent()) / 2f)
+        canvas.drawText(emoji, x, y, paint)
+        return bitmap
     }
 
     override fun getItemCount(): Int = zonas.size

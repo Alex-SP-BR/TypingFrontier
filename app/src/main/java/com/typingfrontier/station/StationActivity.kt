@@ -2,9 +2,13 @@ package com.typingfrontier.station
 
 import android.content.Intent
 import android.graphics.Color
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.InputType
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -18,6 +22,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.typingfrontier.*
 import com.typingfrontier.ExplorationActivity
+import com.typingfrontier.economy.BankRepository
+import com.typingfrontier.economy.FronsTransfer
 import com.typingfrontier.economy.ProfessionManager
 import com.typingfrontier.npc.SharedNpcManager
 import com.typingfrontier.social.ModerationRepository
@@ -27,6 +33,7 @@ import com.typingfrontier.social.PrivateMessageRepository
 import com.typingfrontier.social.SocialProfileRepository
 import com.typingfrontier.social.SupabaseManager
 import com.typingfrontier.utils.CurrencyUtils
+import com.typingfrontier.utils.ViewUtils
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.broadcast
 import io.github.jan.supabase.realtime.broadcastFlow
@@ -107,7 +114,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                                     val senderName = PresenceManager.onlineUsers.value.find { it.user_id == pubMsg.senderId }?.username
                                         ?: "Viajante"
                                     if (currentConversationId == "public" && !isChatHidden) {
-                                        adicionarMensagemPublicaNaUI(pubMsg, "@$senderName")
+                                        adicionarMensagemPublicaNaUI(pubMsg, senderName)
                                     }
                                 }
                             } catch (e: Exception) {
@@ -142,7 +149,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                     pubMsg.id?.let { activeDisplayedPublicMessageIds.add(it) }
                     val senderName = PresenceManager.onlineUsers.value.find { it.user_id == pubMsg.senderId }?.username
                         ?: "Viajante"
-                    adicionarMensagemPublicaNaUI(pubMsg, "@$senderName")
+                    adicionarMensagemPublicaNaUI(pubMsg, senderName)
                 }
             } catch (e: Exception) {
                 Log.e("StationActivity", "Erro ao carregar histórico público: ${e.message}")
@@ -245,9 +252,9 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
         conv.privateMessages.forEach { msg ->
             val senderLabel = if (msg.senderId == currentUserId) {
-                "@${PlayerManager.player.nome.ifEmpty { "Viajante" }}"
+                getLocalSenderName()
             } else {
-                "@${conv.title}"
+                conv.title
             }
             adicionarMensagemPrivadaNaUI(msg, senderLabel)
         }
@@ -388,6 +395,14 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
     private val movementIntervalMs = 200L
     private var broadcastThrottleJob: Job? = null
 
+    // Monitoramento de Conectividade
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private var isEjecting = false
+    private var currentDefaultNetwork: Network? = null
+    private var isCurrentNetworkValid = false
+    private val connectivityHandler = Handler(Looper.getMainLooper())
+    private var pendingEjectRunnable: Runnable? = null
+
     // Controle de Digitação
     private val typingHandler = Handler(Looper.getMainLooper())
     private var typingRunnable: Runnable? = null
@@ -434,6 +449,20 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (!ViewUtils.isNetworkAvailable(this)) {
+            Toast.makeText(this, "É necessário estar conectado à internet para acessar a Estação.", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+
+        val player = PlayerManager.player
+        if (player.socialUserId.isNullOrBlank()) {
+            Toast.makeText(this, "Para entrar na Estação, crie seu Perfil Social em Central > Perfil Social.", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+
         setContentView(R.layout.activity_station)
         
         supportActionBar?.hide()
@@ -502,7 +531,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                     conv.lastActivityTime = System.currentTimeMillis()
 
                     if (currentConversationId == senderId && !isChatHidden) {
-                        adicionarMensagemPrivadaNaUI(msg, "@$senderNameStr")
+                        adicionarMensagemPrivadaNaUI(msg, senderNameStr)
                         scrollChat.post { scrollChat.fullScroll(View.FOCUS_DOWN) }
                     } else {
                         atualizarInterfaceAbas()
@@ -1039,11 +1068,11 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                         }.decodeSingle<PublicMessage>()
 
                     inserted.id?.let { activeDisplayedPublicMessageIds.add(it) }
-                    adicionarMensagemPublicaNaUI(inserted, "@${p.nome}")
+                    adicionarMensagemPublicaNaUI(inserted, getLocalSenderName())
 
                     gridView.addSpeechDialog(
                         senderId = currentUserId,
-                        senderName = p.nome.ifEmpty { "Viajante" },
+                        senderName = getLocalSenderName(),
                         message = msg,
                         worldX = sendX,
                         worldY = sendY,
@@ -1072,12 +1101,12 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                 }
             }
         } else if (isNpc) {
-            adicionarMensagem("@${p.nome}: $msg", isNpc = false)
+            adicionarMensagem("${getLocalSenderName()}: $msg", isNpc = false)
             edtChatMessage.setText("")
 
             gridView.addSpeechDialog(
                 senderId = currentUserId,
-                senderName = p.nome.ifEmpty { "Viajante" },
+                senderName = getLocalSenderName(),
                 message = msg,
                 worldX = sendX,
                 worldY = sendY,
@@ -1108,7 +1137,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                     val sentMsg = PrivateMessageRepository.sendMessage(authUserId, receiverId, msg)
                     
                     // Sucesso confirmado pelo banco: adiciona ao histórico e exibe o balão
-                    adicionarMensagem("@${p.nome}: $msg", isNpc = false)
+                    adicionarMensagem("${getLocalSenderName()}: $msg", isNpc = false)
                     conversations[receiverId]?.let { conv ->
                         if (conv.privateMessages.none { it.id == sentMsg.id && sentMsg.id != null }) {
                             conv.privateMessages.add(sentMsg)
@@ -1118,12 +1147,12 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                     }
 
                     if (currentConversationId == receiverId && !isChatHidden) {
-                        adicionarMensagemPrivadaNaUI(sentMsg, "@${p.nome.ifEmpty { "Viajante" }}")
+                        adicionarMensagemPrivadaNaUI(sentMsg, getLocalSenderName())
                     }
                     
                     gridView.addSpeechDialog(
                         senderId = authUserId,
-                        senderName = p.nome.ifEmpty { "Viajante" },
+                        senderName = getLocalSenderName(),
                         message = msg,
                         worldX = sendX,
                         worldY = sendY,
@@ -1139,6 +1168,10 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
 
     private var estadoDialogoAntonio = "INICIO" // "INICIO", "PERGUNTOU_COMPRA", "AGUARDANDO_CONFIRMACAO", "PERGUNTOU_HABILITACAO", "CONFIRMAR_HABILITACAO"
     private var estadoDialogoCarlos = "INICIO"  // "INICIO", "PERGUNTOU_COMPRA", "AGUARDANDO_CONFIRMACAO", "PERGUNTOU_HABILITACAO", "CONFIRMAR_HABILITACAO"
+
+    private fun getLocalSenderName(): String {
+        return SocialProfileRepository.currentProfile?.username?.takeIf { it.isNotBlank() } ?: ""
+    }
 
     private fun isUsuarioIsentoTarifaFerroviaria(): Boolean {
         val role = SocialProfileRepository.currentProfile?.role ?: "usuario"
@@ -1472,8 +1505,8 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             )
             gridView.setNpcData(
                 name = "NPC Vinícius",
-                x = 3,
-                y = 6,
+                x = 4,
+                y = 7,
                 direction = "baixo",
                 sprites = viniciusSprites,
                 isCirculating = true
@@ -2117,7 +2150,8 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         selecionarConversa("vinicius")
         
         if (conversations["vinicius"]?.history?.isEmpty() == true) {
-            val greetMsg = "Vinícius: Olá! Sou o gerente da agência bancária da Estação São Paulo. Os serviços bancários estarão disponíveis em breve!"
+            val player = PlayerManager.player
+            val greetMsg = "Vinícius: Olá! Sou o gerente da agência bancária da Estação São Paulo. Você possui ${CurrencyUtils.formatar(player.dinheiro)}. Digite 'saldo', 'transferir', 'resgatar' ou 'extrato'."
 
             adicionarMensagem(greetMsg, isNpc = true)
 
@@ -2134,6 +2168,8 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                     allowedUsers = setOf(currentUserId, "vinicius")
                 )
             }
+
+            resgatarTransferenciasPendentes("Vinícius")
         }
     }
 
@@ -2141,22 +2177,7 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
         SharedNpcManager.registerOrRenewInteraction("npc_gerente_vinicius", currentUserId)
 
-        val responseText = "Vinícius: Olá! Sou o gerente bancário da Estação São Paulo. O sistema bancário estará disponível em breve!"
-        adicionarMensagem(responseText, isNpc = true)
-
-        val npcPos = gridView.getNpcPosition("NPC Vinícius")
-        if (npcPos != null) {
-            val cleanMsg = responseText.removePrefix("Vinícius: ")
-            gridView.addSpeechDialog(
-                senderId = "npc_vinicius",
-                senderName = "NPC Vinícius",
-                message = cleanMsg,
-                worldX = npcPos.x,
-                worldY = npcPos.y,
-                isPrivate = true,
-                allowedUsers = setOf(currentUserId, "vinicius")
-            )
-        }
+        processarOpcaoBancaria("Vinícius", "npc_vinicius", msg)
     }
 
     private fun abrirChatHenrique() {
@@ -2170,7 +2191,8 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         selecionarConversa("henrique")
         
         if (conversations["henrique"]?.history?.isEmpty() == true) {
-            val greetMsg = "Henrique: Olá! Sou o gerente da agência bancária da Estação Rio de Janeiro. Os serviços bancários estarão disponíveis em breve!"
+            val player = PlayerManager.player
+            val greetMsg = "Henrique: Olá! Sou o gerente da agência bancária da Estação Rio de Janeiro. Você possui ${CurrencyUtils.formatar(player.dinheiro)}. Digite 'saldo', 'transferir', 'resgatar' ou 'extrato'."
 
             adicionarMensagem(greetMsg, isNpc = true)
 
@@ -2187,6 +2209,8 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
                     allowedUsers = setOf(currentUserId, "henrique")
                 )
             }
+
+            resgatarTransferenciasPendentes("Henrique")
         }
     }
 
@@ -2194,21 +2218,223 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         val currentUserId = SocialProfileRepository.getCurrentUserId() ?: "local_user"
         SharedNpcManager.registerOrRenewInteraction("npc_gerente_henrique", currentUserId)
 
-        val responseText = "Henrique: Olá! Sou o gerente bancário da Estação Rio de Janeiro. O sistema bancário estará disponível em breve!"
+        processarOpcaoBancaria("Henrique", "npc_henrique", msg)
+    }
+
+    private fun processarOpcaoBancaria(managerName: String, npcSenderId: String, msg: String) {
+        val lower = msg.lowercase().trim()
+        val player = PlayerManager.player
+
+        val responseText: String
+        when {
+            lower.contains("saldo") -> {
+                responseText = "$managerName: Seu saldo atual é de ${CurrencyUtils.formatar(player.dinheiro)} Frons."
+            }
+            lower.contains("transfer") || lower.contains("enviar") || lower.contains("pix") || lower.contains("paga") -> {
+                mostrarDialogoTransferenciaFrons(managerName)
+                responseText = "$managerName: Abrindo a interface de transferência de Frons..."
+            }
+            lower.contains("resgatar") || lower.contains("receber") || lower.contains("claim") -> {
+                resgatarTransferenciasPendentes(managerName)
+                responseText = "$managerName: Verificando transferências pendentes para sua conta..."
+            }
+            lower.contains("extrato") || lower.contains("historico") || lower.contains("histórico") -> {
+                mostrarDialogoExtratoBancario(managerName)
+                responseText = "$managerName: Abrindo seu extrato bancário dos últimos 7 dias..."
+            }
+            else -> {
+                responseText = "$managerName: Posso ajudar com suas movimentações bancárias. Digite: 'Saldo', 'Transferir', 'Resgatar' ou 'Extrato'."
+            }
+        }
+
         adicionarMensagem(responseText, isNpc = true)
 
-        val npcPos = gridView.getNpcPosition("NPC Henrique")
+        val npcPos = gridView.getNpcPosition("NPC $managerName")
         if (npcPos != null) {
-            val cleanMsg = responseText.removePrefix("Henrique: ")
+            val cleanMsg = responseText.removePrefix("$managerName: ")
             gridView.addSpeechDialog(
-                senderId = "npc_henrique",
-                senderName = "NPC Henrique",
+                senderId = npcSenderId,
+                senderName = "NPC $managerName",
                 message = cleanMsg,
                 worldX = npcPos.x,
                 worldY = npcPos.y,
                 isPrivate = true,
-                allowedUsers = setOf(currentUserId, "henrique")
+                allowedUsers = setOf(SocialProfileRepository.getCurrentUserId() ?: "local_user", managerName.lowercase())
             )
+        }
+    }
+
+    private fun resgatarTransferenciasPendentes(managerName: String) {
+        lifecycleScope.launch {
+            val result = BankRepository.checkAndClaimPendingTransfers(this@StationActivity)
+            result.onSuccess { claimedList ->
+                if (claimedList.isNotEmpty()) {
+                    val totalCredited = claimedList.sumOf { it.amount }
+                    val msg = "$managerName: Você resgatou ${claimedList.size} transferência(s) totalizando ${CurrencyUtils.formatar(totalCredited)} Frons! Seu novo saldo é de ${CurrencyUtils.formatar(PlayerManager.player.dinheiro)} Frons."
+                    adicionarMensagem(msg, isNpc = true)
+                } else {
+                    adicionarMensagem("$managerName: Não há transferências pendentes para resgatar.", isNpc = true)
+                }
+            }.onFailure { e ->
+                Log.w("StationActivity", "Erro ao resgatar pendências: ${e.message}")
+            }
+        }
+    }
+
+    private fun mostrarDialogoTransferenciaFrons(managerName: String) {
+        val context = this
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 24)
+        }
+
+        val txtSaldo = TextView(context).apply {
+            text = "Seu saldo atual: ${CurrencyUtils.formatar(PlayerManager.player.dinheiro)} Frons"
+            setTextColor(Color.parseColor("#74C6E0"))
+            textSize = 14f
+            setPadding(0, 0, 0, 16)
+        }
+        layout.addView(txtSaldo)
+
+        val edtRecipient = EditText(context).apply {
+            hint = "Username EXATO do destinatário (ex: Max)"
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.GRAY)
+        }
+        layout.addView(edtRecipient)
+
+        val edtAmount = EditText(context).apply {
+            hint = "Quantidade de Frons"
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.GRAY)
+            inputType = InputType.TYPE_CLASS_NUMBER
+        }
+        layout.addView(edtAmount)
+
+        AlertDialog.Builder(context, R.style.Theme_TypingFrontier_ShopDialog)
+            .setTitle("🏦 Transferência de Frons ($managerName)")
+            .setView(layout)
+            .setPositiveButton("Transferir") { _, _ ->
+                val recipient = edtRecipient.text.toString().trim()
+                val amountStr = edtAmount.text.toString().trim()
+                val amount = amountStr.toIntOrNull() ?: 0
+
+                if (recipient.isEmpty() || amount <= 0) {
+                    Toast.makeText(context, "Preencha o username exato e o valor válido.", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                lifecycleScope.launch {
+                    val result = BankRepository.sendFronsTransfer(context, recipient, amount)
+                    result.onSuccess { transfer ->
+                        Toast.makeText(context, "Transferência enviada para @${transfer.recipientUsername}!", Toast.LENGTH_SHORT).show()
+                        adicionarMensagem("$managerName: Transferência de ${CurrencyUtils.formatar(amount)} Frons enviada com sucesso para @${transfer.recipientUsername}!", isNpc = true)
+                    }.onFailure { e ->
+                        Toast.makeText(context, "Falha: ${e.message}", Toast.LENGTH_LONG).show()
+                        adicionarMensagem("$managerName: Falha na transferência: ${e.message}", isNpc = true)
+                    }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun mostrarDialogoExtratoBancario(managerName: String) {
+        val context = this
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 24)
+        }
+
+        val scrollView = ScrollView(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                (250 * resources.displayMetrics.density).toInt()
+            )
+        }
+
+        val listLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        scrollView.addView(listLayout)
+        layout.addView(scrollView)
+
+        val dialog = AlertDialog.Builder(context, R.style.Theme_TypingFrontier_ShopDialog)
+            .setTitle("📜 Extrato Bancário ($managerName - 7 dias)")
+            .setView(layout)
+            .setPositiveButton("Fechar", null)
+            .create()
+
+        dialog.show()
+
+        lifecycleScope.launch {
+            val currentUserId = SocialProfileRepository.getCurrentUserId() ?: ""
+            val result = BankRepository.fetchStatement(7)
+
+            result.onSuccess { statementList ->
+                listLayout.removeAllViews()
+                if (statementList.isEmpty()) {
+                    val emptyTv = TextView(context).apply {
+                        text = "Nenhuma transação encontrada nos últimos 7 dias."
+                        setTextColor(Color.GRAY)
+                        setPadding(0, 32, 0, 32)
+                        gravity = Gravity.CENTER
+                    }
+                    listLayout.addView(emptyTv)
+                    return@launch
+                }
+
+                statementList.forEach { transfer ->
+                    val isSentByMe = transfer.senderId == currentUserId
+                    val row = LinearLayout(context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(16, 12, 16, 12)
+                        setBackgroundResource(android.R.drawable.list_selector_background)
+                    }
+
+                    val directionText = if (isSentByMe) "🔴 ENVIADO (Saída)" else "🟢 RECEBIDO (Entrada)"
+                    val dirColor = if (isSentByMe) Color.parseColor("#FF5252") else Color.parseColor("#4CAF50")
+
+                    val headerTv = TextView(context).apply {
+                        text = "$directionText — ${CurrencyUtils.formatar(transfer.amount)} Frons"
+                        setTextColor(dirColor)
+                        textSize = 14f
+                    }
+                    row.addView(headerTv)
+
+                    val partiesTv = TextView(context).apply {
+                        text = "De: @${transfer.senderUsername} ➔ Para: @${transfer.recipientUsername}"
+                        setTextColor(Color.WHITE)
+                        textSize = 12f
+                    }
+                    row.addView(partiesTv)
+
+                    val statusLabel = when (transfer.status) {
+                        "PENDING_CLAIM" -> "Pendente (Aguardando Resgate)"
+                        "DELIVERING" -> "Iniciando Entrega"
+                        "CLAIMED" -> "Concluído"
+                        "CANCELLED" -> "Cancelado"
+                        else -> transfer.status
+                    }
+
+                    val detailsTv = TextView(context).apply {
+                        text = "Status: $statusLabel | Data: ${transfer.createdAt.take(10)}"
+                        setTextColor(Color.GRAY)
+                        textSize = 11f
+                    }
+                    row.addView(detailsTv)
+
+                    listLayout.addView(row)
+
+                    val divider = View(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
+                        setBackgroundColor(Color.parseColor("#33FFFFFF"))
+                    }
+                    listLayout.addView(divider)
+                }
+            }.onFailure { e ->
+                Toast.makeText(context, "Erro ao carregar extrato: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -2307,8 +2533,21 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             if (resId != 0) sprites[dir] = resId
         }
         
-        val nomeExibicao = if (player.nome.isNotEmpty()) player.nome else "Viajante"
+        val nomeExibicao = SocialProfileRepository.currentProfile?.username ?: ""
         gridView.setPlayerData(sprites, nomeExibicao)
+
+        if (SocialProfileRepository.currentProfile == null && ViewUtils.isNetworkAvailable(this)) {
+            SocialProfileRepository.initializeSocialIdentity {
+                val usernameAtualizado = SocialProfileRepository.currentProfile?.username ?: ""
+                if (usernameAtualizado.isNotEmpty()) {
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed) {
+                            gridView.setPlayerData(sprites, usernameAtualizado)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun tentaEnviarMovimento() {
@@ -2342,12 +2581,25 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        iniciarMonitoramentoConectividade()
+    }
+
     override fun onResume() {
         super.onResume()
-        SoundManager.play(this, "aventura")
+        if (isCurrentNetworkValid || ViewUtils.isNetworkAvailable(this)) {
+            cancelarVerificacaoConectividadePendente()
+            SoundManager.play(this, "aventura")
+        } else {
+            // Janela de tolerância para permitir a validação durante reconexão
+            agendarVerificacaoConectividade(3000L)
+        }
     }
 
     override fun onDestroy() {
+        cancelarVerificacaoConectividadePendente()
+        pararMonitoramentoConectividade()
         super.onDestroy()
         if (::gridView.isInitialized) {
             lastKnownGridX = gridView.getPlayerX()
@@ -2377,5 +2629,119 @@ class StationActivity : AppCompatActivity(), StationGridView.InteractionListener
             gender = ""
         )
         PresenceManager.stopPresence()
+    }
+
+    private fun cancelarVerificacaoConectividadePendente() {
+        runOnUiThread {
+            pendingEjectRunnable?.let { connectivityHandler.removeCallbacks(it) }
+            pendingEjectRunnable = null
+        }
+    }
+
+    private fun agendarVerificacaoConectividade(delayMs: Long = 3000L) {
+        runOnUiThread {
+            if (isEjecting || isFinishing || isDestroyed) return@runOnUiThread
+
+            if (isCurrentNetworkValid) {
+                cancelarVerificacaoConectividadePendente()
+                return@runOnUiThread
+            }
+
+            if (pendingEjectRunnable != null) return@runOnUiThread
+
+            val runnable = Runnable {
+                pendingEjectRunnable = null
+                if (!isCurrentNetworkValid && !ViewUtils.isNetworkAvailable(this)) {
+                    verificarEjectPorPerdaDeConexao()
+                }
+            }
+            pendingEjectRunnable = runnable
+            connectivityHandler.postDelayed(runnable, delayMs)
+        }
+    }
+
+    private fun iniciarMonitoramentoConectividade() {
+        if (networkCallback != null) return
+        val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                runOnUiThread {
+                    currentDefaultNetwork = network
+                }
+            }
+
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                runOnUiThread {
+                    val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    val isWifi = networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                    val isCellular = networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                    val isValidated = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                    val isNotRestricted = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+
+                    val isValid = hasInternet && when {
+                        isWifi -> isValidated
+                        isCellular -> isNotRestricted || isValidated
+                        else -> isValidated
+                    }
+
+                    if (network == currentDefaultNetwork || currentDefaultNetwork == null) {
+                        currentDefaultNetwork = network
+                        isCurrentNetworkValid = isValid
+                        if (isValid) {
+                            cancelarVerificacaoConectividadePendente()
+                        } else {
+                            agendarVerificacaoConectividade(3000L)
+                        }
+                    }
+                }
+            }
+
+            override fun onLost(network: Network) {
+                runOnUiThread {
+                    if (network == currentDefaultNetwork) {
+                        currentDefaultNetwork = null
+                        isCurrentNetworkValid = false
+                        agendarVerificacaoConectividade(3000L)
+                    }
+                }
+            }
+        }
+
+        try {
+            connectivityManager.registerDefaultNetworkCallback(networkCallback!!)
+        } catch (e: Exception) {
+            Log.e("StationActivity", "Erro ao registrar NetworkCallback: ${e.message}")
+        }
+    }
+
+    private fun verificarEjectPorPerdaDeConexao() {
+        runOnUiThread {
+            if (isEjecting || isFinishing || isDestroyed) return@runOnUiThread
+            if (!isCurrentNetworkValid && !ViewUtils.isNetworkAvailable(this)) {
+                isEjecting = true
+                Toast.makeText(this, "Conexão com a internet perdida. Retornando ao Explorer...", Toast.LENGTH_LONG).show()
+
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                }
+                startActivity(intent)
+                finish()
+            }
+        }
+    }
+
+    private fun pararMonitoramentoConectividade() {
+        cancelarVerificacaoConectividadePendente()
+        currentDefaultNetwork = null
+        isCurrentNetworkValid = false
+        val callback = networkCallback ?: return
+        networkCallback = null
+        val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+        try {
+            connectivityManager.unregisterNetworkCallback(callback)
+        } catch (e: Exception) {
+            Log.e("StationActivity", "Erro ao cancelar NetworkCallback: ${e.message}")
+        }
     }
 }
